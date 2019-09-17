@@ -149,7 +149,8 @@ order by t.name, p.name;
 select p.name from Evolution e, Pokemon p
 where 
   e.before_id = p.id
-  and e.after_id in (select before_id from Evolution)
+  and e.before_id not in (select after_id from Evolution)
+  and e.after_id not in (select before_id from Evolution)
 order by p.name;
 
 -- 27. Print the nickname of pokemon which is caught by the leader of Sangnok city
@@ -182,6 +183,7 @@ order by max_level desc;
 
 -- 31. Print the triple-evolvable pokemons in id order.
 select
+  e.before_id,
   (select name from Pokemon where id = e.before_id) as first,
   (select name from Pokemon where id = e.after_id) as second,
   (select name from Pokemon where id = 
