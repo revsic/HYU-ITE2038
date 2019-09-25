@@ -1,0 +1,8 @@
+# static library
+*.a
+
+# object files
+*.o
+
+# executable files
+main
