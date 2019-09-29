@@ -101,18 +101,21 @@ return insert_into_leaf_after_splitting(root, leaf, key, pointer);
 ```
 Split policy에 따라 key를 삽입한다.
 
-1. `insert_into_leaf_after_splitting` - `insert_into_parent` : 중간값으로 선택된 key를 parent에 삽입
-2. `insert_into_parent` - `insert_into_new_root` : root를 split한 경우 
-3. `insert_into_parent` - `insert_into_node` : 상위 노드에 key 삽입.
-4. `insert_into_parent` - `insert_into_node_after_splitting` : 상위 노드를 split한 후 삽입.
-5. `insert_into_node_after_splitting` - `insert_into_parent` : 상위 노드에 key 삽입.
+위 구현체에서는 insertion 과정에 redistribution policy를 적용하지 않고 split만을 진행한다.
 
-위 구현체에서는 insertion 과정에 redistribution policy를 적용하지 않고 split만을 진행한다. 
+### 2. Split operation in bpt.c
 
-### 2. Deletion method in bpt.c
+Split의 첫 함수는 insert 내부에 있는 `insert_into_leaf_after_splitting`에서 시작하며, 상위 노드에 key를 삽입하는 과정을 `insert_into_parent`로 축약한다.
 
-### 3. Merge operations in bpt.c
+`insert_into_parent`는 다음 3가지 조건에 따라 분기한다.
+1. root를 split한 경우 : `insert_into_new_root`
+2. 노드에 키를 단순 삽입하는 경우 : `insert_into_node`
+3. 노드를 split한 후 키를 삽입하는 경우 : `insert_into_node_after_splitting`
 
-### 4. Split operation in bpt.c
+이후 `insert_into_node_after_splitting` 에서 다시 상위 노드에 key를 삽입하기 위해 `insert_into_parent`를 호출한다.
+
+### 3. Deletion method in bpt.c
+
+### 4. Merge operations in bpt.c
 
 ## 5. Naive Design requirements for on-disk b+ tree
