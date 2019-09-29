@@ -6,7 +6,7 @@ Database 내부 Record Mangement system을 위한 On-disk B+ Tree 소개 및 In-
 
 Tree형 자료구조의 일종으로 정렬된 Key-Value Pair에 대한 효율적인 삽입, 검색, 삭제를 지원한다.
 
-![b plus tree simple structure](./rsrc/img1.png)
+<img src="./rsrc/img1.png" width="60%">
 
 각각의 노드는 최대 노드 갯수 B를 기준으로 루트 노드를 제외, {B - 1}개의 키와 B개의 자식 노드를 가질 수 있다. Pair의 수에 따라 다계층으로 구성되며, 계층의 수와 검색에 소요되는 시간이 비례한다. 이에 계층 수를 tight하게 관리하기 위해 추가적인 Balancing policy를 보유하고 있다. 이는 기존의 B-Tree와도 유사하며, B+Tree는 sibling에 대한 포인터를 가져 다음 Key-Value Pair로의 Sequential한 검색이 가능하단 장점을 가진다. 
 
@@ -38,11 +38,11 @@ B+ Tree에는 몇가지 Constraint가 존재한다.
 
 일반 Tree의 경우 새로운 Key-Value Pair가 특정 Leaf node에만 추가되거나, 특정 노드에서만 Deletion이 발생할 경우 Tree Unbalancing 문제가 발생할 수 있다.
 
-![unbalancing problem](./rsrc/balanced.png)
+<img src="./rsrc/balanced.png" width="60%">
 
 B+ Tree는 이에 노드가 최대 최소 조건을 어겼을 때, Sibling 노드를 조사하여 자신의 Pair를 Sibling에게 전달하거나 받아온다. 
 
-![key rotation](./rsrc/redist.png)
+<img src="./rsrc/redist.png" width="60%">
 
 좌측 노드에 키와 포인터를 넘겨 주거나(insertion), 받을(deletion) 여력이 있다면 가장 작은 키를 좌측 노드에 추가하거나, 좌측 노드의 가장 큰 키를 받아온다. 같은 논리로 우측 노드에 자리가 있다면, 가장 큰 키를 우측 노드로 전달하거나, 우측 노드의 가장 작은 키를 가져온다. 이를 Key Rotation 혹은 Redistribution이라 표현한다.
 
@@ -50,7 +50,7 @@ B+ Tree는 이에 노드가 최대 최소 조건을 어겼을 때, Sibling 노�
 
 Insertion 과정에서 더 이상 Redistribution을 할 수 없는 경우, 혹 특정 level이 수용할 수 있는 최대 key의 수를 넘어설 경우 B+Tree는 하나의 노드를 두개의 노드로 분리, Split 한다. 
 
-![node splition](./rsrc/split.png)
+<img src="./rsrc/split.png" width="60%">
 
 요청 받은 키를 추가하고 (B+1개 키), 중간값을 기준으로 두개의 독단적인 노드로 분리한다 (left node B/2개 키 + key + right node B/2개 키). 이후 중간 key를 상위 노드에 insert 하며, 삽입된 키의 좌우로 분리된 두개의 노드를 하위 노드로 연결한다. 
 
@@ -58,7 +58,7 @@ Insertion 과정에서 더 이상 Redistribution을 할 수 없는 경우, 혹 �
 
 Remove 과정에서 더 이상 Redistribution을 할 수 없는 경우, 혹 특정 level이 수용해야 하는 최소 key의 수를 넘어설 경우 B+Tree는 두개의 노드를 하나의 노드로 합친다 (Merge).
 
-![mnode merging](./rsrc/merge.png)
+<img src="./rsrc/merge.png" width="60%">
 
 두개 노드를 연결하고 있는 상위 노드의 키를 가져와 left node + key + right node의 꼴로 연결한다. 이 후 상위 노드에서 해당 키를 Delete한다. 
 
