@@ -86,8 +86,26 @@ if (root == NULL)
 
 3. key number constraint를 어기지 않는 경우
 ```c
+leaf = find_leaf(root, key, false);
+
+if (leaf->num_keys < order - 1) {
+    leaf = insert_into_leaf(leaf, key, pointer);
+    return root;
+}
 ```
+record를 생성하여 추가적인 balancing policy 없이 leaf에 바로 추가한다.
+
 4. 어기는 경우
+```c
+return insert_into_leaf_after_splitting(root, leaf, key, pointer);
+```
+Split policy에 따라 key를 삽입한다.
+
+1. `insert_into_leaf_after_splitting` - `insert_into_parent` : 중간값으로 선택된 key를 parent에 삽입
+2. `insert_into_parent` - `insert_into_new_root` : root를 split한 경우 
+3. `insert_into_parent` - `insert_into_node` : 상위 노드에 key 삽입.
+4. `insert_into_parent` - `insert_into_node_after_splitting` : 상위 노드를 split한 후 삽입.
+5. `insert_into_node_after_splitting` - `insert_into_parent` : 상위 노드에 key 삽입.
 
 위 구현체에서는 insertion 과정에 redistribution policy를 적용하지 않고 split만을 진행한다. 
 
