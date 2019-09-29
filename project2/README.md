@@ -62,10 +62,39 @@ Remove 과정에서 더 이상 Redistribution을 할 수 없는 경우, 혹 특�
 
 두개 노드를 연결하고 있는 상위 노드의 키를 가져와 left node + key + right node의 꼴로 연결한다. 이 후 상위 노드에서 해당 키를 Delete한다. 
 
-## 4. Insertion method in bpt.c
+## 4. Analyze bpt.c
 
-## 5. Deletion method in bpt.c
+[bpt.c](./src/bpt.c)은 B+Tree의 In-Memory 구현체이다. 실제 구현체를 통해 insertion, deletion, merge, split, redistribution operation을 분석한다.
 
-## 6. Merge and split operations in bpt.c
+### 1. Insertion method in bpt.c
 
-## 7. Naive Design requirements for on-disk b+ tree
+[bpt.c](./src/bpt.c)에서는 insertion을 총 4가지 경우로 나눈다.
+
+1. 이미 주어진 key가 주어진 경우
+```c
+if (find(root, key, false) != NULL)
+    return root;
+```
+key가 이미 tree에 존재하는 경우 추가 수정을 하지 않는다.
+
+2. tree가 비어 있는 경우
+```c
+if (root == NULL) 
+    return start_new_tree(key, pointer);
+```
+새로운 tree를 생성하여 반환한다.
+
+3. key number constraint를 어기지 않는 경우
+```c
+```
+4. 어기는 경우
+
+위 구현체에서는 insertion 과정에 redistribution policy를 적용하지 않고 split만을 진행한다. 
+
+### 2. Deletion method in bpt.c
+
+### 3. Merge operations in bpt.c
+
+### 4. Split operation in bpt.c
+
+## 5. Naive Design requirements for on-disk b+ tree
