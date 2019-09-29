@@ -143,7 +143,7 @@ if (n->num_keys >= min_keys)
     return root;
 ```
 
-3. Constraint를 만족하지 않지만, Merge가 가능한 경우 : 두 노드를 merge한다.
+3. Constraint를 만족하지 않지만, Merge가 가능한 경우 : 인접 노드와 merge한다.
 ```c
 if (neighbor->num_keys + n->num_keys < capacity)
     return coalesce_nodes(root, n, neighbor, neighbor_index, k_prime);
@@ -155,5 +155,11 @@ return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_pr
 ```
 
 ### 4. Merge operations in bpt.c
+
+[bpt.c](./src/bpt.c)에서는 Merge operation을 `coalesce_nodes`를 통해 구현한다. 중간값 `k_prime`과 right node `n`를 left node `node`에 덧붙이고, `delete_entry`를 통해 상위 노드에서 중간값을 삭제한다.
+
+### 5. Redistribution operations in bpt.c
+
+`redistribute_node`에서는 좌측에 노드가 있는지와 leftmost 노드인지를 기준으로 첫 분기를 실행한다 `neighbor_index != -1`. 이후 좌측에 노드가 있는 경우, key와 pointer를 오른쪽으로 한칸씩 옮긴 후 좌측 노드의 마지막 값을 첫 칸에 옮긴다. 부가적으로 상위 노드의 key값과 하위 노드의 부모 노드 포인터를 수정한다. leftmost node의 경우 동일한 논리로 오른쪽 노드에서 값을 가져온다.
 
 ## 5. Naive Design requirements for on-disk b+ tree
