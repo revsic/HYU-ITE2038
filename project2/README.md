@@ -129,6 +129,31 @@ return insert_into_node_after_splitting(root, parent, left_index, key, right);
 
 ### 3. Deletion method in bpt.c
 
+[bpt.c](./src/bpt.c)에서는 `delete`함수가 내부적으로 `delete_entry`를 호출한다. `delete_entry`는 4가지 분기를 가진다. 
+
+1. root에서 deletion이 발생한 경우 : root가 비어있는지, child가 하나인지 검사하여 shrink한다.
+```c
+if (n == root) 
+    return adjust_root(root);
+```
+
+2. key의 최대 최소 조건을 만족할 경우 : Early return.
+```c
+if (n->num_keys >= min_keys)
+    return root;
+```
+
+3. Constraint를 만족하지 않지만, Merge가 가능한 경우 : 두 노드를 merge한다.
+```c
+if (neighbor->num_keys + n->num_keys < capacity)
+    return coalesce_nodes(root, n, neighbor, neighbor_index, k_prime);
+```
+
+4. Constraint도 만족하지 않고, Merge도 불가능한 경우 : Redistribution policy에 따라 인덱스를 재배분한다.
+```c
+return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_prime);
+```
+
 ### 4. Merge operations in bpt.c
 
 ## 5. Naive Design requirements for on-disk b+ tree
