@@ -109,8 +109,21 @@ Split의 첫 함수는 insert 내부에 있는 `insert_into_leaf_after_splitting
 
 `insert_into_parent`는 다음 3가지 조건에 따라 분기한다.
 1. root를 split한 경우 : `insert_into_new_root`
+```c
+if (parent == NULL)
+    return insert_into_new_root(left, key, right);
+```
 2. 노드에 키를 단순 삽입하는 경우 : `insert_into_node`
+```c
+left_index = get_left_index(parent, left);
+
+if (parent->num_keys < order - 1)
+    return insert_into_node(root, parent, left_index, key, right);
+```
 3. 노드를 split한 후 키를 삽입하는 경우 : `insert_into_node_after_splitting`
+```c
+return insert_into_node_after_splitting(root, parent, left_index, key, right);
+```
 
 이후 `insert_into_node_after_splitting` 에서 다시 상위 노드에 key를 삽입하기 위해 `insert_into_parent`를 호출한다.
 
