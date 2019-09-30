@@ -8,13 +8,13 @@ Tree형 자료구조의 일종으로 정렬된 Key-Value Pair에 대한 효율�
 
 <img src="./rsrc/img1.png" width="60%">
 
-각각의 노드는 최대 노드 갯수 B를 기준으로 루트 노드를 제외, {B - 1}개의 키와 B개의 자식 노드를 가질 수 있다. Pair의 수에 따라 다계층으로 구성되며, 계층의 수와 검색에 소요되는 시간이 비례한다. 이에 계층 수를 tight하게 관리하기 위해 추가적인 Balancing policy를 보유하고 있다. 이는 기존의 B-Tree와도 유사하며, B+Tree는 sibling에 대한 포인터를 가져 다음 Key-Value Pair로의 Sequential한 검색이 가능하단 장점을 가진다. 
+각각의 노드는 최대 노드 개수 B를 기준으로 루트 노드를 제외, {B - 1} 개의 키와 B개의 자식 노드를 가질 수 있다. Pair의 수에 따라 다계층으로 구성되며, 계층의 수와 검색에 걸리는 시간이 비례한다. 이에 계층 수를 tight 하게 관리하기 위해 추가적인 Balancing policy를 보유하고 있다. 이는 기존의 B-Tree와도 유사하며, B+Tree는 sibling에 대한 포인터를 가져 다음 Key-Value Pair로의 Sequential 한 검색이 가능하단 장점이 있다.
 
 ## 2. Why it used as on-disk data structure
 
-B+ Tree는 B라는 Branching Factor를 Hyperparameter로 가지고 있는데, 이 크기가 늘어날 수록 하나의 노드에서 키를 찾는데 시간이 상대적으로 증가하지만, 디스크 접근 속도가 월등히 느린 현대 컴퓨터에서는 B를 키워 노드를 읽는 수를 줄일 수 있다는 장점을 가진다.
+B+ Tree는 B라는 Branching Factor를 Hyper parameter로 가지고 있는데, 이 크기가 늘어날수록 하나의 노드에서 키를 찾는데 시간이 상대적으로 증가하지만, 디스크 접근 속도가 월등히 느린 현대 컴퓨터에서는 B를 키워 노드를 읽는 수를 줄일 수 있다는 장점이 있다.
 
-하나의 노드 내에서 키를 검색하는데에는 선형 탐색을 가정할 때 B번, 2진 탐색을 가정할 때 logB의 시간 복잡도를 가진다.
+하나의 노드 내에서 키를 검색하는 데에는 선형 탐색을 가정할 때 B 번, 2진 탐색을 가정할 때 logB의 시간 복잡도를 가진다.
 
 ![time complexity of linear and binary search](./rsrc/form1.png)
 
@@ -22,7 +22,7 @@ N개의 데이터를 가정할 때, 자료 구조에서 요구하는 노드의 �
 
 ![the number of nodes for B+ Tree](./rsrc/form2.png)
 
-기존의 BST나 AVL 트리가 B=2를 기준으로 했다면, B+ Tree (혹 B Tree)는 이를 보다 일반화 하여 노드를 불러오는 횟수를 줄인 자료구조이다. 디스크에서 노드를 불러온 후, 키를 검색하는 알고리즘은 In-Memory로 작동하기 때문에 기존의 트리형 자료구조에 비해 빠른 검색을 지원한다.
+기존의 BST나 AVL 트리가 B=2를 기준으로 했다면, B+ Tree (혹 B-Tree)는 이를 보다 일반화하여 노드를 불러오는 횟수를 줄인 자료구조이다. 디스크에서 노드를 불러온 후, 키를 검색하는 알고리즘은 In-Memory로 작동하기 때문에 디스크 기반에서 기존의 트리형 자료구조에 비해 빠른 검색을 지원한다.
 
 ## 3. Balancing policy
 
@@ -48,19 +48,19 @@ B+ Tree는 이에 노드가 최대 최소 조건을 어겼을 때, Sibling 노�
 
 2. Split
 
-Insertion 과정에서 더 이상 Redistribution을 할 수 없는 경우, 혹 특정 level이 수용할 수 있는 최대 key의 수를 넘어설 경우 B+Tree는 하나의 노드를 두개의 노드로 분리, Split 한다. 
+Insertion 과정에서 더는 Redistribution을 할 수 없는 경우, 혹 특정 level이 수용할 수 있는 최대 key의 수를 넘어설 때 B+Tree는 하나의 노드를 두 개의 노드로 분리, Split 한다. 
 
 <img src="./rsrc/split.png" width="60%">
 
-요청 받은 키를 추가하고 (B+1개 키), 중간값을 기준으로 두개의 독단적인 노드로 분리한다 (left node B/2개 키 + key + right node B/2개 키). 이후 중간 key를 상위 노드에 insert 하며, 삽입된 키의 좌우로 분리된 두개의 노드를 하위 노드로 연결한다. 
+요청받은 키를 추가하고 (B+1개 키), 중간값을 기준으로 두 개의 독단적인 노드로 분리한다 (left node B/2개 키 + key + right node B/2개 키). 이후 중간 key를 상위 노드에 insert 하며, 삽입된 키의 좌우로 분리된 두 개의 노드를 하위 노드로 연결한다. 
 
 3. Merge
 
-Remove 과정에서 더 이상 Redistribution을 할 수 없는 경우, 혹 특정 level이 수용해야 하는 최소 key의 수를 넘어설 경우 B+Tree는 두개의 노드를 하나의 노드로 합친다 (Merge).
+Remove 과정에서 더는 Redistribution을 할 수 없는 경우, 혹 특정 level이 수용해야 하는 최소 key의 수를 넘어설 때 B+Tree는 두 개의 노드를 하나의 노드로 합친다 (Merge).
 
 <img src="./rsrc/merge.png" width="60%">
 
-두개 노드를 연결하고 있는 상위 노드의 키를 가져와 left node + key + right node의 꼴로 연결한다. 이 후 상위 노드에서 해당 키를 Delete한다. 
+두 개 노드를 연결하고 있는 상위 노드의 키를 가져와 left node + key + right node의 꼴로 연결한다. 이후 상위 노드에서 해당 키를 Delete 한다. 
 
 ## 4. Analyze bpt.c
 
@@ -70,12 +70,12 @@ Remove 과정에서 더 이상 Redistribution을 할 수 없는 경우, 혹 특�
 
 [bpt.c](./src/bpt.c)에서는 insertion을 총 4가지 경우로 나눈다.
 
-1. 이미 주어진 key가 주어진 경우
+1. 이미 주어진 key가 존재할 경우
 ```c
 if (find(root, key, false) != NULL)
     return root;
 ```
-key가 이미 tree에 존재하는 경우 추가 수정을 하지 않는다.
+추가 수정을 하지 않는다.
 
 2. tree가 비어 있는 경우
 ```c
@@ -84,7 +84,7 @@ if (root == NULL)
 ```
 새로운 tree를 생성하여 반환한다.
 
-3. key number constraint를 어기지 않는 경우
+3. number of key constraint를 어기지 않는 경우
 ```c
 leaf = find_leaf(root, key, false);
 
@@ -93,7 +93,7 @@ if (leaf->num_keys < order - 1) {
     return root;
 }
 ```
-record를 생성하여 추가적인 balancing policy 없이 leaf에 바로 추가한다.
+record를 생성하여 추가적인 balancing policy 없이 leaf에 덧붙인다.
 
 4. 어기는 경우
 ```c
@@ -137,7 +137,7 @@ if (n == root)
     return adjust_root(root);
 ```
 
-2. key의 최대 최소 조건을 만족할 경우 : Early return.
+2. key의 최대 최소 조건을 만족할 경우 : 조기 반환한다.
 ```c
 if (n->num_keys >= min_keys)
     return root;
@@ -160,11 +160,11 @@ return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_pr
 
 ### 5. Redistribution operations in bpt.c
 
-`redistribute_node`에서는 좌측에 노드가 있는지와 leftmost 노드인지를 기준으로 첫 분기를 실행한다 `neighbor_index != -1`. 이후 좌측에 노드가 있는 경우, key와 pointer를 오른쪽으로 한칸씩 옮긴 후 좌측 노드의 마지막 값을 첫 칸에 옮긴다. 부가적으로 상위 노드의 key값과 하위 노드의 부모 노드 포인터를 수정한다. leftmost node의 경우 동일한 논리로 오른쪽 노드에서 값을 가져온다.
+`redistribute_node`에서는 좌측에 노드가 있는지와 leftmost 노드인지를 기준으로 첫 분기를 실행한다 `neighbor_index != -1`. 이후 좌측에 노드가 있는 경우, key와 pointer를 오른쪽으로 한 칸씩 옮긴 후 좌측 노드의 마지막 값을 처음 칸에 옮긴다. 부가적으로 상위 노드의 key 값과 하위 노드의 부모 노드 포인터를 수정한다. leftmost node의 경우 같은 논리로 오른쪽 노드에서 값을 가져온다.
 
 ## 5. Naive Design requirements for on-disk b+ tree
 
-[bpt.c](./src/bpt.c)가 In-Memory 노드를 기준으로 search, insert, delete operation이 동작했다면, Database system에서는 대규모 Key-Value Pair과 Structure을 저장하기 위해 On-Disk 방식으로 작동할 필요가 있다.
+[bpt.c](./src/bpt.c)는 In-Memory Node를 기준으로 search, insert, delete operation이 동작했다면, Database system에서는 대규모 Key-Value Pair와 Structure를 저장하기 위해 On-Disk 방식으로 작동할 필요가 있다.
 
 기존의 노드 구조는 [bpt.h](./src/bpt.h)에 다음과 같이 정의되어 있다.
 ```c
@@ -177,9 +177,9 @@ typedef struct node {
     struct node * next; // Used for queue.
 } node;
 ```
-자식 노드가 `void**` 타입으로 연결되어 있고, 상위 노드 또한 `struct node*` 타입으로 모두 In-Memory Pointer 타입으로 상관되고 있다. 이를 On-Disk 방식으로 바꾸기 위해 다중 파일 다중 페이지 접근을 위한 PageId와 PageId를 실제 File 내 Page로 연결하기 위한 PagePointer 구조를 정의하고, In-Memory Pointer 대신 PageId를 가지게 한다.
+자식 노드가 `void**` 타입으로 연결되어 있고, 상위 노드 또한 `struct node*` 타입으로 모두 In-Memory Pointer 타입으로 상관되고 있다. 이를 On-Disk 방식으로 바꾸기 위해 PageID와 PageID를 실제 File 내 Page로 연결하기 위한 PagePointer 구조를 정의하고, In-Memory Pointer 대신 PageId를 가지게 한다.
 
-PagePointer은 Page의 고유 아이디인 `page_id`, 해당 Page가 존재하는 `file_id`, 해당 File내에서 Page의 상대 위치인 `rel_page_id`를 가진다.
+PagePointer은 Page의 고유 아이디인 `page_id`, 해당 Page가 존재하는 `file_id`, 해당 File 내에서 Page의 상대 위치인 `rel_page_id`를 가진다.
 ```c
 typedef struct _PagePointer {
     int page_id;
@@ -188,7 +188,7 @@ typedef struct _PagePointer {
 } PagePointer;
 ```
 
-또한 `PagePointer`를 통해 global context에서 PageId를 실 주소로 mapping하기 위한 `PagePointerManager`를 정의한다.
+또한 `PagePointer`를 통해 global context에서 PageID를 실 주소로 mapping하기 위한 `PagePointerManager`를 정의한다.
 ```c
 typedef struct _PagePointerManager {
     int num_pointers;
@@ -196,7 +196,7 @@ typedef struct _PagePointerManager {
 } PagePointerManager;
 ```
 
-이후, 실제 In-Memory Node를 On-Disk Page로 변환을 해야 한다.
+이후, 실제 In-Memory Node를 On-Disk Page로 변환한다.
 ```c
 typedef struct _Record {
     char some_values[SIZE_OF_RECORDS];
@@ -238,7 +238,7 @@ typedef struct _RootFile {
 ```
 
 Disk-Level Structure을 위해 몇가지 Abstracted Procedure이 필요하다.
-1. `int open_table(char* filepath, RootFile* retval, OpenFlag flag)`: flag에 따라 파일을 열어 RootFile 구조를 반환하거나, 새로 생성한다.
+1. `int open_table(char* filepath, RootFile* retval, OpenFlag flag)`: flag에 따라 파일을 열거나 새로 생성하여 RootFile 구조를 반환한다.
 2. `int search_page_id(int page_id, PagePointerManager* manager, PagePointer* retval)`: 해당 `page_id`를 통해서 실제 `file_id`와 `rel_page_id`를 검색한다.
 3. `int load_page(PagePointer* page_ptr, Page* retval)`: 해당 `PagePointer`를 통해 `Page`를 메모리에 올린다.
 4. `int make_page(RootFile* root, Page* retval)`: 해당 `RootFile`에 새로운 `Page`를 생성한다. 필요한 경우 `File`을 추가생성할 수 있다.
