@@ -8,7 +8,7 @@ Tree형 자료구조의 일종으로 정렬된 Key-Value Pair에 대한 효율�
 
 <img src="./rsrc/img1.png" width="60%">
 
-각각의 노드는 최대 노드 갯수 B를 기준으로 루트 노드를 제외, {B - 1}개의 키와 B개의 자식 노드를 가질 수 있다. Pair의 수에 따라 다계층으로 구성되며, 계층의 수와 검색에 소요되는 시간이 비례한다. 이에 계층 수를 tight하게 관리하기 위해 추가적인 Balancing policy를 보유하고 있다. 이는 기존의 B-Tree와도 유사하며, B+Tree는 sibling에 대한 포인터를 가져 다음 Key-Value Pair로의 Sequential한 검색이 가능하단 장점을 가진다. 
+각각의 노드는 최대 노드 갯수 B를 기준으로 루트 노드를 제외, {B - 1}개의 키와 B개의 자식 노드를 가질 수 있다. Pair의 수에 따라 다계층으로 구성되며, 계층의 수와 검색에 소요되는 시간이 비례한다. 이에 계층 수를 tight하게 관리하기 위해 추가적인 Balancing policy를 보유하고 있다. 이는 기존의 B-Tree와도 유사하며, B+Tree는 sibling에 대한 포인터를 가져 다음 Key-Value Pair로의 Sequential한 검색이 가능하단 장점을 가진다. 
 
 ## 2. Why it used as on-disk data structure
 
@@ -163,3 +163,5 @@ return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_pr
 `redistribute_node`에서는 좌측에 노드가 있는지와 leftmost 노드인지를 기준으로 첫 분기를 실행한다 `neighbor_index != -1`. 이후 좌측에 노드가 있는 경우, key와 pointer를 오른쪽으로 한칸씩 옮긴 후 좌측 노드의 마지막 값을 첫 칸에 옮긴다. 부가적으로 상위 노드의 key값과 하위 노드의 부모 노드 포인터를 수정한다. leftmost node의 경우 동일한 논리로 오른쪽 노드에서 값을 가져온다.
 
 ## 5. Naive Design requirements for on-disk b+ tree
+
+
