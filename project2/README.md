@@ -179,7 +179,7 @@ typedef struct node {
 ```
 자식 노드가 `void**` 타입으로 연결되어 있고, 상위 노드 또한 `struct node*` 타입으로 모두 In-Memory Pointer 타입으로 상관되고 있다. 이를 On-Disk 방식으로 바꾸기 위해 다중 파일 다중 페이지 접근을 위한 PageId와 PageId를 실제 File 내 Page로 연결하기 위한 PagePointer 구조를 정의하고, In-Memory Pointer 대신 PageId를 가지게 한다.
 
-PagePointer은 Page의 고유 아이디인 page_id, 해당 Page가 존재하는 file_id, 해당 File내에서 Page의 상대 위치인 rel_page_id를 가진다.
+PagePointer은 Page의 고유 아이디인 `page_id`, 해당 Page가 존재하는 `file_id`, 해당 File내에서 Page의 상대 위치인 `rel_page_id`를 가진다.
 ```c
 typedef struct _PagePointer {
     int page_id;
@@ -188,14 +188,12 @@ typedef struct _PagePointer {
 } PagePointer;
 ```
 
-또한 PagePointer를 통해 global context에서 PageId를 실 주소로 mapping하기 위한 PagePointerManager와 관련 메소드를 정의한다.
+또한 `PagePointer`를 통해 global context에서 PageId를 실 주소로 mapping하기 위한 `PagePointerManager`를 정의한다.
 ```c
 typedef struct _PagePointerManager {
     int num_pointers;
     PagePointer pointers[MAX_POINTERS];
 } PagePointerManager;
-
-PagePointer* search_page_id(int page_id, PagePointerManager* manager);
 ```
 
 이후, 실제 In-Memory Node를 On-Disk Page로 변환을 해야 한다.
@@ -217,7 +215,7 @@ typedef struct _Page {
     KeyValuePair pairs[MAX_PAIRS];
 } Page;
 ```
-위 Page에서 special_pid는 Free page일 때 다음 Free Page의 Page ID, Leaf 노드일 때 Sibling Page ID, Internal 노드일 때 Leftmost Child Page ID를 가진다.
+위 Page에서 `special_pid`는 Free page일 때 다음 Free Page의 Page ID, Leaf 노드일 때 Sibling Page ID, Internal 노드일 때 Leftmost Child Page ID를 가진다.
 
 실제 File에는 여러 Page가 저장되어야 하므로 File에 관련된 자료구조도가 별도로 필요하다.
 ```c
@@ -229,12 +227,27 @@ typedef struct _File {
 ```
 free_pid는 Linked List 형태로 연결된 Free Page의 Head를 가리킨다.
 
-또한 DBS에서 이용할 Global Context 관리를 위한 MasterFile이 필요하다.
+또한 B+Tree에서 이용할 Global Context 관리를 위한 RootFile이 필요하다.
 ```c
-typedef struct _MasterFile {
+typedef struct _RootFile {
+    int root_pid;
     int num_files;
-    int files[MAX_FILES];
+    int file_ids[MAX_FILES];
     PagePointerManager manager;
-} MasterFile;
+} RootFile;
 ```
 
+Disk-Level Structure을 위해 몇가지 Abstracted Procedure이 필요하다.
+1. `int open_table(char* filepath, RootFile* retval, OpenFlag flag)`: flag에 따라 파일을 열어 RootFile 구조를 반환하거나, 새로 생성한다.
+2. `int search_page_id(int page_id, PagePointerManager* manager, PagePointer* retval)`: 해당 `page_id`를 통해서 실제 `file_id`와 `rel_page_id`를 검색한다.
+3. `int load_page(PagePointer* page_ptr, Page* retval)`: 해당 `PagePointer`를 통해 `Page`를 메모리에 올린다.
+4. `int make_page(RootFile* root, Page* retval)`: 해당 `RootFile`에 새로운 `Page`를 생성한다. 필요한 경우 `File`을 추가생성할 수 있다.
+5. `int delete_page(RootFile* root, int page_id)`: 해당 `Page`를 삭제한다.
+
+이를 통해서 B+Tree를 On-Disk 방식으로 수정한다.
+1. `int open(char* pathname, RootFile* retval, OpenFlag flag)`: `pathname`에서 `RootFile`을 업로드 한다.
+2. `int insert(RootFile* root, int key, Record* record)`: 해당 B+Tree에 `key`와 `record`를 삽입한다.
+3. `int find(RootFile* root, int key, Record* retval)`: 해당 B+Tree에서 `key`를 찾아 `Record`를 반환한다.
+4. `int delete(RootFile* root, int key)`: 해당 B+Tree에서 `key`를 삭제한다.
+
+B+Tree를 In-Memory 방식에서 On-Disk 방식으로 바꾸기 위해 `make_node`를 `make_page`로, node의 삭제를 `delete_page`로, 포인터 접근 방식을 `load_page`로 변환한다. 이후에는 `Node`와 `Page`가 1대1 대응이 가능한 관계이기 때문에 논리에 맞게 수정할 수 있다. 
