@@ -232,8 +232,9 @@ free_pid는 Linked List 형태로 연결된 Free Page의 Head를 가리킨다.
 또한 DBS에서 이용할 Global Context 관리를 위한 MasterFile이 필요하다.
 ```c
 typedef struct _MasterFile {
+    int num_files;
+    int files[MAX_FILES];
     PagePointerManager manager;
 } MasterFile;
 ```
-현재에는 PagePointerManager만 존재하지만, 추후 DBS 구성 중에 요소가 더 추가될 듯 하다.
 
