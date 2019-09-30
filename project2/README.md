@@ -164,4 +164,76 @@ return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_pr
 
 ## 5. Naive Design requirements for on-disk b+ tree
 
+[bpt.c](./src/bpt.c)가 In-Memory 노드를 기준으로 search, insert, delete operation이 동작했다면, Database system에서는 대규모 Key-Value Pair과 Structure을 저장하기 위해 On-Disk 방식으로 작동할 필요가 있다.
+
+기존의 노드 구조는 [bpt.h](./src/bpt.h)에 다음과 같이 정의되어 있다.
+```c
+typedef struct node {
+    void ** pointers;
+    int * keys;
+    struct node * parent;
+    bool is_leaf;
+    int num_keys;
+    struct node * next; // Used for queue.
+} node;
+```
+자식 노드가 `void**` 타입으로 연결되어 있고, 상위 노드 또한 `struct node*` 타입으로 모두 In-Memory Pointer 타입으로 상관되고 있다. 이를 On-Disk 방식으로 바꾸기 위해 다중 파일 다중 페이지 접근을 위한 PageId와 PageId를 실제 File 내 Page로 연결하기 위한 PagePointer 구조를 정의하고, In-Memory Pointer 대신 PageId를 가지게 한다.
+
+PagePointer은 Page의 고유 아이디인 page_id, 해당 Page가 존재하는 file_id, 해당 File내에서 Page의 상대 위치인 rel_page_id를 가진다.
+```c
+typedef struct _PagePointer {
+    int page_id;
+    int file_id;
+    int rel_page_id;
+} PagePointer;
+```
+
+또한 PagePointer를 통해 global context에서 PageId를 실 주소로 mapping하기 위한 PagePointerManager와 관련 메소드를 정의한다.
+```c
+typedef struct _PagePointerManager {
+    int num_pointers;
+    PagePointer pointers[MAX_POINTERS];
+} PagePointerManager;
+
+PagePointer* search_page_id(int page_id, PagePointerManager* manager);
+```
+
+이후, 실제 In-Memory Node를 On-Disk Page로 변환을 해야 한다.
+```c
+typedef struct _Record {
+    char some_values[SIZE_OF_RECORDS];
+} Record;
+
+typedef struct _KeyValuePair {
+    int key;
+    Record value;
+} KeyValuePair;
+
+typedef struct _Page {
+    int parent_pid;
+    int special_pid;
+    int is_leaf;
+    int num_keys;
+    KeyValuePair pairs[MAX_PAIRS];
+} Page;
+```
+위 Page에서 special_pid는 Free page일 때 다음 Free Page의 Page ID, Leaf 노드일 때 Sibling Page ID, Internal 노드일 때 Leftmost Child Page ID를 가진다.
+
+실제 File에는 여러 Page가 저장되어야 하므로 File에 관련된 자료구조도가 별도로 필요하다.
+```c
+typedef struct _File {
+    int free_pid;
+    int num_pages;
+    Page pages[MAX_PAGES];
+} File;
+```
+free_pid는 Linked List 형태로 연결된 Free Page의 Head를 가리킨다.
+
+또한 DBS에서 이용할 Global Context 관리를 위한 MasterFile이 필요하다.
+```c
+typedef struct _MasterFile {
+    PagePointerManager manager;
+} MasterFile;
+```
+현재에는 PagePointerManager만 존재하지만, 추후 DBS 구성 중에 요소가 더 추가될 듯 하다.
 
