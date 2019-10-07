@@ -16,8 +16,7 @@ TARGET_SRC:=$(SRCDIR)main.c
 TARGET_OBJ:=$(SRCDIR)main.o
 
 # test source file
-TARGET_TEST_SRC:=$(TESTSRC)main.c
-TARGET_TEST_OBJ:=$(TESTSRC)main.o
+TARGET_TEST_SRC:=$(TESTSRC)main.c $(TESTSRC)fileio.c
 
 # Include more files if you write another source file.
 SRCS_FOR_LIB:=$(SRCDIR)bpt.c ${SRCDIR}disk_manager.c ${SRCDIR}fileio.c
@@ -43,12 +42,12 @@ $(TARGET): $(TARGET_OBJ)
 	make static_library
 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
-$(TARGET_TEST): $(TARGET_TEST_OBJ)
+$(TARGET_TEST): $(TARGET_TEST_SRC)
 	make static_library
 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
 clean:
-	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(TARGET_TEST_OBJ) $(OBJS_FOR_LIB) $(LIBS)*
+	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(OBJS_FOR_LIB) $(LIBS)*
 
 library: $(OBJS_FOR_LIB)
 	gcc -shared -Wl,-soname,libbpt.so -o $(LIBS)libbpt.so $(OBJS_FOR_LIB)
