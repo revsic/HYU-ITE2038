@@ -14,7 +14,11 @@ struct file_header_t {
     pagenum_t free_page_number;     // 8
     pagenum_t root_page_number;     // 16
     uint64_t number_of_pages;       // 24
-    uint8_t not_used[4096 - 24];    // 4096
+};
+
+struct padded_file_header_t {
+    file_header_t header;
+    uint8_t not_used[4096 - sizeof(file_header_t)];
 };
 
 struct page_header_t {
