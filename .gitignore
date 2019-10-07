@@ -6,6 +6,7 @@
 
 # executable files
 main
+test
 
 # mac files
 .DS_Store
