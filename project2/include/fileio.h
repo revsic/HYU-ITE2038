@@ -5,6 +5,8 @@
 
 int fexist(char* filename);
 
+long fsize(FILE* fp);
+
 int fresize(FILE* fp, size_t size);
 
 int fpwrite(const void* ptr, size_t size, long pos, FILE* stream);

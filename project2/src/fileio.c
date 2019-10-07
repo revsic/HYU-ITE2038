@@ -12,6 +12,14 @@ int fexist(char* filename) {
 #endif
 }
 
+long fsize(FILE* fp) {
+    long cur = ftell(fp);
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    fseek(fp, cur, SEEK_SET);
+    return size;
+}
+
 int fresize(FILE* fp, size_t size) {
 #if defined(__GNUC__)
     int fd = fileno(fp);
