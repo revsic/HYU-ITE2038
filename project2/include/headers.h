@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define PAGE_SIZE 4096
+
 typedef uint64_t pagenum_t;
 
 struct pair_t {
@@ -18,7 +20,7 @@ struct file_header_t {
 
 struct padded_file_header_t {
     file_header_t header;
-    uint8_t not_used[4096 - sizeof(file_header_t)];
+    uint8_t not_used[PAGE_SIZE - sizeof(file_header_t)];
 };
 
 struct page_header_t {
