@@ -7,11 +7,6 @@
 
 typedef uint64_t pagenum_t;
 
-struct pair_t {
-    uint64_t key;       // 8
-    uint8_t value[120]; // 128
-};
-
 struct file_header_t {
     pagenum_t free_page_number;     // 8
     pagenum_t root_page_number;     // 16
@@ -36,12 +31,26 @@ struct free_page_t {
     uint8_t not_used[120];          // 128
 };
 
+struct record_t {
+    uint64_t key;       // 8
+    uint8_t value[120]; // 128
+};
+
+struct internal_t {
+    uint64_t key;       // 8
+    pagenum_t pagenum;  // 16
+};
+
 struct page_t {
     union {
         page_header_t page_header;
         free_page_t free_page;
     } header;                       // 128
-    struct pair_t pairs[31];        // 4096
+    
+    union {
+        struct record_t records[31];
+        struct internal_t entries[248];
+    } content;                      // 4096
 };
 
 #endif
