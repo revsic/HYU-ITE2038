@@ -10,6 +10,13 @@ struct pair_t {
     uint8_t value[120]; // 128
 };
 
+struct file_header_t {
+    pagenum_t free_page_number;     // 8
+    pagenum_t root_page_number;     // 16
+    uint64_t number_of_pages;       // 24
+    uint8_t not_used[4096 - 24];    // 4096
+};
+
 struct page_header_t {
     pagenum_t parent_page_number;   // 8
     uint32_t is_leaf;               // 12
