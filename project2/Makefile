@@ -1,5 +1,6 @@
 .SUFFIXES: .c .o
 
+# gcc 5.4.0
 CC=gcc
 
 SRCDIR=src/
