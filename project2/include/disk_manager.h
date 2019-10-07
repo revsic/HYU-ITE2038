@@ -6,18 +6,17 @@
 typedef uint64_t pagenum_t;
 
 struct keyvalue_t {
-    uint64_t key;
-    uint8_t value[120];
+    uint64_t key;       // 8
+    uint8_t value[120]; // 128
 };
 
 struct page_t {
-    pagenum_t parent_page_number;
-    uint32_t is_leaf;
-    uint32_t number_of_keys;
-    uint32_t flags;
-    uint8_t reserved[104];
-    pagenum_t special_page_number;
-    struct keyvalue_t pairs[31];
+    pagenum_t parent_page_number;   // 8
+    uint32_t is_leaf;               // 12
+    uint32_t number_of_keys;        // 16
+    uint8_t reserved[104];          // 120
+    pagenum_t special_page_number;  // 128
+    struct keyvalue_t pairs[31];    // 4096
 };
 
 pagenum_t file_alloc_page();
