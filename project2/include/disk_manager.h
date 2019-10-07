@@ -19,9 +19,13 @@ int file_open(char* filename, struct file_manager_t* manager);
 
 int file_close(struct file_manager_t* manager);
 
+pagenum_t last_pagenum(struct file_manager_t* manager);
+
+pagenum_t last_pagenum_from_size(long size);
+
 pagenum_t page_create(struct file_manager_t* manager);
 
-int page_extend_free(struct file_manager_t* manager);
+int page_extend_free(struct file_manager_t* manager, int num);
 
 int page_free(pagenum_t pagenum, struct file_manager_t* manager);
 
