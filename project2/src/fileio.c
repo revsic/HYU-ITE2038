@@ -7,7 +7,7 @@
 
 int fexist(char* filename) {
 #if defined(__GNUC__)
-    return (filename, F_OK) != -1;
+    return access(filename, F_OK) != -1;
 #elif defined(_MSC_VER)
 #endif
 }
