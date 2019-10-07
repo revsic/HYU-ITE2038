@@ -12,6 +12,14 @@ int fexist(char* filename) {
 #endif
 }
 
+int fresize(FILE* fp, size_t size) {
+#if defined(__GNUC__)
+    int fd = fileno(fp);
+    return ftruncate(fd, size);
+#elif defined(_MSC_VER)
+#endif
+}
+
 int fpwrite(const void* ptr, size_t size, long pos, FILE* stream) {
     long cur = ftell(stream);
     if (pos == -1) {
