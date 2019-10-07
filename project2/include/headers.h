@@ -28,7 +28,11 @@ struct page_header_t {
 
 struct free_page_t {
     pagenum_t next_page_number;     // 8
-    uint8_t not_used[120];          // 128
+};
+
+struct padded_free_page_t {
+    struct free_page_t header;
+    uint8_t not_used[128 - sizeof(struct free_page_t)];
 };
 
 struct record_t {
@@ -44,9 +48,9 @@ struct internal_t {
 struct page_t {
     union {
         struct page_header_t page_header;
-        struct free_page_t free_page;
+        struct padded_free_page_t free_page;
     } header;                       // 128
-    
+
     union {
         struct record_t records[31];
         struct internal_t entries[248];
