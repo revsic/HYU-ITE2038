@@ -10,3 +10,6 @@ test
 
 # mac files
 .DS_Store
+
+# editor
+.vscode
