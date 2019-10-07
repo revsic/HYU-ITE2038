@@ -14,8 +14,8 @@ struct file_header_t {
 };
 
 struct padded_file_header_t {
-    file_header_t header;
-    uint8_t not_used[PAGE_SIZE - sizeof(file_header_t)];
+    struct file_header_t header;
+    uint8_t not_used[PAGE_SIZE - sizeof(struct file_header_t)];
 };
 
 struct page_header_t {
@@ -43,8 +43,8 @@ struct internal_t {
 
 struct page_t {
     union {
-        page_header_t page_header;
-        free_page_t free_page;
+        struct page_header_t page_header;
+        struct free_page_t free_page;
     } header;                       // 128
     
     union {
