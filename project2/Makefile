@@ -24,16 +24,25 @@ TARGET=main
 
 all: $(TARGET)
 
+$(SRCDIR)bpt.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
+
+$(SRCDIR)disk_manager.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
+
+$(SRCDIR)fileio.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.c
+
 $(TARGET): $(TARGET_OBJ)
-	$(CC) $(CFLAGS) -o $(OBJS_FOR_LIB) -c $(SRCS_FOR_LIB)
+	# $(CC) $(CFLAGS) -o $(OBJS_FOR_LIB) -c $(SRCS_FOR_LIB)
 	make static_library
 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
 clean:
 	rm $(TARGET) $(TARGET_OBJ) $(OBJS_FOR_LIB) $(LIBS)*
 
-library:
+library: $(OBJS_FOR_LIB)
 	gcc -shared -Wl,-soname,libbpt.so -o $(LIBS)libbpt.so $(OBJS_FOR_LIB)
 
-static_library:
+static_library: $(OBJS_FOR_LIB)
 	ar cr $(LIBS)libbpt.a $(OBJS_FOR_LIB)
