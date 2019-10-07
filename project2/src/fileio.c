@@ -1,3 +1,4 @@
+#include "disk_manager.h"
 #include "fileio.h"
 
 #if defined(__GNUC__)
@@ -13,11 +14,8 @@ int fexist(char* filename) {
 }
 
 long fsize(FILE* fp) {
-    long cur = ftell(fp);
     fseek(fp, 0, SEEK_END);
-    long size = ftell(fp);
-    fseek(fp, cur, SEEK_SET);
-    return size;
+    return ftell(fp);
 }
 
 int fresize(FILE* fp, size_t size) {
@@ -29,13 +27,21 @@ int fresize(FILE* fp, size_t size) {
 }
 
 int fpwrite(const void* ptr, size_t size, long pos, FILE* stream) {
-    long cur = ftell(stream);
     if (pos == -1) {
         fseek(stream, 0, SEEK_END);
     } else {
         fseek(stream, pos, SEEK_SET);
     }
     fwrite(ptr, size, 1, stream);
-    fseek(stream, cur, SEEK_SET);
-    return 1;
+    return 0;
+}
+
+int fpread(void* ptr, size_t size, long pos, FILE* stream) {
+    if (pos == -1) {
+        fseek(stream, -PAGE_SIZE, SEEK_END);
+    } else {
+        fseek(stream, pos, SEEK_SET);
+    }
+    fread(ptr, size, 1, stream);
+    return 0;
 }
