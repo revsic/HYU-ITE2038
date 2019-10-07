@@ -4,6 +4,7 @@
 CC=gcc
 
 SRCDIR=src/
+TESTSRC=testsrc/
 INC=include/
 LIBS=lib/
 
@@ -15,8 +16,8 @@ TARGET_SRC:=$(SRCDIR)main.c
 TARGET_OBJ:=$(SRCDIR)main.o
 
 # test source file
-TARGET_TEST_SRC:=$(SRCDIR)test.c
-TARGET_TEST_OBJ:=$(SRCDIR)test.o
+TARGET_TEST_SRC:=$(TESTSRC)main.c
+TARGET_TEST_OBJ:=$(TESTSRC)main.o
 
 # Include more files if you write another source file.
 SRCS_FOR_LIB:=$(SRCDIR)bpt.c ${SRCDIR}disk_manager.c ${SRCDIR}fileio.c
@@ -39,7 +40,6 @@ $(SRCDIR)fileio.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.c
 
 $(TARGET): $(TARGET_OBJ)
-	# $(CC) $(CFLAGS) -o $(OBJS_FOR_LIB) -c $(SRCS_FOR_LIB)
 	make static_library
 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
