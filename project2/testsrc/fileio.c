@@ -33,7 +33,32 @@ TEST_SUITE(fresize, {
 })
 
 TEST_SUITE(fpwrite, {
+    FILE* fp = fopen("testfile", "w");
 
+    fresize(fp, 10);
+    fpwrite("01234", 5, 3, fp);
+
+    fclose(fp);
+    fp = fopen("testfile", "r");
+
+    char arr[10];
+    fread(arr, 1, 10, fp);
+
+    int i;
+    for (i = 0; i < 3; ++i) {
+        TEST(arr[i] == 0);
+    }
+
+    for (i = 0; i < 5; ++i) {
+        TEST(arr[3 + i] == i + '0');
+    }
+
+    for (i = 8; i < 10; ++i) {
+        TEST(arr[i] == 0);
+    }
+
+    fclose(fp);
+    remove("testfile");
 })
 
 TEST_SUITE(fpread, {
