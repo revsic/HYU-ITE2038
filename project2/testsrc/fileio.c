@@ -62,7 +62,21 @@ TEST_SUITE(fpwrite, {
 })
 
 TEST_SUITE(fpread, {
+    FILE* fp = fopen("testfile", "w+");
 
+    fresize(fp, 10);
+    fpwrite("01234", 5, 3, fp);
+
+    char arr[5];
+    fpread(arr, 5, 3, fp);
+
+    int i;
+    for (i = 0; i < 5; ++i) {
+        TEST(arr[i] == i + '0');
+    }
+
+    fclose(fp);
+    remove("testfile");
 })
 
 int fileio_test() {
