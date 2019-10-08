@@ -64,6 +64,9 @@ TEST_SUITE(file_open, {
     TEST(page_header->parent_page_number == 0);
     TEST(page_header->is_leaf == 0);
     TEST(page_header->number_of_keys == 0);
+
+    fclose(manager.fp);
+    remove("testfile");
 })
 
 TEST_SUITE(file_close, {
