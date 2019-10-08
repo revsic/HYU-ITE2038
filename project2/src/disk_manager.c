@@ -4,25 +4,17 @@
 
 #include "disk_manager.h"
 #include "fileio.h"
+#include "utility.h"
 
 int file_init(struct file_manager_t* manager) {
-    fresize(manager->fp, PAGE_SIZE * 2);
+    fresize(manager->fp, PAGE_SIZE);
 
     struct file_header_t* file_header = &manager->file_header;
     file_header->free_page_number = 0;
-    file_header->root_page_number = 1;
-    file_header->number_of_pages = 1;
+    file_header->root_page_number = 0;
+    file_header->number_of_pages = 0;
 
     fpwrite(file_header, sizeof(struct file_header_t), 0, manager->fp);
-
-    struct page_t page;
-    struct page_header_t* page_header = &page.header.page_header;
-    page_header->parent_page_number = 0;
-    page_header->is_leaf = 0;
-    page_header->number_of_keys = 0;
-    page_header->special_page_number = 0;
-
-    page_write(1, manager, &page);
     return 0;
 }
 
@@ -66,7 +58,7 @@ pagenum_t last_pagenum_from_size(long size) {
 pagenum_t page_create(struct file_manager_t* manager) {
     pagenum_t pagenum = manager->file_header.free_page_number;
     if (pagenum == 0) {
-        page_extend_free(manager, DEFAULT_FREE_PAGE_EXTEND);
+        page_extend_free(manager, max(1, manager->file_header.number_of_pages * 2));
         pagenum = manager->file_header.free_page_number;
     }
 
@@ -81,6 +73,10 @@ pagenum_t page_create(struct file_manager_t* manager) {
 }
 
 int page_extend_free(struct file_manager_t* manager, int num) {
+    if (num < 1) {
+        return 1;
+    }
+
     long size = fsize(manager->fp);
     pagenum_t last = last_pagenum_from_size(size);
 
@@ -97,6 +93,7 @@ int page_extend_free(struct file_manager_t* manager, int num) {
     }
 
     manager->file_header.free_page_number = last + num;
+    manager->file_header.number_of_pages += num;
     manager->updated++;
 
     return 0;
@@ -109,7 +106,7 @@ int page_free(pagenum_t pagenum, struct file_manager_t* manager) {
     page.header.free_page.header.next_page_number =
         manager->file_header.free_page_number;
     page_write(pagenum, manager, &page);
-    
+
     manager->file_header.free_page_number = pagenum;
     return 0;
 }
