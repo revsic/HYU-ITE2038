@@ -16,7 +16,7 @@ TARGET_SRC:=$(SRCDIR)main.c
 TARGET_OBJ:=$(SRCDIR)main.o
 
 # test source file
-TARGET_TEST_SRC:=$(TESTSRC)main.c $(TESTSRC)fileio.c
+TARGET_TEST_SRC:=$(TESTSRC)main.c $(TESTSRC)fileio.c $(TESTSRC)disk_manager.c
 
 # Include more files if you write another source file.
 SRCS_FOR_LIB:=$(SRCDIR)bpt.c ${SRCDIR}disk_manager.c ${SRCDIR}fileio.c
