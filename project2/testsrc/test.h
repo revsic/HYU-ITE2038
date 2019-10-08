@@ -6,7 +6,7 @@ if(!(expr)) {                                           \
     return 0;                                           \
 }
 
-#define TEST_SUITE(name, content)                           \
+#define TEST_SUIT(name, content)                           \
 int name##_test() {                                         \
     content;                                                \
     printf("[*] %s: " #name " test success\n", __FILE__);   \

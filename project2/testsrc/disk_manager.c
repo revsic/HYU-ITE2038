@@ -4,7 +4,7 @@
 #include "fileio.h"
 #include "test.h"
 
-TEST_SUITE(file_init, {
+TEST_SUIT(file_init, {
     struct file_manager_t manager;
     manager.fp = fopen("testfile", "w+");
 
@@ -36,7 +36,7 @@ TEST_SUITE(file_init, {
     remove("testfile");
 })
 
-TEST_SUITE(file_open, {
+TEST_SUIT(file_open, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -69,7 +69,7 @@ TEST_SUITE(file_open, {
     remove("testfile");
 })
 
-TEST_SUITE(file_close, {
+TEST_SUIT(file_close, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -96,7 +96,7 @@ TEST_SUITE(file_close, {
     remove("testfile");
 })
 
-TEST_SUITE(last_pagenum, {
+TEST_SUIT(last_pagenum, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -109,12 +109,12 @@ TEST_SUITE(last_pagenum, {
     remove("testfile");
 })
 
-TEST_SUITE(last_pagenum_from_size, {
+TEST_SUIT(last_pagenum_from_size, {
     const int num = 37;
     TEST(last_pagenum_from_size(PAGE_SIZE * num) == num - 1);
 })
 
-TEST_SUITE(page_create, {
+TEST_SUIT(page_create, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -130,7 +130,7 @@ TEST_SUITE(page_create, {
     remove("testfile");
 })
 
-TEST_SUITE(page_extend_free, {
+TEST_SUIT(page_extend_free, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -154,11 +154,28 @@ TEST_SUITE(page_extend_free, {
     remove("testfile");
 })
 
-TEST_SUITE(page_free, {
+TEST_SUIT(page_free, {
+    struct file_manager_t manager;
+    file_open("testfile", &manager);
 
+    pagenum_t pagenum = page_create(&manager);
+    TEST(pagenum == DEFAULT_FREE_PAGE_EXTEND + 1);
+    TEST(manager.file_header.free_page_number == DEFAULT_FREE_PAGE_EXTEND);
+
+    page_create(&manager);
+
+    page_free(pagenum, &manager);
+    TEST(manager.file_header.free_page_number == DEFAULT_FREE_PAGE_EXTEND + 1);
+
+    struct page_t page;
+    page_read(pagenum, &manager, &page);
+    TEST(page.header.free_page.header.next_page_number == DEFAULT_FREE_PAGE_EXTEND - 1);
+
+    file_close(&manager);
+    remove("testfile");
 })
 
-TEST_SUITE(page_read_write, {
+TEST_SUIT(page_read_write, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 

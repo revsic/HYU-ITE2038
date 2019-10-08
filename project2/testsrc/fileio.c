@@ -1,7 +1,7 @@
 #include "fileio.h"
 #include "test.h"
 
-TEST_SUITE(fexist, {
+TEST_SUIT(fexist, {
     TEST(!fexist("testfile"));
 
     fclose(fopen("testfile", "w"));
@@ -11,7 +11,7 @@ TEST_SUITE(fexist, {
     TEST(!fexist("testfile"));
 })
 
-TEST_SUITE(fsize, {
+TEST_SUIT(fsize, {
     FILE* fp = fopen("testfile", "w");
     fwrite("asdf", 1, 4, fp);
 
@@ -21,7 +21,7 @@ TEST_SUITE(fsize, {
     remove("testfile");
 })
 
-TEST_SUITE(fresize, {
+TEST_SUIT(fresize, {
     FILE* fp = fopen("testfile", "w");
 
     fresize(fp, 10);
@@ -31,7 +31,7 @@ TEST_SUITE(fresize, {
     remove("testfile");
 })
 
-TEST_SUITE(fpwrite, {
+TEST_SUIT(fpwrite, {
     FILE* fp = fopen("testfile", "w");
 
     fresize(fp, 10);
@@ -60,7 +60,7 @@ TEST_SUITE(fpwrite, {
     remove("testfile");
 })
 
-TEST_SUITE(fpread, {
+TEST_SUIT(fpread, {
     FILE* fp = fopen("testfile", "w+");
 
     fresize(fp, 10);
