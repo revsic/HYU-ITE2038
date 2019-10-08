@@ -33,11 +33,7 @@ int fpwrite(const void* ptr, size_t size, long pos, FILE* stream) {
 }
 
 int fpread(void* ptr, size_t size, long pos, FILE* stream) {
-    if (pos == -1) {
-        fseek(stream, -PAGE_SIZE, SEEK_END);
-    } else {
-        fseek(stream, pos, SEEK_SET);
-    }
+    fseek(stream, pos, SEEK_SET);
     fread(ptr, size, 1, stream);
     return 0;
 }
