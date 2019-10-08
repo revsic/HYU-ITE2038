@@ -47,7 +47,8 @@ TEST_SUITE(last_pagenum, {
 })
 
 TEST_SUITE(last_pagenum_from_size, {
-
+    const int num = 37;
+    TEST(last_pagenum_from_size(PAGE_SIZE * num) == num - 1);
 })
 
 TEST_SUITE(page_create, {
