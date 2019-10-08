@@ -91,10 +91,22 @@ TEST_SUITE(file_close, {
 
     struct file_header_t* file_header = &real_fheader.header;
     TEST(file_header->number_of_pages == 100);
+
+    file_close(&manager);
+    remove("testfile");
 })
 
 TEST_SUITE(last_pagenum, {
+    struct file_manager_t manager;
+    file_open("testfile", &manager);
 
+    TEST(last_pagenum(&manager) == 1);
+
+    fresize(manager.fp, PAGE_SIZE * (10 + 1));
+    TEST(last_pagenum(&manager) == 10);
+
+    file_close(&manager);
+    remove("testfile");
 })
 
 TEST_SUITE(last_pagenum_from_size, {
