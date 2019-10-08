@@ -4,134 +4,45 @@
 // Uncomment the line below if you are compiling on Windows.
 // #define WINDOWS
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#ifdef WINDOWS
-#define bool char
-#define false 0
-#define true 1
-#endif
 
-// Default order is 4.
-#define DEFAULT_ORDER 4
+#include "headers.h"
 
-// Minimum order is necessarily 3.  We set the maximum
-// order arbitrarily.  You may change the maximum order.
-#define MIN_ORDER 3
-#define MAX_ORDER 20
+// global constant
+#define ORDER 32
 
-// Constants for printing part or all of the GPL license.
-#define LICENSE_FILE "LICENSE.txt"
-#define LICENSE_WARRANTEE 0
-#define LICENSE_WARRANTEE_START 592
-#define LICENSE_WARRANTEE_END 624
-#define LICENSE_CONDITIONS 1
-#define LICENSE_CONDITIONS_START 70
-#define LICENSE_CONDITIONS_END 625
+#define VERBOSE_OUTPUT 1
 
-// TYPES.
-
-/* Type representing the record
- * to which a given key refers.
- * In a real B+ tree system, the
- * record would hold data (in a database)
- * or a file (in an operating system)
- * or some other information.
- * Users can rewrite this part of the code
- * to change the type and content
- * of the value field.
- */
-typedef struct record {
-    int value;
-} record;
-
-/* Type representing a node in the B+ tree.
- * This type is general enough to serve for both
- * the leaf and the internal node.
- * The heart of the node is the array
- * of keys and the array of corresponding
- * pointers.  The relation between keys
- * and pointers differs between leaves and
- * internal nodes.  In a leaf, the index
- * of each key equals the index of its corresponding
- * pointer, with a maximum of order - 1 key-pointer
- * pairs.  The last pointer points to the
- * leaf to the right (or NULL in the case
- * of the rightmost leaf).
- * In an internal node, the first pointer
- * refers to lower nodes with keys less than
- * the smallest key in the keys array.  Then,
- * with indices i starting at 0, the pointer
- * at i + 1 points to the subtree with keys
- * greater than or equal to the key in this
- * node at index i.
- * The num_keys field is used to keep
- * track of the number of valid keys.
- * In an internal node, the number of valid
- * pointers is always num_keys + 1.
- * In a leaf, the number of valid pointers
- * to data is always num_keys.  The
- * last leaf pointer points to the next leaf.
- */
-typedef struct node {
-    void ** pointers;
-    int * keys;
-    struct node * parent;
-    bool is_leaf;
-    int num_keys;
-    struct node * next; // Used for queue.
-} node;
-
-// GLOBALS.
-
-/* The order determines the maximum and minimum
- * number of entries (keys and pointers) in any
- * node.  Every node has at most order - 1 keys and
- * at least (roughly speaking) half that number.
- * Every leaf has as many pointers to data as keys,
- * and every internal node has one more pointer
- * to a subtree than the number of keys.
- * This global variable is initialized to the
- * default value.
- */
-extern int order;
-
-/* The queue is used to print the tree in
- * level order, starting from the root
- * printing each entire rank on a separate
- * line, finishing with the leaves.
- */
-extern node * queue;
-
-/* The user can toggle on and off the "verbose"
- * property, which causes the pointer addresses
- * to be printed out in hexadecimal notation
- * next to their corresponding keys.
- */
-extern bool verbose_output;
-
+// STRUCTURE DEFINITION
+struct queue_t {
+    pagenum_t pagenum;
+    struct queue_t* next;
+};
 
 // FUNCTION PROTOTYPES.
 
 // Output and utility.
+void usage_1();
+void usage_2();
 
-void license_notice( void );
-void print_license( int licence_part );
-void usage_1( void );
-void usage_2( void );
-void usage_3( void );
-void enqueue( node * new_node );
-node * dequeue( void );
-int height( node * root );
-int path_to_root( node * root, node * child );
-void print_leaves( node * root );
-void print_tree( node * root );
-void find_and_print(node * root, int key, bool verbose); 
-void find_and_print_range(node * root, int range1, int range2, bool verbose); 
-int find_range( node * root, int key_start, int key_end, bool verbose,
-        int returned_keys[], void * returned_pointers[]); 
-node * find_leaf( node * root, int key, bool verbose );
-record * find( node * root, int key, bool verbose );
+struct queue_t* enqueue(struct queue_t* queue, pagenum_t pagenum);
+struct queue_t* dequeue(struct queue_t* queue, pagenum_t* retval);
+
+int height(pagenum_t node, struct file_manager_t* manager);
+int path_to_root(pagenum_t node, struct file_manager_t* manager);
+
+void print_leaves(struct file_manager_t* manager);
+void print_tree(struct file_manager_t* manager);
+
+pagenum_t find_leaf(key_t key, struct file_manager_t* manager);
+struct record_t* find(key_t key, struct file_manager_t* manager);
+int find_range(key_t start,
+               key_t end,
+               struct record_t* retval[],
+               struct file_manager_t* manager);
+
+void find_and_print(key_t key, struct file_manager_t* manager); 
+void find_and_print_range(key_t range1, key_t range2, struct file_manager_t* manager);
+
 int cut( int length );
 
 // Insertion.
