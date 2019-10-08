@@ -126,12 +126,36 @@ TEST_SUITE(page_free, {
 
 })
 
-TEST_SUITE(page_read, {
+TEST_SUITE(page_read_write, {
+    struct file_manager_t manager;
+    file_open("testfile", &manager);
 
-})
+    struct page_t page;
+    page_read(1, &manager, &page);
 
-TEST_SUITE(page_write, {
+    struct page_header_t* page_header = &page.header.page_header;
+    TEST(page_header->parent_page_number == 0);
+    TEST(page_header->is_leaf == 0);
+    TEST(page_header->number_of_keys == 0);
 
+    fresize(manager.fp, PAGE_SIZE * 3);
+
+    page_header->parent_page_number = 1;
+    page_header->is_leaf = 1;
+    page_header->number_of_keys = 1;
+
+    page_write(2, &manager, &page);
+
+    struct page_t page2;
+    page_read(2, &manager, &page2);
+
+    page_header = &page2.header.page_header;
+    TEST(page_header->parent_page_number == 1);
+    TEST(page_header->is_leaf == 1);
+    TEST(page_header->number_of_keys == 1);
+
+    file_close(&manager);
+    remove("testfile");
 })
 
 int disk_manager_test() {
@@ -143,6 +167,5 @@ int disk_manager_test() {
         && page_create_test()
         && page_extend_free_test()
         && page_free_test()
-        && page_read_test()
-        && page_write_test();
+        && page_read_write_test();
 }
