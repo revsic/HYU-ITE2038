@@ -4,7 +4,7 @@
 #include "fileio.h"
 #include "test.h"
 
-TEST_SUIT(file_init, {
+TEST_SUITE(file_init, {
     struct file_manager_t manager;
     manager.fp = fopen("testfile", "w+");
 
@@ -36,7 +36,7 @@ TEST_SUIT(file_init, {
     remove("testfile");
 })
 
-TEST_SUIT(file_open, {
+TEST_SUITE(file_open, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -69,7 +69,7 @@ TEST_SUIT(file_open, {
     remove("testfile");
 })
 
-TEST_SUIT(file_close, {
+TEST_SUITE(file_close, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -96,7 +96,7 @@ TEST_SUIT(file_close, {
     remove("testfile");
 })
 
-TEST_SUIT(last_pagenum, {
+TEST_SUITE(last_pagenum, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -109,12 +109,12 @@ TEST_SUIT(last_pagenum, {
     remove("testfile");
 })
 
-TEST_SUIT(last_pagenum_from_size, {
+TEST_SUITE(last_pagenum_from_size, {
     const int num = 37;
     TEST(last_pagenum_from_size(PAGE_SIZE * num) == num - 1);
 })
 
-TEST_SUIT(page_create, {
+TEST_SUITE(page_create, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -130,7 +130,7 @@ TEST_SUIT(page_create, {
     remove("testfile");
 })
 
-TEST_SUIT(page_extend_free, {
+TEST_SUITE(page_extend_free, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -154,7 +154,7 @@ TEST_SUIT(page_extend_free, {
     remove("testfile");
 })
 
-TEST_SUIT(page_free, {
+TEST_SUITE(page_free, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
@@ -175,7 +175,7 @@ TEST_SUIT(page_free, {
     remove("testfile");
 })
 
-TEST_SUIT(page_read_write, {
+TEST_SUITE(page_read_write, {
     struct file_manager_t manager;
     file_open("testfile", &manager);
 
