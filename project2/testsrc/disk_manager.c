@@ -115,7 +115,19 @@ TEST_SUITE(last_pagenum_from_size, {
 })
 
 TEST_SUITE(page_create, {
+    struct file_manager_t manager;
+    file_open("testfile", &manager);
 
+    pagenum_t pagenum = page_create(&manager);
+    TEST(pagenum == DEFAULT_FREE_PAGE_EXTEND + 1);
+    TEST(manager.file_header.free_page_number == DEFAULT_FREE_PAGE_EXTEND);
+
+    struct page_t page;
+    page_read(pagenum, &manager, &page);
+    TEST(page.header.free_page.header.next_page_number == DEFAULT_FREE_PAGE_EXTEND);
+
+    file_close(&manager);
+    remove("testfile");
 })
 
 TEST_SUITE(page_extend_free, {
