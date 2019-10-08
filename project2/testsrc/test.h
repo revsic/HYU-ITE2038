@@ -14,3 +14,4 @@ int name##_test() {                     \
 }
 
 int fileio_test();
+int disk_manager_test();
