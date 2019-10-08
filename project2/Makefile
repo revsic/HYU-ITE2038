@@ -19,7 +19,7 @@ TARGET_OBJ:=$(SRCDIR)main.o
 TARGET_TEST_SRC:=$(TESTSRC)*.c
 
 # Include more files if you write another source file.
-SRCS_FOR_LIB:=$(SRCDIR)bpt.c ${SRCDIR}disk_manager.c ${SRCDIR}fileio.c
+SRCS_FOR_LIB:=$(SRCDIR)bpt.c ${SRCDIR}disk_manager.c ${SRCDIR}fileio.c ${SRCDIR}utility.c
 OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.c=.o)
 
 CFLAGS+= -g -fPIC -I $(INC)
@@ -37,6 +37,9 @@ $(SRCDIR)disk_manager.o:
 
 $(SRCDIR)fileio.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.c
+
+$(SRCDIR)utility.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)utility.o -c $(SRCDIR)utility.c
 
 $(TARGET): $(TARGET_OBJ)
 	make static_library
