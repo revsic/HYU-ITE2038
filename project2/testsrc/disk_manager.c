@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "disk_manager.h"
 #include "fileio.h"
 #include "test.h"
@@ -35,7 +37,33 @@ TEST_SUITE(file_init, {
 })
 
 TEST_SUITE(file_open, {
+    struct file_manager_t manager;
+    file_open("testfile", &manager);
 
+    TEST(manager.updated == 0);
+
+    fclose(manager.fp);
+    memset(&manager, 0, sizeof(struct file_manager_t));
+
+    file_open("testfile", &manager);
+
+    TEST(manager.updated == 0);
+
+    struct padded_file_header_t real_fheader;
+    fpread(&real_fheader, PAGE_SIZE, 0, manager.fp);
+
+    struct file_header_t* file_header = &real_fheader.header;
+    TEST(file_header->free_page_number == 0);
+    TEST(file_header->root_page_number == 1);
+    TEST(file_header->number_of_pages == 1);
+
+    struct page_t page;
+    page_read(1, &manager, &page);
+
+    struct page_header_t* page_header = &page.header.page_header;
+    TEST(page_header->parent_page_number == 0);
+    TEST(page_header->is_leaf == 0);
+    TEST(page_header->number_of_keys == 0);
 })
 
 TEST_SUITE(file_close, {
