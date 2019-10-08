@@ -7,6 +7,8 @@
 
 #define MAX_FILE_PATH 512
 
+#define DEFAULT_FREE_PAGE_EXTEND 10
+
 struct file_manager_t {
     FILE* fp;
     int updated;
