@@ -65,6 +65,9 @@ pagenum_t last_pagenum_from_size(long size) {
 
 pagenum_t page_create(struct file_manager_t* manager) {
     pagenum_t pagenum = manager->file_header.free_page_number;
+    if (pagenum == 0) {
+        page_extend_free(manager, DEFAULT_FREE_PAGE_EXTEND);
+    }
 
     struct page_t page;
     page_read(pagenum, manager, &page);
