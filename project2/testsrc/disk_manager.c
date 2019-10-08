@@ -3,6 +3,7 @@
 #include "disk_manager.h"
 #include "fileio.h"
 #include "test.h"
+#include "utility.h"
 
 TEST_SUITE(file_init, {
     struct file_manager_t manager;
@@ -110,7 +111,7 @@ TEST_SUITE(page_create, {
 
     struct page_t page;
     page_read(pagenum, &manager, &page);
-    TEST(page.header.free_page.header.next_page_number == 0);
+    TEST(free_page(&page)->next_page_number == 0);
 
     pagenum = page_create(&manager);
     TEST(pagenum == 3);
@@ -119,7 +120,7 @@ TEST_SUITE(page_create, {
     TEST(fsize(manager.fp) == PAGE_SIZE * 4);
 
     page_read(pagenum, &manager, &page);
-    TEST(page.header.free_page.header.next_page_number == 2);
+    TEST(free_page(&page)->next_page_number == 2);
 
     file_close(&manager);
     remove("testfile");
@@ -139,7 +140,7 @@ TEST_SUITE(page_extend_free, {
     int i;
     for (i = 2; i >= 0; --i) {
         page_read(i + 1, &manager, &page);
-        TEST(page.header.free_page.header.next_page_number == i);
+        TEST(free_page(&page)->next_page_number == i);
     }
 
     file_close(&manager);
@@ -161,7 +162,7 @@ TEST_SUITE(page_free, {
 
     struct page_t page;
     page_read(pagenum, &manager, &page);
-    TEST(page.header.free_page.header.next_page_number == 2);
+    TEST(free_page(&page)->next_page_number == 2);
 
     file_close(&manager);
     remove("testfile");
@@ -176,33 +177,33 @@ TEST_SUITE(page_read_write, {
     struct page_t page;
     page_read(pagenum, &manager, &page);
 
-    struct page_header_t* page_header = &page.header.page_header;
-    page_header->parent_page_number = 0;
-    page_header->is_leaf = 0;
-    page_header->number_of_keys = 0;
+    struct page_header_t* pheader = page_header(&page);
+    pheader->parent_page_number = 0;
+    pheader->is_leaf = 0;
+    pheader->number_of_keys = 0;
 
     page_write(pagenum, &manager, &page);
 
     page_read(1, &manager, &page);
-    TEST(page_header->parent_page_number == 0);
-    TEST(page_header->is_leaf == 0);
-    TEST(page_header->number_of_keys == 0);
+    TEST(pheader->parent_page_number == 0);
+    TEST(pheader->is_leaf == 0);
+    TEST(pheader->number_of_keys == 0);
 
     fresize(manager.fp, PAGE_SIZE * 3);
 
-    page_header->parent_page_number = 1;
-    page_header->is_leaf = 1;
-    page_header->number_of_keys = 1;
+    pheader->parent_page_number = 1;
+    pheader->is_leaf = 1;
+    pheader->number_of_keys = 1;
 
     page_write(2, &manager, &page);
 
     struct page_t page2;
     page_read(2, &manager, &page2);
 
-    page_header = &page2.header.page_header;
-    TEST(page_header->parent_page_number == 1);
-    TEST(page_header->is_leaf == 1);
-    TEST(page_header->number_of_keys == 1);
+    pheader = page_header(&page2);
+    TEST(pheader->parent_page_number == 1);
+    TEST(pheader->is_leaf == 1);
+    TEST(pheader->number_of_keys == 1);
 
     file_close(&manager);
     remove("testfile");

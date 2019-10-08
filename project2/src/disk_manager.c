@@ -65,8 +65,7 @@ pagenum_t page_create(struct file_manager_t* manager) {
     struct page_t page;
     page_read(pagenum, manager, &page);
 
-    manager->file_header.free_page_number = 
-        page.header.free_page.header.next_page_number;
+    manager->file_header.free_page_number = free_page(&page)->next_page_number;
     manager->updated++;
 
     return pagenum;
@@ -84,16 +83,17 @@ int page_extend_free(struct file_manager_t* manager, int num) {
 
     int i;
     struct page_t page;
-    struct free_page_t* free_page = (struct free_page_t*)&page.header.free_page;
-    free_page->next_page_number = manager->file_header.free_page_number;
+    struct free_page_t* fpage = free_page(&page);
+    struct file_header_t* file_header = &manager->file_header;
+    fpage->next_page_number = file_header->free_page_number;
 
     for (i = 1; i <= num; ++i) {
         page_write(last + i, manager, &page);
-        free_page->next_page_number = last + i;
+        fpage->next_page_number = last + i;
     }
 
-    manager->file_header.free_page_number = last + num;
-    manager->file_header.number_of_pages += num;
+    file_header->free_page_number = last + num;
+    file_header->number_of_pages += num;
     manager->updated++;
 
     return 0;
@@ -103,7 +103,7 @@ int page_free(pagenum_t pagenum, struct file_manager_t* manager) {
     struct page_t page;
     page_read(pagenum, manager, &page);
 
-    page.header.free_page.header.next_page_number =
+    free_page(&page)->next_page_number =
         manager->file_header.free_page_number;
     page_write(pagenum, manager, &page);
 

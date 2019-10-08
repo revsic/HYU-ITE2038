@@ -7,6 +7,8 @@
 
 #define MAX_FILE_PATH 512
 
+#define INVALID_PAGENUM 0
+
 struct file_manager_t {
     FILE* fp;
     int updated;
