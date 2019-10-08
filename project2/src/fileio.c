@@ -28,12 +28,10 @@ int fresize(FILE* fp, size_t size) {
 
 int fpwrite(const void* ptr, size_t size, long pos, FILE* stream) {
     fseek(stream, pos, SEEK_SET);
-    fwrite(ptr, size, 1, stream);
-    return 0;
+    return fwrite(ptr, size, 1, stream);
 }
 
 int fpread(void* ptr, size_t size, long pos, FILE* stream) {
     fseek(stream, pos, SEEK_SET);
-    fread(ptr, size, 1, stream);
-    return 0;
+    return fread(ptr, size, 1, stream);
 }
