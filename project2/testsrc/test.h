@@ -16,4 +16,3 @@ int name##_test() {                                         \
 int fileio_test();
 int headers_test();
 int disk_manager_test();
-int utility_test();
