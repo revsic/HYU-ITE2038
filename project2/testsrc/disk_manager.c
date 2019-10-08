@@ -119,7 +119,27 @@ TEST_SUITE(page_create, {
 })
 
 TEST_SUITE(page_extend_free, {
+    struct file_manager_t manager;
+    file_open("testfile", &manager);
 
+    page_extend_free(&manager, 3);
+    TEST(fsize(manager.fp) == 5 * PAGE_SIZE);
+
+    TEST(manager.file_header.free_page_number == 4);
+
+    struct page_t page;
+
+    int i;
+    for (i = 3; i >= 1; --i) {
+        page_read(i + 1, &manager, &page);
+        if (i == 1) {
+            i = 0;
+        }
+        TEST(page.header.free_page.header.next_page_number == i);
+    }
+
+    file_close(&manager);
+    remove("testfile");
 })
 
 TEST_SUITE(page_free, {
