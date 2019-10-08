@@ -70,7 +70,27 @@ TEST_SUITE(file_open, {
 })
 
 TEST_SUITE(file_close, {
+    struct file_manager_t manager;
+    file_open("testfile", &manager);
 
+    file_close(&manager);
+    TEST(manager.file_header.root_page_number == 0);
+
+    file_open("testfile", &manager);
+    manager.file_header.number_of_pages = 100;
+    manager.updated += 1;
+
+    file_close(&manager);
+
+    file_open("testfile", &manager);
+    TEST(manager.updated == 0);
+    TEST(manager.file_header.number_of_pages = 100);
+
+    struct padded_file_header_t real_fheader;
+    fpread(&real_fheader, PAGE_SIZE, 0, manager.fp);
+
+    struct file_header_t* file_header = &real_fheader.header;
+    TEST(file_header->number_of_pages == 100);
 })
 
 TEST_SUITE(last_pagenum, {
