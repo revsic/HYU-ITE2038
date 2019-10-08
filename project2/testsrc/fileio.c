@@ -19,7 +19,6 @@ TEST_SUITE(fsize, {
 
     fclose(fp);
     remove("testfile");
-
 })
 
 TEST_SUITE(fresize, {
