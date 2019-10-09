@@ -28,7 +28,11 @@ int fresize(FILE* fp, size_t size) {
 
 int fpwrite(const void* ptr, size_t size, long pos, FILE* stream) {
     fseek(stream, pos, SEEK_SET);
-    return fwrite(ptr, size, 1, stream);
+    int retval = fwrite(ptr, size, 1, stream);
+#if defined(__GNUC__)
+    fsync(fileno(stream));
+#endif
+    return retval;
 }
 
 int fpread(void* ptr, size_t size, long pos, FILE* stream) {
