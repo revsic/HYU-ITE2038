@@ -14,3 +14,6 @@ test
 # editor
 .vscode
 test.dSYM
+
+# db file
+datafile
