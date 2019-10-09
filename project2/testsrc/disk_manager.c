@@ -126,6 +126,17 @@ TEST_SUITE(page_create, {
     remove("testfile");
 })
 
+TEST_SUITE(page_init, {
+    struct page_t page;
+    page_init(&page, 1);
+
+    struct page_header_t* header = page_header(&page);
+    TEST(header->is_leaf == 1);
+    TEST(header->number_of_keys == 0);
+    TEST(header->parent_page_number == INVALID_PAGENUM);
+    TEST(header->special_page_number == INVALID_PAGENUM);
+})
+
 TEST_SUITE(page_extend_free, {
     struct file_manager_t manager;
     file_open("testfile", &manager);

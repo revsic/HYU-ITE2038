@@ -71,6 +71,15 @@ pagenum_t page_create(struct file_manager_t* manager) {
     return pagenum;
 }
 
+int page_init(struct page_t* page, uint32_t leaf) {
+    struct page_header_t* header = page_header(page);
+    header->is_leaf = leaf;
+    header->number_of_keys = 0;
+    header->parent_page_number = INVALID_PAGENUM;
+    header->special_page_number = INVALID_PAGENUM;
+    return 0;
+}
+
 int page_extend_free(struct file_manager_t* manager, int num) {
     if (num < 1) {
         return 1;
