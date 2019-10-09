@@ -4,9 +4,16 @@
  *  All rights reserved, reference 3RD-PARTY.md.
  */
 
+#include <string.h>
+
 #include "bpt.h"
 #include "disk_manager.h"
 #include "utility.h"
+
+#define EXIT_FAILURE 1
+
+#define TRUE 1
+#define FALSE 0
 
 void usage_1() {
     printf("B+ Tree of Order %d.\n", ORDER);
@@ -105,13 +112,13 @@ void print_leaves(struct file_manager_t* manager) {
     }
 
     struct page_header_t* pheader = page_header(&page);
-    struct record_t* records = page.content.records;
+    struct record_t* rec = records(&page);
     while (1) {
         for (i = 0; i < pheader->number_of_keys; ++i) {
             if (VERBOSE_OUTPUT) {
-                printf("%lx ", records[i].value);
+                printf("%lx ", *(int*)rec[i].value);
             }
-            printf("%d ", records[i].key);
+            printf("%d ", rec[i].key);
         }
         if (VERBOSE_OUTPUT) {
             printf("%lx ", pheader->special_page_number);
@@ -171,7 +178,7 @@ void print_tree(struct file_manager_t* manager) {
             if (pheader->is_leaf) {
                 printf("%d ", records(&page)[i].key);
                 if (VERBOSE_OUTPUT) {
-                    printf("%lx ", records(&page)[i].value);
+                    printf("%lx ", *(int*)records(&page)[i].value);
                 }
             } else {
                 printf("%d ", entries(&page)[i].key);
@@ -196,13 +203,16 @@ void print_tree(struct file_manager_t* manager) {
     printf("\n");
 }
 
-pagenum_t find_leaf(key_t key, struct file_manager_t* manager) {
+pagenum_t find_leaf(key_t key, struct page_t* page, struct file_manager_t* manager) {
     int i = 0;
-    struct page_t page;
-    struct internal_t* internal = entries(&page);
-    struct page_header_t* pheader = page_header(&page);
-    pagenum_t root = manager->file_header.root_page_number;
+    struct page_t tmp;
+    if (page == NULL) {
+        page = &tmp;
+    }
 
+    struct internal_t* internal = entries(page);
+    struct page_header_t* pheader = page_header(page);
+    pagenum_t root = manager->file_header.root_page_number;
     if (root == INVALID_PAGENUM) {
         if (VERBOSE_OUTPUT) {
             printf("Empty tree.\n");
@@ -211,7 +221,7 @@ pagenum_t find_leaf(key_t key, struct file_manager_t* manager) {
     }
 
     pagenum_t c = root;
-    page_read(c, manager, &page);
+    page_read(c, manager, page);
     while (!pheader->is_leaf) {
         if (VERBOSE_OUTPUT) {
             printf("[");
@@ -221,20 +231,15 @@ pagenum_t find_leaf(key_t key, struct file_manager_t* manager) {
         }
 
         i = 0;
-        while (i < pheader->number_of_keys) {
-            if (key >= internal[i].key) {
-                ++i;
-            } else {
-                break;
-            }
-        }
+        for (i = 0; i < pheader->number_of_keys && key >= internal[i].key; ++i)
+            {}
 
         if (VERBOSE_OUTPUT) {
             printf("%d ->\n", i);
         }
 
         c = internal[i].pagenum;
-        page_read(c, manager, &page);
+        page_read(c, manager, page);
     }
 
     if (VERBOSE_OUTPUT) {
@@ -248,15 +253,13 @@ pagenum_t find_leaf(key_t key, struct file_manager_t* manager) {
     return c;
 }
 
-struct record_t* find(key_t key, struct file_manager_t* manager) {
+int find(key_t key, struct record_t* record, struct file_manager_t* manager) {
     int i = 0;
-    pagenum_t c = find_leaf(key, manager);
-    if (c == INVALID_PAGENUM) {
-        return NULL;
-    }
-
     struct page_t page;
-    page_read(c, manager, &page);
+    pagenum_t c = find_leaf(key, &page, manager);
+    if (c == INVALID_PAGENUM) {
+        return FAILURE;
+    }
 
     for (i = 0; i < page_header(&page)->number_of_keys; ++i) {
         if (records(&page)[i].key == key) {
@@ -265,25 +268,25 @@ struct record_t* find(key_t key, struct file_manager_t* manager) {
     }
 
     if (i == page_header(&page)->number_of_keys) {
-        return NULL;
+        return FAILURE;
     } else {
-        return &records(&page)[i];
+        memcpy(record, &records(&page)[i], sizeof(struct record_t));
+        return SUCCESS;
     }
 }
 
 int find_range(key_t start,
                key_t end,
-               struct record_t* retval[],
+               struct record_t* retval,
                struct file_manager_t* manager)
 {
     int i, num_found = 0;
-    pagenum_t n = find_leaf(start, manager);
+    struct page_t page;
+    pagenum_t n = find_leaf(start, &page, manager);
     if (n == INVALID_PAGENUM) {
         return 0;
     }
 
-    struct page_t page;
-    page_read(n, manager, &page);
     uint32_t nkey = page_header(&page)->number_of_keys;
     struct record_t* rec = records(&page);
 
@@ -294,317 +297,244 @@ int find_range(key_t start,
         return 0;
     }
 
-    do {
-        page_read(n, manager, &page);
-        nkey = page_header(&page)->number_of_keys;
-        rec = records(&page);
-
+    while (1) {
         for (; i < nkey && rec[i].key <= end; i++) {
-            retval[num_found] = &rec[i];
-            num_found++;
+            memcpy(&retval[num_found++], &rec[i], sizeof(struct record_t));
         }
 
         i = 0;
         n = page_header(&page)->special_page_number;
-    } while (n != INVALID_PAGENUM);
+        if (n != INVALID_PAGENUM) {
+            break;
+        }
+
+        page_read(n, manager, &page);
+        nkey = page_header(&page)->number_of_keys;
+        rec = records(&page);
+    }
 
     return num_found;
 }
 
 void find_and_print(key_t key, struct file_manager_t* manager) {
-    struct record_t* r = find(key, manager);
-    if (r == NULL)
+    struct record_t r;
+    int retval = find(key, &r, manager);
+    if (retval == FAILURE)
         printf("Record not found under key %d.\n", key);
     else 
-        printf("Record at %lx -- key %d, value %d.\n",
-                (unsigned long)r, key, *(int*)r->value);
+        printf("Record -- key %d, value %d.\n",
+               key, *(int*)r.value);
 }
 
 void find_and_print_range(key_t key_start, key_t key_end, struct file_manager_t* manager) {
     int i;
     int array_size = key_end - key_start + 1;
-    struct record_t** retval = malloc(sizeof(struct record_t*) * array_size);
+    struct record_t* retval = malloc(sizeof(struct record_t) * array_size);
 
     int num_found = find_range(key_start, key_end, retval, manager);
     if (!num_found) {
         printf("None found.\n");
     } else {
         for (i = 0; i < num_found; i++)
-            printf("Key: %d   Location: %lx  Value: %d\n",
-                   retval[i]->key,
-                   (unsigned long)retval[i],
-                   *(int*)retval[i]->value);
+            printf("Key: %d   Value: %d\n",
+                   retval[i].key,
+                   *(int*)retval[i].value);
     }
+
+    free(retval);
 }
 
-int cut( int length ) {
-    if (length % 2 == 0)
-        return length/2;
-    else
-        return length/2 + 1;
+int cut(int length) {
+    if (length % 2 == 0) {
+        return length / 2;
+    } else {
+        return length / 2 + 1;
+    }
 }
 
 
 // INSERTION
 
-/* Creates a new record to hold the value
- * to which a key refers.
- */
-record * make_record(int value) {
-    record * new_record = (record *)malloc(sizeof(record));
-    if (new_record == NULL) {
-        perror("Record creation.");
-        exit(EXIT_FAILURE);
-    }
-    else {
-        new_record->value = value;
-    }
-    return new_record;
+int make_record(struct record_t* record, int value) {
+    *(int*)record->value = value;
+    return SUCCESS;
 }
 
-
-/* Creates a new general node, which can be adapted
- * to serve as either a leaf or an internal node.
- */
-node * make_node( void ) {
-    node * new_node;
-    new_node = malloc(sizeof(node));
-    if (new_node == NULL) {
+pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf) {
+    pagenum_t new_node = page_create(manager);
+    if (new_node == INVALID_PAGENUM) {
         perror("Node creation.");
         exit(EXIT_FAILURE);
     }
-    new_node->keys = malloc( (order - 1) * sizeof(int) );
-    if (new_node->keys == NULL) {
-        perror("New node keys array.");
-        exit(EXIT_FAILURE);
-    }
-    new_node->pointers = malloc( order * sizeof(void *) );
-    if (new_node->pointers == NULL) {
-        perror("New node pointers array.");
-        exit(EXIT_FAILURE);
-    }
-    new_node->is_leaf = false;
-    new_node->num_keys = 0;
-    new_node->parent = NULL;
-    new_node->next = NULL;
+
+    struct page_t page;
+    struct page_header_t* header = page_header(&page);
+    header->is_leaf = leaf;
+    header->number_of_keys = 0;
+    header->parent_page_number = INVALID_PAGENUM;
+    header->special_page_number = INVALID_PAGENUM;
+
+    page_write(new_node, manager, &page);
     return new_node;
 }
 
-/* Creates a new leaf by creating a node
- * and then adapting it appropriately.
- */
-node * make_leaf( void ) {
-    node * leaf = make_node();
-    leaf->is_leaf = true;
-    return leaf;
-}
-
-
-/* Helper function used in insert_into_parent
- * to find the index of the parent's pointer to 
- * the node to the left of the key to be inserted.
- */
-int get_left_index(node * parent, node * left) {
-
+int get_left_index(struct page_t* parent, pagenum_t left) {
     int left_index = 0;
-    while (left_index <= parent->num_keys && 
-            parent->pointers[left_index] != left)
-        left_index++;
+    int num_key = page_header(parent)->number_of_keys;
+    for (;
+         left_index < num_key && entries(parent)[left_index].pagenum != left;
+         ++left_index)
+        {}
     return left_index;
 }
 
-/* Inserts a new pointer to a record and its corresponding
- * key into a leaf.
- * Returns the altered leaf.
- */
-node * insert_into_leaf( node * leaf, int key, record * pointer ) {
-
+int insert_into_leaf(struct page_t* leaf, struct record_t* pointer) {
     int i, insertion_point;
+    int num_key = page_header(leaf)->number_of_keys;
+    struct record_t* rec = records(leaf);
+    for (insertion_point = 0;
+         insertion_point < num_key && rec[insertion_point].key < pointer->key;
+         ++insertion_point)
+         {}
 
-    insertion_point = 0;
-    while (insertion_point < leaf->num_keys && leaf->keys[insertion_point] < key)
-        insertion_point++;
-
-    for (i = leaf->num_keys; i > insertion_point; i--) {
-        leaf->keys[i] = leaf->keys[i - 1];
-        leaf->pointers[i] = leaf->pointers[i - 1];
+    for (i = num_key; i > insertion_point; --i) {
+        memcpy(&rec[i], &rec[i - 1], sizeof(struct record_t));
     }
-    leaf->keys[insertion_point] = key;
-    leaf->pointers[insertion_point] = pointer;
-    leaf->num_keys++;
-    return leaf;
+
+    page_header(leaf)->number_of_keys += 1;
+    memcpy(&rec[insertion_point], pointer, sizeof(struct record_t));
+    return SUCCESS;
 }
 
+pagenum_t insert_into_leaf_after_splitting(struct page_t* leaf,
+                                           struct record_t* record,
+                                           struct file_manager_t* manager)
+{
+    int insertion_index, split_index, i, j;
+    pagenum_t new_leaf = make_node(manager, TRUE);
 
-/* Inserts a new key and pointer
- * to a new record into a leaf so as to exceed
- * the tree's order, causing the leaf to be split
- * in half.
- */
-node * insert_into_leaf_after_splitting(node * root, node * leaf, int key, record * pointer) {
+    struct page_t new_page;
+    page_read(new_leaf, manager, &new_page);
 
-    node * new_leaf;
-    int * temp_keys;
-    void ** temp_pointers;
-    int insertion_index, split, new_key, i, j;
-
-    new_leaf = make_leaf();
-
-    temp_keys = malloc( order * sizeof(int) );
-    if (temp_keys == NULL) {
-        perror("Temporary keys array.");
+    struct record_t* temp_record = malloc(ORDER * sizeof(struct record_t));
+    if (temp_record == NULL) {
+        perror("Temporary records array.");
         exit(EXIT_FAILURE);
     }
 
-    temp_pointers = malloc( order * sizeof(void *) );
-    if (temp_pointers == NULL) {
-        perror("Temporary pointers array.");
-        exit(EXIT_FAILURE);
+    struct record_t* leaf_rec = records(leaf);
+    struct page_header_t* leaf_header = page_header(leaf);
+    for (insertion_index = 0;
+         insertion_index < leaf_header->number_of_keys
+            && leaf_rec[insertion_index].key < record->key;
+         ++insertion_index)
+        {}
+
+    for (i = 0, j = 0; i < leaf_header->number_of_keys; i++, j++) {
+        if (j == insertion_index) {
+            ++j;
+        }
+        memcpy(&temp_record[j], &leaf_rec[i], sizeof(struct record_t));
     }
 
-    insertion_index = 0;
-    while (insertion_index < order - 1 && leaf->keys[insertion_index] < key)
-        insertion_index++;
+    memcpy(&temp_record[insertion_index], record, sizeof(struct record_t));
 
-    for (i = 0, j = 0; i < leaf->num_keys; i++, j++) {
-        if (j == insertion_index) j++;
-        temp_keys[j] = leaf->keys[i];
-        temp_pointers[j] = leaf->pointers[i];
+    leaf_header->number_of_keys = 0;
+    split_index = cut(ORDER - 1);
+
+    for (i = 0; i < split_index; i++) {
+        memcpy(&leaf_rec[i], &temp_record[i], sizeof(struct record_t));
+        leaf_header->number_of_keys++;
     }
 
-    temp_keys[insertion_index] = key;
-    temp_pointers[insertion_index] = pointer;
-
-    leaf->num_keys = 0;
-
-    split = cut(order - 1);
-
-    for (i = 0; i < split; i++) {
-        leaf->pointers[i] = temp_pointers[i];
-        leaf->keys[i] = temp_keys[i];
-        leaf->num_keys++;
+    struct record_t* new_rec = records(&new_page);
+    struct page_header_t* new_header = page_header(&new_page);
+    for (i = split_index, j = 0; i < ORDER; i++, j++) {
+        memcpy(&new_rec[j], &temp_record[i], sizeof(struct record_t));
+        new_header->number_of_keys++;
     }
 
-    for (i = split, j = 0; i < order; i++, j++) {
-        new_leaf->pointers[j] = temp_pointers[i];
-        new_leaf->keys[j] = temp_keys[i];
-        new_leaf->num_keys++;
-    }
+    free(temp_record);
 
-    free(temp_pointers);
-    free(temp_keys);
+    new_header->special_page_number = leaf_header->special_page_number;
+    leaf_header->special_page_number = new_leaf;
 
-    new_leaf->pointers[order - 1] = leaf->pointers[order - 1];
-    leaf->pointers[order - 1] = new_leaf;
-
-    for (i = leaf->num_keys; i < order - 1; i++)
-        leaf->pointers[i] = NULL;
-    for (i = new_leaf->num_keys; i < order - 1; i++)
-        new_leaf->pointers[i] = NULL;
-
-    new_leaf->parent = leaf->parent;
-    new_key = new_leaf->keys[0];
-
-    return insert_into_parent(root, leaf, new_key, new_leaf);
+    new_header->parent_page_number = leaf_header->parent_page_number;
+    return insert_into_parent(root, leaf, new_rec[0].key, new_leaf);
 }
 
-
-/* Inserts a new key and pointer to a node
- * into a node into which these can fit
- * without violating the B+ tree properties.
- */
-node * insert_into_node(node * root, node * n, 
-        int left_index, int key, node * right) {
+int insert_into_node(struct page_t* node,
+                     int left_index,
+                     struct internal_t* entry)
+{
     int i;
-
-    for (i = n->num_keys; i > left_index; i--) {
-        n->pointers[i + 1] = n->pointers[i];
-        n->keys[i] = n->keys[i - 1];
+    struct internal_t* ent = entries(node);
+    struct page_header_t* header = page_header(node);
+    for (i = header->number_of_keys; i > left_index; --i) {
+        ent[i] = ent[i - 1];
     }
-    n->pointers[left_index + 1] = right;
-    n->keys[left_index] = key;
-    n->num_keys++;
-    return root;
+    ent[left_index] = *entry;
+    header->number_of_keys++;
+    return SUCCESS;
 }
 
-
-/* Inserts a new key and pointer to a node
- * into a node, causing the node's size to exceed
- * the order, and causing the node to split into two.
- */
-node * insert_into_node_after_splitting(node * root, node * old_node, int left_index, 
-        int key, node * right) {
-
-    int i, j, split, k_prime;
-    node * new_node, * child;
-    int * temp_keys;
-    node ** temp_pointers;
-
-    /* First create a temporary set of keys and pointers
-     * to hold everything in order, including
-     * the new key and pointer, inserted in their
-     * correct places. 
-     * Then create a new node and copy half of the 
-     * keys and pointers to the old node and
-     * the other half to the new.
-     */
-
-    temp_pointers = malloc( (order + 1) * sizeof(node *) );
-    if (temp_pointers == NULL) {
-        perror("Temporary pointers array for splitting nodes.");
-        exit(EXIT_FAILURE);
-    }
-    temp_keys = malloc( order * sizeof(int) );
-    if (temp_keys == NULL) {
-        perror("Temporary keys array for splitting nodes.");
+pagenum_t insert_into_node_after_splitting(struct page_t* old_node,
+                                           int left_index, 
+                                           struct internal_t* entry,
+                                           struct file_manager_t* manager)
+{
+    int i, j, split_index, k_prime;
+    struct internal_t* temp = malloc(ORDER * sizeof(key_t));
+    if (temp == NULL) {
+        perror("Temporary array for splitting nodes.");
         exit(EXIT_FAILURE);
     }
 
-    for (i = 0, j = 0; i < old_node->num_keys + 1; i++, j++) {
-        if (j == left_index + 1) j++;
-        temp_pointers[j] = old_node->pointers[i];
+    struct internal_t* ent = entries(old_node);
+    struct page_header_t* header = page_header(old_node);
+
+    for (i = 0; i < header->number_of_keys; ++i) {
+        if (i == left_index) {
+            i++;
+        }
+        temp[i] = ent[i];
+    }
+    temp[left_index] = *entry;
+
+    split_index = cut(ORDER);
+    pagenum_t new_node = make_node(manager, FALSE);
+
+    struct page_t new_page;
+    struct internal_t* new_entries = entries(&new_page);
+    struct page_header_t* new_header = page_header(&new_page);
+    page_read(new_node, manager, &new_page);
+
+    header->number_of_keys = 0;
+    for (i = 0; i < split_index - 1; i++) {
+        ent[i] = temp[i];
+        header->number_of_keys++;
     }
 
-    for (i = 0, j = 0; i < old_node->num_keys; i++, j++) {
-        if (j == left_index) j++;
-        temp_keys[j] = old_node->keys[i];
+    k_prime = temp[split_index - 1].key;
+    new_header->special_page_number = temp[split_index - 1].pagenum;
+    for (++i, j = 0; i < ORDER; ++i, ++j) {
+        new_entries[j] = temp[i];
+        new_header->number_of_keys++;
     }
 
-    temp_pointers[left_index + 1] = right;
-    temp_keys[left_index] = key;
+    free(temp);
 
-    /* Create the new node and copy
-     * half the keys and pointers to the
-     * old and half to the new.
-     */  
-    split = cut(order);
-    new_node = make_node();
-    old_node->num_keys = 0;
-    for (i = 0; i < split - 1; i++) {
-        old_node->pointers[i] = temp_pointers[i];
-        old_node->keys[i] = temp_keys[i];
-        old_node->num_keys++;
-    }
-    old_node->pointers[i] = temp_pointers[i];
-    k_prime = temp_keys[split - 1];
-    for (++i, j = 0; i < order; i++, j++) {
-        new_node->pointers[j] = temp_pointers[i];
-        new_node->keys[j] = temp_keys[i];
-        new_node->num_keys++;
-    }
-    new_node->pointers[j] = temp_pointers[i];
-    free(temp_pointers);
-    free(temp_keys);
-    new_node->parent = old_node->parent;
-    for (i = 0; i <= new_node->num_keys; i++) {
-        child = new_node->pointers[i];
-        child->parent = new_node;
-    }
+    struct page_t temp_page;
+    new_header->parent_page_number = header->parent_page_number;
 
-    /* Insert a new key into the parent of the two
-     * nodes resulting from the split, with
-     * the old node to the left and the new to the right.
-     */
+    page_read(new_header->parent_page_number, manager, &temp_page);
+    page_header(&temp_page)->parent_page_number = new_node;
+    page_write(new_header->parent_page_number, manager, &temp_page);
+    for (i = 0; i < new_header->number_of_keys; ++i) {
+        page_read(new_entries[i].pagenum, manager, &temp_page);
+        page_header(&temp_page)->parent_page_number = new_node;
+        page_write(new_entries[i].pagenum, manager, &temp_page);
+    }
 
     return insert_into_parent(root, old_node, k_prime, new_node);
 }

@@ -9,8 +9,10 @@
 
 // global constant
 #define ORDER 32
-
 #define VERBOSE_OUTPUT 1
+
+#define SUCCESS 0
+#define FAILURE 1
 
 // STRUCTURE DEFINITION
 struct queue_t {
@@ -33,35 +35,42 @@ int path_to_root(pagenum_t node, struct file_manager_t* manager);
 void print_leaves(struct file_manager_t* manager);
 void print_tree(struct file_manager_t* manager);
 
-pagenum_t find_leaf(key_t key, struct file_manager_t* manager);
-struct record_t* find(key_t key, struct file_manager_t* manager);
+pagenum_t find_leaf(key_t key, struct page_t* page, struct file_manager_t* manager);
+int find(key_t key, struct record_t* record, struct file_manager_t* manager);
 int find_range(key_t start,
                key_t end,
-               struct record_t* retval[],
+               struct record_t* retval,
                struct file_manager_t* manager);
 
 void find_and_print(key_t key, struct file_manager_t* manager); 
 void find_and_print_range(key_t range1, key_t range2, struct file_manager_t* manager);
 
-int cut( int length );
+int cut(int length);
 
 // Insertion.
+int make_record(struct record_t* record, int value);
+pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf);
 
-record * make_record(int value);
-node * make_node( void );
-node * make_leaf( void );
-int get_left_index(node * parent, node * left);
-node * insert_into_leaf( node * leaf, int key, record * pointer );
-node * insert_into_leaf_after_splitting(node * root, node * leaf, int key,
-                                        record * pointer);
-node * insert_into_node(node * root, node * parent, 
-        int left_index, int key, node * right);
-node * insert_into_node_after_splitting(node * root, node * parent,
-                                        int left_index,
-        int key, node * right);
+int get_left_index(struct page_t* parent, pagenum_t left);
+
+int insert_into_leaf(struct page_t* leaf, struct record_t* pointer);
+pagenum_t insert_into_leaf_after_splitting(struct page_t* leaf,
+                                           struct record_t* record,
+                                           struct file_manager_t* manager);
+
+int insert_into_node(struct page_t* node,
+                     int left_index,
+                     struct internal_t* entry);
+pagenum_t insert_into_node_after_splitting(struct page_t* old_node,
+                                           int left_index,
+                                           struct internal_t* entry,
+                                           struct file_manager_t* manager);
+
 node * insert_into_parent(node * root, node * left, int key, node * right);
+
 node * insert_into_new_root(node * left, int key, node * right);
 node * start_new_tree(int key, record * pointer);
+
 node * insert( node * root, int key, int value );
 
 // Deletion.
