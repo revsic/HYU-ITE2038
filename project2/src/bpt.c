@@ -355,7 +355,8 @@ int cut(int length) {
 
 // INSERTION
 
-int make_record(struct record_t* record, int value) {
+int make_record(struct record_t* record, key_t key, int value) {
+    record->key = key;
     *(int*)record->value = value;
     return SUCCESS;
 }
@@ -368,12 +369,7 @@ pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf) {
     }
 
     struct page_t page;
-    struct page_header_t* header = page_header(&page);
-    header->is_leaf = leaf;
-    header->number_of_keys = 0;
-    header->parent_page_number = INVALID_PAGENUM;
-    header->special_page_number = INVALID_PAGENUM;
-
+    page_init(&page, leaf);
     page_write(new_node, manager, &page);
     return new_node;
 }
@@ -388,10 +384,10 @@ int get_left_index(struct page_t* parent, pagenum_t left) {
     return left_index;
 }
 
-int insert_into_leaf(struct page_t* leaf, struct record_t* pointer) {
+int insert_into_leaf(struct page_pair_t* leaf, struct record_t* pointer) {
     int i, insertion_point;
-    int num_key = page_header(leaf)->number_of_keys;
-    struct record_t* rec = records(leaf);
+    int num_key = page_header(leaf->page)->number_of_keys;
+    struct record_t* rec = records(leaf->page);
     for (insertion_point = 0;
          insertion_point < num_key && rec[insertion_point].key < pointer->key;
          ++insertion_point)
@@ -401,12 +397,12 @@ int insert_into_leaf(struct page_t* leaf, struct record_t* pointer) {
         memcpy(&rec[i], &rec[i - 1], sizeof(struct record_t));
     }
 
-    page_header(leaf)->number_of_keys += 1;
+    page_header(leaf->page)->number_of_keys += 1;
     memcpy(&rec[insertion_point], pointer, sizeof(struct record_t));
     return SUCCESS;
 }
 
-pagenum_t insert_into_leaf_after_splitting(struct page_t* leaf,
+pagenum_t insert_into_leaf_after_splitting(struct page_pair_t* leaf,
                                            struct record_t* record,
                                            struct file_manager_t* manager)
 {
@@ -414,7 +410,7 @@ pagenum_t insert_into_leaf_after_splitting(struct page_t* leaf,
     pagenum_t new_leaf = make_node(manager, TRUE);
 
     struct page_t new_page;
-    page_read(new_leaf, manager, &new_page);
+    page_init(&new_page, TRUE);
 
     struct record_t* temp_record = malloc(ORDER * sizeof(struct record_t));
     if (temp_record == NULL) {
@@ -422,8 +418,8 @@ pagenum_t insert_into_leaf_after_splitting(struct page_t* leaf,
         exit(EXIT_FAILURE);
     }
 
-    struct record_t* leaf_rec = records(leaf);
-    struct page_header_t* leaf_header = page_header(leaf);
+    struct record_t* leaf_rec = records(leaf->page);
+    struct page_header_t* leaf_header = page_header(leaf->page);
     for (insertion_index = 0;
          insertion_index < leaf_header->number_of_keys
             && leaf_rec[insertion_index].key < record->key;
@@ -460,16 +456,18 @@ pagenum_t insert_into_leaf_after_splitting(struct page_t* leaf,
     leaf_header->special_page_number = new_leaf;
 
     new_header->parent_page_number = leaf_header->parent_page_number;
-    return insert_into_parent(root, leaf, new_rec[0].key, new_leaf);
+
+    struct page_pair_t right = { new_leaf, &new_page };
+    return insert_into_parent(leaf, new_rec[0].key, &right, manager);
 }
 
-int insert_into_node(struct page_t* node,
+int insert_into_node(struct page_pair_t* node,
                      int left_index,
                      struct internal_t* entry)
 {
     int i;
-    struct internal_t* ent = entries(node);
-    struct page_header_t* header = page_header(node);
+    struct internal_t* ent = entries(node->page);
+    struct page_header_t* header = page_header(node->page);
     for (i = header->number_of_keys; i > left_index; --i) {
         ent[i] = ent[i - 1];
     }
@@ -478,7 +476,7 @@ int insert_into_node(struct page_t* node,
     return SUCCESS;
 }
 
-pagenum_t insert_into_node_after_splitting(struct page_t* old_node,
+pagenum_t insert_into_node_after_splitting(struct page_pair_t* old_node,
                                            int left_index, 
                                            struct internal_t* entry,
                                            struct file_manager_t* manager)
@@ -490,8 +488,8 @@ pagenum_t insert_into_node_after_splitting(struct page_t* old_node,
         exit(EXIT_FAILURE);
     }
 
-    struct internal_t* ent = entries(old_node);
-    struct page_header_t* header = page_header(old_node);
+    struct internal_t* ent = entries(old_node->page);
+    struct page_header_t* header = page_header(old_node->page);
 
     for (i = 0; i < header->number_of_keys; ++i) {
         if (i == left_index) {
@@ -505,9 +503,10 @@ pagenum_t insert_into_node_after_splitting(struct page_t* old_node,
     pagenum_t new_node = make_node(manager, FALSE);
 
     struct page_t new_page;
+    page_init(&new_page, FALSE);
+
     struct internal_t* new_entries = entries(&new_page);
     struct page_header_t* new_header = page_header(&new_page);
-    page_read(new_node, manager, &new_page);
 
     header->number_of_keys = 0;
     for (i = 0; i < split_index - 1; i++) {
@@ -524,36 +523,33 @@ pagenum_t insert_into_node_after_splitting(struct page_t* old_node,
 
     free(temp);
 
+    pagenum_t temp_pagenum;
     struct page_t temp_page;
     new_header->parent_page_number = header->parent_page_number;
-
-    page_read(new_header->parent_page_number, manager, &temp_page);
-    page_header(&temp_page)->parent_page_number = new_node;
-    page_write(new_header->parent_page_number, manager, &temp_page);
-    for (i = 0; i < new_header->number_of_keys; ++i) {
-        page_read(new_entries[i].pagenum, manager, &temp_page);
+    for (i = -1; i < new_header->number_of_keys; ++i) {
+        if (i == -1) {
+            temp_pagenum = new_header->special_page_number;
+        } else {
+            temp_pagenum = new_entries[i].pagenum;
+        }
+        page_read(temp_pagenum, manager, &temp_page);
         page_header(&temp_page)->parent_page_number = new_node;
-        page_write(new_entries[i].pagenum, manager, &temp_page);
+        page_write(temp_pagenum, manager, &temp_page);
     }
 
-    return insert_into_parent(root, old_node, k_prime, new_node);
+    struct page_pair_t right = { new_node, &new_page };
+    return insert_into_parent(old_node, k_prime, &right, manager);
 }
 
-
-
-/* Inserts a new node (leaf or internal node) into the B+ tree.
- * Returns the root of the tree after insertion.
- */
-node * insert_into_parent(node * root, node * left, int key, node * right) {
-
+pagenum_t insert_into_parent(struct page_pair_t* left,
+                             key_t key,
+                             struct page_pair_t* right,
+                             struct file_manager_t* manager) {
     int left_index;
-    node * parent;
-
-    parent = left->parent;
+    pagenum_t parent = page_header(left)->parent_page_number;
 
     /* Case: new root. */
-
-    if (parent == NULL)
+    if (parent == INVALID_PAGENUM)
         return insert_into_new_root(left, key, right);
 
     /* Case: leaf or node. (Remainder of
@@ -563,113 +559,111 @@ node * insert_into_parent(node * root, node * left, int key, node * right) {
     /* Find the parent's pointer to the left 
      * node.
      */
-
-    left_index = get_left_index(parent, left);
-
+    struct page_t parent_page;
+    page_read(parent, manager, &parent_page);
+    left_index = get_left_index(&parent, left->pagenum);
 
     /* Simple case: the new key fits into the node. 
      */
-
-    if (parent->num_keys < order - 1)
-        return insert_into_node(root, parent, left_index, key, right);
+    struct internal_t entry = { key, right->pagenum };
+    struct page_pair_t parent_pair = { parent, &parent_page };
+    if (page_header(&parent_page)->number_of_keys < ORDER - 1)
+        return insert_into_node(&parent_pair, left_index, &entry);
 
     /* Harder case:  split a node in order 
      * to preserve the B+ tree properties.
      */
-
-    return insert_into_node_after_splitting(root, parent, left_index, key, right);
+    return insert_into_node_after_splitting(&parent_pair, left_index, &entry, manager);
 }
 
+pagenum_t insert_into_new_root(struct page_pair_t* left,
+                               key_t key,
+                               struct page_pair_t* right,
+                               struct file_manager_t* manager)
+{
+    pagenum_t root = make_node(manager, FALSE);
 
-/* Creates a new root for two subtrees
- * and inserts the appropriate key into
- * the new root.
- */
-node * insert_into_new_root(node * left, int key, node * right) {
+    struct page_t root_page;
+    page_init(&root_page, FALSE);
 
-    node * root = make_node();
-    root->keys[0] = key;
-    root->pointers[0] = left;
-    root->pointers[1] = right;
-    root->num_keys++;
-    root->parent = NULL;
-    left->parent = root;
-    right->parent = root;
+    struct page_header_t* header = page_header(&root_page);
+    header->number_of_keys++;
+    header->special_page_number = left->pagenum;
+
+    page_header(left->page)->parent_page_number = root;
+    page_header(right->page)->parent_page_number = root;
+
+    struct internal_t* ent = entries(&root_page);
+    ent[0].key = key;
+    ent[0].pagenum = right->pagenum;
+
     return root;
 }
 
+pagenum_t start_new_tree(int key,
+                         struct record_t* pointer,
+                         struct file_manager_t* manager)
+{
+    pagenum_t root = make_node(manager, FALSE);
 
+    struct page_t root_page;
+    page_init(&root_page, FALSE);
 
-/* First insertion:
- * start a new tree.
- */
-node * start_new_tree(int key, record * pointer) {
+    struct page_header_t* header = page_header(&root_page);
+    header->number_of_keys++;
+    header->special_page_number = key;
 
-    node * root = make_leaf();
-    root->keys[0] = key;
-    root->pointers[0] = pointer;
-    root->pointers[order - 1] = NULL;
-    root->parent = NULL;
-    root->num_keys++;
+    struct internal_t* entry = &entries(&root_page)[0];
+    entry->key = key;
+    entry->pagenum = INVALID_PAGENUM;
+
     return root;
 }
 
-
-
-/* Master insertion function.
- * Inserts a key and an associated value into
- * the B+ tree, causing the tree to be adjusted
- * however necessary to maintain the B+ tree
- * properties.
- */
-node * insert( node * root, int key, int value ) {
-
-    record * pointer;
-    node * leaf;
+pagenum_t insert(key_t key,
+                 int value,
+                 struct file_manager_t* manager)
+{
+    struct record_t record;
+    pagenum_t root = manager->file_header.root_page_number;
 
     /* The current implementation ignores
      * duplicates.
      */
-
-    if (find(root, key, false) != NULL)
+    if (find(key, &record, manager) == SUCCESS)
         return root;
 
     /* Create a new record for the
      * value.
      */
-    pointer = make_record(value);
-
+    make_record(&record, key, value);
 
     /* Case: the tree does not exist yet.
      * Start a new tree.
      */
-
-    if (root == NULL) 
-        return start_new_tree(key, pointer);
+    if (root == INVALID_PAGENUM) 
+        return start_new_tree(key, &record, manager);
 
 
     /* Case: the tree already exists.
      * (Rest of function body.)
      */
 
-    leaf = find_leaf(root, key, false);
+    struct page_t leaf_page;
+    pagenum_t leaf = find_leaf(key, &leaf_page, manager);
 
     /* Case: leaf has room for key and pointer.
      */
-
-    if (leaf->num_keys < order - 1) {
-        leaf = insert_into_leaf(leaf, key, pointer);
+    struct page_pair_t pair = { leaf, &leaf_page };
+    if (page_header(&leaf_page)->number_of_keys < ORDER - 1) {
+        insert_into_leaf(&pair, &record);
         return root;
     }
 
-
     /* Case:  leaf must be split.
      */
-
-    return insert_into_leaf_after_splitting(root, leaf, key, pointer);
+    return insert_into_leaf_after_splitting(&leaf, &record, manager);
 }
-
-
 
 
 // DELETION.

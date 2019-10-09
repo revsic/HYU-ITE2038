@@ -20,6 +20,11 @@ struct queue_t {
     struct queue_t* next;
 };
 
+struct page_pair_t {
+    pagenum_t pagenum;
+    struct page_t* page;
+};
+
 // FUNCTION PROTOTYPES.
 
 // Output and utility.
@@ -48,30 +53,40 @@ void find_and_print_range(key_t range1, key_t range2, struct file_manager_t* man
 int cut(int length);
 
 // Insertion.
-int make_record(struct record_t* record, int value);
+int make_record(struct record_t* record, key_t key, int value);
 pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf);
 
 int get_left_index(struct page_t* parent, pagenum_t left);
 
-int insert_into_leaf(struct page_t* leaf, struct record_t* pointer);
-pagenum_t insert_into_leaf_after_splitting(struct page_t* leaf,
+int insert_into_leaf(struct page_pair_t* leaf, struct record_t* pointer);
+pagenum_t insert_into_leaf_after_splitting(struct page_pair_t* leaf,
                                            struct record_t* record,
                                            struct file_manager_t* manager);
 
-int insert_into_node(struct page_t* node,
+int insert_into_node(struct page_pair_t* node,
                      int left_index,
                      struct internal_t* entry);
-pagenum_t insert_into_node_after_splitting(struct page_t* old_node,
+pagenum_t insert_into_node_after_splitting(struct page_pair_t* old_node,
                                            int left_index,
                                            struct internal_t* entry,
                                            struct file_manager_t* manager);
 
-node * insert_into_parent(node * root, node * left, int key, node * right);
+pagenum_t insert_into_parent(struct page_pair_t* left,
+                             key_t key,
+                             struct page_pair_t* right,
+                             struct file_manager_t* manager);
+pagenum_t insert_into_new_root(struct page_pair_t* left,
+                               key_t key,
+                               struct page_pair_t* right,
+                               struct file_manager_t* manager);
 
-node * insert_into_new_root(node * left, int key, node * right);
-node * start_new_tree(int key, record * pointer);
-
-node * insert( node * root, int key, int value );
+pagenum_t start_new_tree(int key,
+                         struct record_t* pointer,
+                         struct file_manager_t* manager);
+pagenum_t insert(pagenum_t root,
+                 key_t key,
+                 int value,
+                 struct file_manager_t* manager);
 
 // Deletion.
 
