@@ -6,7 +6,7 @@
 #define PAGE_SIZE 4096
 
 typedef uint64_t pagenum_t;
-typedef int64_t key_t;
+typedef int64_t prikey_t;
 
 struct file_header_t {
     pagenum_t free_page_number;     // 8
@@ -37,12 +37,12 @@ struct padded_free_page_t {
 };
 
 struct record_t {
-    key_t key;       // 8
+    prikey_t key;       // 8
     uint8_t value[120]; // 128
 };
 
 struct internal_t {
-    key_t key;       // 8
+    prikey_t key;       // 8
     pagenum_t pagenum;  // 16
 };
 
