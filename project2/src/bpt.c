@@ -34,6 +34,12 @@ int commit_page(pagenum_t pagenum,
     return SUCCESS;
 }
 
+void swap_page_pair(struct page_pair_t* left, struct page_pair_t* right) {
+    struct page_pair_t tmp = *left;
+    *left = *right;
+    *right = tmp;
+}
+
 void usage_1() {
     printf("B+ Tree of Order %d.\n", ORDER);
     printf("Following Silberschatz, Korth, Sidarshan, Database Concepts, "
@@ -193,7 +199,9 @@ int find_key_from_leaf(prikey_t key, struct page_t* page, struct record_t* recor
     if (i == num_key) {
         return FAILURE;
     } else {
-        memcpy(record, &records(page)[i], sizeof(struct record_t));
+        if (record != NULL) {
+            memcpy(record, &records(page)[i], sizeof(struct record_t));
+        }
         return SUCCESS;
     }
 }
@@ -693,20 +701,20 @@ int insert(prikey_t key,
            int value,
            struct file_manager_t* manager)
 {
-    struct record_t record;
     struct page_t leaf_page;
     pagenum_t leaf = find_leaf(key, &leaf_page, manager);
 
     /* The current implementation ignores
      * duplicates.
      */
-    if (find_key_from_leaf(key, &leaf_page, &record) == SUCCESS) {
+    if (find_key_from_leaf(key, &leaf_page, NULL) == SUCCESS) {
         return SUCCESS;
     }
 
     /* Create a new record for the
      * value.
      */
+    struct record_t record;
     make_record(&record, key, value);
 
     /* Case: the tree does not exist yet.
@@ -737,39 +745,23 @@ int insert(prikey_t key,
 
 // DELETION.
 
-// int remove_entry_from_node(struct page_t* node, prikey_t key, pagenum_t pagenum) {
-//     int i, num_pointers;
+int remove_record_from_leaf(prikey_t key, struct page_t* node) {
+    struct record_t* rec = records(node);
+    int i, num_key = page_header(node)->number_of_keys;
+    for (i = 0; i < num_key && rec[i].key != key; ++i)
+        {}
+    
+    if (i == num_key) {
+        return FAILURE;
+    }
 
-//     i = 0;
-//     while (n->keys[i] != key)
-//         i++;
-//     for (++i; i < n->num_keys; i++)
-//         n->keys[i - 1] = n->keys[i];
+    for (++i; i < num_key; ++i) {
+        rec[i - 1] = rec[i];
+    }
 
-//     // Remove the pointer and shift other pointers accordingly.
-//     // First determine number of pointers.
-//     num_pointers = n->is_leaf ? n->num_keys : n->num_keys + 1;
-//     i = 0;
-//     while (n->pointers[i] != pointer)
-//         i++;
-//     for (++i; i < num_pointers; i++)
-//         n->pointers[i - 1] = n->pointers[i];
-
-
-//     // One key fewer.
-//     n->num_keys--;
-
-//     // Set the other pointers to NULL for tidiness.
-//     // A leaf uses the last pointer to point to the next leaf.
-//     if (n->is_leaf)
-//         for (i = n->num_keys; i < order - 1; i++)
-//             n->pointers[i] = NULL;
-//     else
-//         for (i = n->num_keys + 1; i < order; i++)
-//             n->pointers[i] = NULL;
-
-//     return SUCCESS;
-// }
+    --page_header(node)->number_of_keys;
+    return SUCCESS;
+}
 
 int shrink_root(struct file_manager_t* manager) {
     pagenum_t root = manager->file_header.root_page_number;
@@ -962,85 +954,83 @@ int shrink_root(struct file_manager_t* manager) {
 //     return root;
 // }
 
-// node * delete_entry( node * root, node * n, int key, void * pointer ) {
+int delete_entry(prikey_t key,
+                 struct page_pair_t* leaf_page,
+                 struct file_manager_t* manager)
+{
+    remove_record_from_leaf(key, leaf_page->page);
 
-//     int min_keys;
-//     node * neighbor;
-//     int neighbor_index;
-//     int k_prime_index, k_prime;
-//     int capacity;
+    /* Case:  deletion from the root. 
+     */
+    if (leaf_page->pagenum == manager->file_header.root_page_number) { 
+        return shrink_root(manager);
+    }
 
-//     // Remove key and pointer from node.
+    /* Case:  deletion from a node below the root.
+     * (Rest of function body.)
+     */
 
-//     n = remove_entry_from_node(n, key, pointer);
+    /* Determine minimum allowable size of node,
+     * to be preserved after deletion.
+     */
+    struct page_header_t* header = page_header(leaf_page->page);
+    int min_keys = header->is_leaf ? cut(ORDER - 1) : cut(ORDER) - 1;
 
-//     /* Case:  deletion from the root. 
-//      */
+    /* Case:  node stays at or above minimum.
+     * (The simple case.)
+     */
+    if (header->number_of_keys >= min_keys) {
+        return SUCCESS;
+    }
 
-//     if (n == root) 
-//         return shrink_root(root);
+    /* Case:  node falls below minimum.
+     * Either coalescence or redistribution
+     * is needed.
+     */
+    struct page_t parent;
+    load_page(header->parent_page_number, &parent, manager);
 
+    int index = get_index(&parent, leaf_page->pagenum);
+    int k_prime_index = index == -1 ? 0 : index;
+    int k_prime = entries(&parent)[k_prime_index].key;
 
-//     /* Case:  deletion from a node below the root.
-//      * (Rest of function body.)
-//      */
+    struct page_t tmp;
+    struct page_pair_t left, right;
+    
+    right = *leaf_page;
+    left.page = &tmp;
+    left.pagenum = index == -1
+        ? entries(&parent)[0].pagenum
+        : index ==  0 ? page_header(&parent)->special_page_number
+                      : entries(&parent)[index - 1].pagenum;
+    load_page(left.pagenum, &left.page, manager);
 
-//     /* Determine minimum allowable size of node,
-//      * to be preserved after deletion.
-//      */
+    if (index == -1) {
+        swap_page_pair(&left, &right);
+    }
 
-//     min_keys = n->is_leaf ? cut(order - 1) : cut(order) - 1;
+    int capacity = header->is_leaf ? ORDER : ORDER - 1;
+    if (page_header(left.page)->number_of_keys + page_header(right.page)->number_of_keys < capacity)
+        return coalesce_nodes(root, n, neighbor, neighbor_index, k_prime);
+    else
+        return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_prime);
+}
 
-//     /* Case:  node stays at or above minimum.
-//      * (The simple case.)
-//      */
+int delete(prikey_t key, struct file_manager_t* manager) {
+    pagenum_t leaf;
+    struct page_t leaf_page;
+    struct page_pair_t pair;
 
-//     if (n->num_keys >= min_keys)
-//         return root;
-
-//     /* Case:  node falls below minimum.
-//      * Either coalescence or redistribution
-//      * is needed.
-//      */
-
-//     /* Find the appropriate neighbor node with which
-//      * to coalesce.
-//      * Also find the key (k_prime) in the parent
-//      * between the pointer to node n and the pointer
-//      * to the neighbor.
-//      */
-
-//     neighbor_index = get_neighbor_index( n );
-//     k_prime_index = neighbor_index == -1 ? 0 : neighbor_index;
-//     k_prime = n->parent->keys[k_prime_index];
-//     neighbor = neighbor_index == -1 ? n->parent->pointers[1] : 
-//         n->parent->pointers[neighbor_index];
-
-//     capacity = n->is_leaf ? order : order - 1;
-
-//     /* Coalescence. */
-
-//     if (neighbor->num_keys + n->num_keys < capacity)
-//         return coalesce_nodes(root, n, neighbor, neighbor_index, k_prime);
-
-//     /* Redistribution. */
-
-//     else
-//         return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_prime);
-// }
-
-// int delete(prikey_t key, struct file_manager_t* manager) {
-//     pagenum_t leaf;
-//     struct page_t leaf_page;
-
-//     leaf = find_leaf(key, &leaf_page, manager);
-
-//     if (key_record != NULL && key_leaf != NULL) {
-//         root = delete_entry(root, key_leaf, key, key_record);
-//         free(key_record);
-//     }
-//     return root;
-// }
+    leaf = find_leaf(key, &leaf_page, manager);
+    if (leaf != INVALID_PAGENUM
+        && find_key_from_leaf(key, &leaf_page, NULL) == SUCCESS)
+    {
+        pair.pagenum = leaf;
+        pair.page = &leaf_page;
+        return delete_entry(key, &pair, manager);
+    }
+    return FAILURE;
+}
 
 int destroy_tree(struct file_manager_t* manager) {
     int i;

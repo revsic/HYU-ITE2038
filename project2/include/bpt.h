@@ -37,6 +37,8 @@ int commit_page(pagenum_t pagenum,
                 struct page_t* page,
                 struct file_manager_t* manager);
 
+void swap_page_pair(struct page_pair_t* left, struct page_pair_t* right);
+
 // Utility.
 void usage_1();
 void usage_2();
@@ -109,8 +111,10 @@ int shrink_root(struct file_manager_t* manager);
 // node * redistribute_nodes(node * root, node * n, node * neighbor,
 //                           int neighbor_index,
 //         int k_prime_index, int k_prime);
-// node * delete_entry( node * root, node * n, int key, void * pointer );
-// node * delete( node * root, int key );
+int delete_entry(prikey_t key,
+                 struct page_pair_t* leaf_page,
+                 struct file_manager_t* manager);
+int delete(prikey_t key, struct file_manager_t* manager);
 
 int destroy_tree(struct file_manager_t* manager);
 
