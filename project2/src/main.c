@@ -49,11 +49,10 @@ int main(int argc, char ** argv) {
         case 't':
             print_tree(&manager);
             break;
-        // case 'x':
-        //     if (root)
-        //         root = destroy_tree(root);
-        //     print_tree(root);
-        //     break;
+        case 'x':
+            destroy_tree(&manager);
+            print_tree(&manager);
+            break;
         default:
             usage_2();
             break;
