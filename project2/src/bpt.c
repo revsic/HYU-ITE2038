@@ -229,15 +229,16 @@ int find_range(prikey_t start,
             memcpy(&retval[num_found++], &rec[i], sizeof(struct record_t));
         }
 
-        i = 0;
         n = page_header(&page)->special_page_number;
-        if (n != INVALID_PAGENUM) {
+        if ((i < nkey && rec[i].key > end) || n == INVALID_PAGENUM) {
             break;
         }
 
         load_page(n, &page, manager);
-        nkey = page_header(&page)->number_of_keys;
+
+        i = 0;
         rec = records(&page);
+        nkey = page_header(&page)->number_of_keys;
     }
 
     return num_found;
@@ -359,11 +360,12 @@ void print_tree(struct file_manager_t* manager) {
 void find_and_print(prikey_t key, struct file_manager_t* manager) {
     struct record_t r;
     int retval = find(key, &r, manager);
-    if (retval == FAILURE)
+    if (retval == FAILURE) {
         printf("Record not found under key %lld.\n", key);
-    else 
+    } else {
         printf("Record -- key %lld, value %d.\n",
                key, *(int*)r.value);
+    }
 }
 
 void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_manager_t* manager) {
@@ -375,10 +377,11 @@ void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_mana
     if (!num_found) {
         printf("None found.\n");
     } else {
-        for (i = 0; i < num_found; i++)
+        for (i = 0; i < num_found; i++) {
             printf("Key: %lld   Value: %d\n",
                    retval[i].key,
                    *(int*)retval[i].value);
+        }
     }
 
     free(retval);
