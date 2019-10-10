@@ -348,7 +348,8 @@ void print_tree(struct file_manager_t* manager) {
         }
 
         if (VERBOSE_OUTPUT && pheader->is_leaf) {
-            printf("(next %llu) ", pheader->special_page_number);
+            printf("(parent %llu, next %llu) ",
+                pheader->parent_page_number, pheader->special_page_number);
         }
         printf("| ");
     }
@@ -612,6 +613,7 @@ int insert_into_parent(struct page_pair_t* left,
     load_page(parent, &parent_page, manager);
     int index = get_index(&parent_page, left->pagenum) + 1;
 DBG(key);
+DBG(parent);
 DBG(left->pagenum);
 DBG(right->pagenum);
 DBG(index);
