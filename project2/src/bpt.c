@@ -572,7 +572,7 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
     pagenum_t temp_pagenum;
     struct page_t temp_page;
     new_header->parent_page_number = header->parent_page_number;
-    for (i = -1; i < new_header->number_of_keys; ++i) {
+    for (i = -1; i < (int)new_header->number_of_keys; ++i) {
         if (i == -1) {
             temp_pagenum = new_header->special_page_number;
         } else {
@@ -612,11 +612,7 @@ int insert_into_parent(struct page_pair_t* left,
     struct page_t parent_page;
     load_page(parent, &parent_page, manager);
     int index = get_index(&parent_page, left->pagenum) + 1;
-DBG(key);
-DBG(parent);
-DBG(left->pagenum);
-DBG(right->pagenum);
-DBG(index);
+
     /* Simple case: the new key fits into the node. 
      */
     struct internal_t entry = { key, right->pagenum };
