@@ -28,7 +28,7 @@ struct page_pair_t {
 
 // FUNCTION PROTOTYPES.
 
-// Output and utility.
+// Utility.
 void usage_1();
 void usage_2();
 
@@ -38,9 +38,9 @@ struct queue_t* dequeue(struct queue_t* queue, pagenum_t* retval);
 int height(pagenum_t node, struct file_manager_t* manager);
 int path_to_root(pagenum_t node, struct file_manager_t* manager);
 
-void print_leaves(struct file_manager_t* manager);
-void print_tree(struct file_manager_t* manager);
+int cut(int length);
 
+// Search.
 pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* manager);
 int find(prikey_t key, struct record_t* record, struct file_manager_t* manager);
 int find_range(prikey_t start,
@@ -48,10 +48,12 @@ int find_range(prikey_t start,
                struct record_t* retval,
                struct file_manager_t* manager);
 
+// Output.
+void print_leaves(struct file_manager_t* manager);
+void print_tree(struct file_manager_t* manager);
+
 void find_and_print(prikey_t key, struct file_manager_t* manager); 
 void find_and_print_range(prikey_t range1, prikey_t range2, struct file_manager_t* manager);
-
-int cut(int length);
 
 // Insertion.
 int make_record(struct record_t* record, prikey_t key, int value);

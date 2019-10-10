@@ -95,114 +95,16 @@ int path_to_root(pagenum_t node, struct file_manager_t* manager) {
     return length;
 }
 
-void print_leaves(struct file_manager_t* manager) {
-    int i;
-    pagenum_t root = manager->file_header.root_page_number;
-
-    if (root == INVALID_PAGENUM) {
-        printf("Empty tree.\n");
-        return;
+int cut(int length) {
+    if (length % 2 == 0) {
+        return length / 2;
+    } else {
+        return length / 2 + 1;
     }
-
-    struct page_t page;
-    page_read(root, manager, &page);    
-
-    while (!page_header(&page)->is_leaf) {
-        root = page_header(&page)->special_page_number;
-        page_read(root, manager, &page);
-    }
-
-    struct page_header_t* pheader = page_header(&page);
-    struct record_t* rec = records(&page);
-    while (1) {
-        for (i = 0; i < pheader->number_of_keys; ++i) {
-            if (VERBOSE_OUTPUT) {
-                printf("%x ", *(int*)rec[i].value);
-            }
-            printf("%ld ", rec[i].key);
-        }
-        if (VERBOSE_OUTPUT) {
-            printf("%lx ", pheader->special_page_number);
-        }
-
-        if (pheader->special_page_number != INVALID_PAGENUM) {
-            printf(" | ");
-            root = pheader->special_page_number;
-            page_read(root, manager, &page);
-        } else {
-            break;
-        }
-    }
-    printf("\n");
 }
 
-void print_tree(struct file_manager_t* manager) {
-    int i = 0;
-    int rank = 0;
-    int new_rank = 0;
-    pagenum_t n = INVALID_PAGENUM;
-    pagenum_t root = manager->file_header.root_page_number;
 
-    if (root == INVALID_PAGENUM) {
-        printf("Empty tree.\n");
-        return;
-    }
-
-    struct page_t page, tmp;
-    struct page_header_t* pheader = page_header(&page);
-
-    struct queue_t* queue = NULL;
-    queue = enqueue(queue, root);
-    while (queue != NULL) {
-        queue = dequeue(queue, &n);
-        page_read(n, manager, &page);
-
-        if (pheader->parent_page_number != INVALID_PAGENUM) {
-            page_read(pheader->parent_page_number, manager, &tmp);
-            if (n == page_header(&tmp)->special_page_number) {
-                new_rank = path_to_root(n, manager);
-                if (new_rank != rank) {
-                    rank = new_rank;
-                    printf("\n");
-                }
-            }
-        }
-
-        if (VERBOSE_OUTPUT) {
-            printf("(%lx)", n);
-            if (!pheader->is_leaf) {
-                printf("%lx ", pheader->special_page_number);
-            }
-        }
-
-        for (i = 0; i < pheader->number_of_keys; i++) {
-            if (pheader->is_leaf) {
-                printf("%ld ", records(&page)[i].key);
-                if (VERBOSE_OUTPUT) {
-                    printf("%x ", *(int*)records(&page)[i].value);
-                }
-            } else {
-                printf("%ld ", entries(&page)[i].key);
-                if (VERBOSE_OUTPUT) {
-                    printf("%lx ", entries(&page)[i].pagenum);
-                }
-            }
-        }
-
-        if (!pheader->is_leaf) {
-            queue = enqueue(queue, pheader->special_page_number);
-            for (i = 0; i < pheader->number_of_keys; i++) {
-                queue = enqueue(queue, entries(&page)[i].pagenum);
-            }
-        }
-
-        if (VERBOSE_OUTPUT && pheader->is_leaf) {
-            printf("%lx ", pheader->special_page_number);
-        }
-        printf("| ");
-    }
-    printf("\n");
-}
+// Search.
 
 pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* manager) {
     int i = 0;
@@ -317,6 +219,118 @@ int find_range(prikey_t start,
     return num_found;
 }
 
+
+// Output.
+
+void print_leaves(struct file_manager_t* manager) {
+    int i;
+    pagenum_t root = manager->file_header.root_page_number;
+
+    if (root == INVALID_PAGENUM) {
+        printf("Empty tree.\n");
+        return;
+    }
+
+    struct page_t page;
+    page_read(root, manager, &page);    
+
+    while (!page_header(&page)->is_leaf) {
+        root = page_header(&page)->special_page_number;
+        page_read(root, manager, &page);
+    }
+
+    struct page_header_t* pheader = page_header(&page);
+    struct record_t* rec = records(&page);
+    while (1) {
+        for (i = 0; i < pheader->number_of_keys; ++i) {
+            if (VERBOSE_OUTPUT) {
+                printf("%x ", *(int*)rec[i].value);
+            }
+            printf("%ld ", rec[i].key);
+        }
+        if (VERBOSE_OUTPUT) {
+            printf("%lx ", pheader->special_page_number);
+        }
+
+        if (pheader->special_page_number != INVALID_PAGENUM) {
+            printf(" | ");
+            root = pheader->special_page_number;
+            page_read(root, manager, &page);
+        } else {
+            break;
+        }
+    }
+    printf("\n");
+}
+
+void print_tree(struct file_manager_t* manager) {
+    int i = 0;
+    int rank = 0;
+    int new_rank = 0;
+    pagenum_t n = INVALID_PAGENUM;
+    pagenum_t root = manager->file_header.root_page_number;
+
+    if (root == INVALID_PAGENUM) {
+        printf("Empty tree.\n");
+        return;
+    }
+
+    struct page_t page, tmp;
+    struct page_header_t* pheader = page_header(&page);
+
+    struct queue_t* queue = NULL;
+    queue = enqueue(queue, root);
+    while (queue != NULL) {
+        queue = dequeue(queue, &n);
+        page_read(n, manager, &page);
+
+        if (pheader->parent_page_number != INVALID_PAGENUM) {
+            page_read(pheader->parent_page_number, manager, &tmp);
+            if (n == page_header(&tmp)->special_page_number) {
+                new_rank = path_to_root(n, manager);
+                if (new_rank != rank) {
+                    rank = new_rank;
+                    printf("\n");
+                }
+            }
+        }
+
+        if (VERBOSE_OUTPUT) {
+            printf("(%lx)", n);
+            if (!pheader->is_leaf) {
+                printf("%lx ", pheader->special_page_number);
+            }
+        }
+
+        for (i = 0; i < pheader->number_of_keys; i++) {
+            if (pheader->is_leaf) {
+                printf("%ld ", records(&page)[i].key);
+                if (VERBOSE_OUTPUT) {
+                    printf("%x ", *(int*)records(&page)[i].value);
+                }
+            } else {
+                printf("%ld ", entries(&page)[i].key);
+                if (VERBOSE_OUTPUT) {
+                    printf("%lx ", entries(&page)[i].pagenum);
+                }
+            }
+        }
+
+        if (!pheader->is_leaf) {
+            queue = enqueue(queue, pheader->special_page_number);
+            for (i = 0; i < pheader->number_of_keys; i++) {
+                queue = enqueue(queue, entries(&page)[i].pagenum);
+            }
+        }
+
+        if (VERBOSE_OUTPUT && pheader->is_leaf) {
+            printf("%lx ", pheader->special_page_number);
+        }
+        printf("| ");
+    }
+    printf("\n");
+}
+
 void find_and_print(prikey_t key, struct file_manager_t* manager) {
     struct record_t r;
     int retval = find(key, &r, manager);
@@ -343,14 +357,6 @@ void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_mana
     }
 
     free(retval);
-}
-
-int cut(int length) {
-    if (length % 2 == 0) {
-        return length / 2;
-    } else {
-        return length / 2 + 1;
-    }
 }
 
 
