@@ -180,6 +180,24 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
     return c;
 }
 
+int find_key_from_leaf(prikey_t key, struct page_t* page, struct record_t* record) {
+    int i, num_key;
+    if (!page_header(page)->is_leaf) {
+        return FAILURE;
+    }
+
+    num_key = page_header(page)->number_of_keys;
+    for (i = 0; i < num_key && records(page)[i].key != key; ++i)
+        {}
+
+    if (i == num_key) {
+        return FAILURE;
+    } else {
+        memcpy(record, &records(page)[i], sizeof(struct record_t));
+        return SUCCESS;
+    }
+}
+
 int find(prikey_t key, struct record_t* record, struct file_manager_t* manager) {
     int i = 0;
     struct page_t page;
@@ -188,18 +206,7 @@ int find(prikey_t key, struct record_t* record, struct file_manager_t* manager) 
         return FAILURE;
     }
 
-    for (i = 0; i < page_header(&page)->number_of_keys; ++i) {
-        if (records(&page)[i].key == key) {
-            break;
-        }
-    }
-
-    if (i == page_header(&page)->number_of_keys) {
-        return FAILURE;
-    } else {
-        memcpy(record, &records(&page)[i], sizeof(struct record_t));
-        return SUCCESS;
-    }
+    return find_key_from_leaf(key, &page, record);
 }
 
 int find_range(prikey_t start,
@@ -687,13 +694,15 @@ int insert(prikey_t key,
            struct file_manager_t* manager)
 {
     struct record_t record;
-    pagenum_t root = manager->file_header.root_page_number;
+    struct page_t leaf_page;
+    pagenum_t leaf = find_leaf(key, &leaf_page, manager);
 
     /* The current implementation ignores
      * duplicates.
      */
-    if (find(key, &record, manager) == SUCCESS)
+    if (find_key_from_leaf(key, &leaf_page, &record) == SUCCESS) {
         return SUCCESS;
+    }
 
     /* Create a new record for the
      * value.
@@ -703,16 +712,14 @@ int insert(prikey_t key,
     /* Case: the tree does not exist yet.
      * Start a new tree.
      */
-    if (root == INVALID_PAGENUM) 
+    pagenum_t root = manager->file_header.root_page_number;
+    if (root == INVALID_PAGENUM) {
         return start_new_tree(&record, manager);
-
+    }
 
     /* Case: the tree already exists.
      * (Rest of function body.)
      */
-
-    struct page_t leaf_page;
-    pagenum_t leaf = find_leaf(key, &leaf_page, manager);
 
     /* Case: leaf has room for key and pointer.
      */
@@ -730,38 +737,9 @@ int insert(prikey_t key,
 
 // DELETION.
 
-// /* Utility function for deletion.  Retrieves
-//  * the index of a node's nearest neighbor (sibling)
-//  * to the left if one exists.  If not (the node
-//  * is the leftmost child), returns -1 to signify
-//  * this special case.
-//  */
-// int get_neighbor_index( node * n ) {
-
-//     int i;
-
-//     /* Return the index of the key to the left
-//      * of the pointer in the parent pointing
-//      * to n.  
-//      * If n is the leftmost child, this means
-//      * return -1.
-//      */
-//     for (i = 0; i <= n->parent->num_keys; i++)
-//         if (n->parent->pointers[i] == n)
-//             return i - 1;
-
-//     // Error state.
-//     printf("Search for nonexistent pointer to node in parent.\n");
-//     printf("Node:  %#lx\n", (unsigned long)n);
-//     exit(EXIT_FAILURE);
-// }
-
-
-// node * remove_entry_from_node(node * n, int key, node * pointer) {
-
+// int remove_entry_from_node(struct page_t* node, prikey_t key, pagenum_t pagenum) {
 //     int i, num_pointers;
 
-//     // Remove the key and shift other keys accordingly.
 //     i = 0;
 //     while (n->keys[i] != key)
 //         i++;
@@ -790,54 +768,39 @@ int insert(prikey_t key,
 //         for (i = n->num_keys + 1; i < order; i++)
 //             n->pointers[i] = NULL;
 
-//     return n;
+//     return SUCCESS;
 // }
 
+int shrink_root(struct file_manager_t* manager) {
+    pagenum_t root = manager->file_header.root_page_number;
+    
+    struct page_t root_page;
+    load_page(root, &root_page, manager);
 
-// node * adjust_root(node * root) {
+    if (page_header(&root_page)->number_of_keys > 0) {
+        return SUCCESS;
+    }
 
-//     node * new_root;
+    pagenum_t child;
+    struct page_t child_page;
 
-//     /* Case: nonempty root.
-//      * Key and pointer have already been deleted,
-//      * so nothing to be done.
-//      */
+    if (!page_header(&root_page)->is_leaf) {
+        child = entries(&root_page)[0].pagenum;
+        manager->file_header.root_page_number = child;
 
-//     if (root->num_keys > 0)
-//         return root;
+        load_page(child, &child_page, manager);
+        page_header(&child_page)->parent_page_number = INVALID_PAGENUM;
+        commit_page(child, &child_page, manager);        
+    } else {
+        manager->file_header.root_page_number = INVALID_PAGENUM;
+    }
 
-//     /* Case: empty root. 
-//      */
+    manager->file_header.number_of_pages++;
 
-//     // If it has a child, promote 
-//     // the first (only) child
-//     // as the new root.
+    free_page(&root_page);
+    return SUCCESS;
+}
 
-//     if (!root->is_leaf) {
-//         new_root = root->pointers[0];
-//         new_root->parent = NULL;
-//     }
-
-//     // If it is a leaf (has no children),
-//     // then the whole tree is empty.
-
-//     else
-//         new_root = NULL;
-
-//     free(root->keys);
-//     free(root->pointers);
-//     free(root);
-
-//     return new_root;
-// }
-
-
-// /* Coalesces a node that has become
-//  * too small after deletion
-//  * with a neighboring node that
-//  * can accept the additional entries
-//  * without exceeding the maximum.
-//  */
 // node * coalesce_nodes(node * root, node * n, node * neighbor, int neighbor_index, int k_prime) {
 
 //     int i, j, neighbor_insertion_index, n_end;
@@ -999,12 +962,6 @@ int insert(prikey_t key,
 //     return root;
 // }
 
-
-// /* Deletes an entry from the B+ tree.
-//  * Removes the record and its key and pointer
-//  * from the leaf, and then makes all appropriate
-//  * changes to preserve the B+ tree properties.
-//  */
 // node * delete_entry( node * root, node * n, int key, void * pointer ) {
 
 //     int min_keys;
@@ -1021,7 +978,7 @@ int insert(prikey_t key,
 //      */
 
 //     if (n == root) 
-//         return adjust_root(root);
+//         return shrink_root(root);
 
 
 //     /* Case:  deletion from a node below the root.
@@ -1072,36 +1029,17 @@ int insert(prikey_t key,
 //         return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_prime);
 // }
 
+// int delete(prikey_t key, struct file_manager_t* manager) {
+//     pagenum_t leaf;
+//     struct page_t leaf_page;
 
+//     leaf = find_leaf(key, &leaf_page, manager);
 
-// /* Master deletion function.
-//  */
-// node * delete(node * root, int key) {
-
-//     node * key_leaf;
-//     record * key_record;
-
-//     key_record = find(root, key, false);
-//     key_leaf = find_leaf(root, key, false);
 //     if (key_record != NULL && key_leaf != NULL) {
 //         root = delete_entry(root, key_leaf, key, key_record);
 //         free(key_record);
 //     }
 //     return root;
-// }
-
-
-// void destroy_tree_nodes(node * root) {
-//     int i;
-//     if (root->is_leaf)
-//         for (i = 0; i < root->num_keys; i++)
-//             free(root->pointers[i]);
-//     else
-//         for (i = 0; i < root->num_keys + 1; i++)
-//             destroy_tree_nodes(root->pointers[i]);
-//     free(root->pointers);
-//     free(root->keys);
-//     free(root);
 // }
 
 int destroy_tree(struct file_manager_t* manager) {

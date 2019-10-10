@@ -51,6 +51,7 @@ int cut(int length);
 
 // Search.
 pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* manager);
+int find_key_from_leaf(prikey_t key, struct page_t* page, struct record_t* record);
 int find(prikey_t key, struct record_t* record, struct file_manager_t* manager);
 int find_range(prikey_t start,
                prikey_t end,
@@ -102,8 +103,7 @@ int insert(prikey_t key,
            struct file_manager_t* manager);
 
 // Deletion.
-// int get_neighbor_index( node * n );
-// node * adjust_root(node * root);
+int shrink_root(struct file_manager_t* manager);
 // node * coalesce_nodes(node * root, node * n, node * neighbor,
 //                       int neighbor_index, int k_prime);
 // node * redistribute_nodes(node * root, node * n, node * neighbor,
