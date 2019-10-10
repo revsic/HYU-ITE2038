@@ -145,9 +145,9 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
         if (VERBOSE_OUTPUT) {
             printf("[");
             for (i = 0; i < pheader->number_of_keys - 1; ++i) {
-                printf("%ld ", internal[i].key);
+                printf("%lld ", internal[i].key);
             }
-            printf("%ld] ", internal[i].key);
+            printf("%lld] ", internal[i].key);
         }
 
         for (i = 0; i < pheader->number_of_keys && key >= internal[i].key; ++i)
@@ -172,9 +172,9 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
 
         printf("Leaf [");
         for (i = 0; i < pheader->number_of_keys - 1; ++i) {
-            printf("%ld ", rec[i].key);
+            printf("%lld ", rec[i].key);
         }
-        printf("%ld]\n", rec[i].key);
+        printf("%lld]\n", rec[i].key);
     }
 
     return c;
@@ -270,10 +270,10 @@ void print_leaves(struct file_manager_t* manager) {
             if (VERBOSE_OUTPUT) {
                 printf("%x ", *(int*)rec[i].value);
             }
-            printf("%ld ", rec[i].key);
+            printf("%lld ", rec[i].key);
         }
         if (VERBOSE_OUTPUT) {
-            printf("%lx ", pheader->special_page_number);
+            printf("%llu ", pheader->special_page_number);
         }
 
         if (pheader->special_page_number != INVALID_PAGENUM) {
@@ -320,22 +320,22 @@ void print_tree(struct file_manager_t* manager) {
         }
 
         if (VERBOSE_OUTPUT) {
-            printf("(page %lx) ", n);
+            printf("(page %llu) ", n);
             if (!pheader->is_leaf) {
-                printf("{v: %lx} ", pheader->special_page_number);
+                printf("{v: %llu} ", pheader->special_page_number);
             }
         }
 
         for (i = 0; i < pheader->number_of_keys; i++) {
             if (pheader->is_leaf) {
-                printf("%ld ", records(&page)[i].key);
+                printf("%lld ", records(&page)[i].key);
                 if (VERBOSE_OUTPUT) {
                     printf("{v: %x} ", *(int*)records(&page)[i].value);
                 }
             } else {
-                printf("%ld ", entries(&page)[i].key);
+                printf("%lld ", entries(&page)[i].key);
                 if (VERBOSE_OUTPUT) {
-                    printf("{v: %lx} ", entries(&page)[i].pagenum);
+                    printf("{v: %lld} ", entries(&page)[i].pagenum);
                 }
             }
         }
@@ -348,7 +348,7 @@ void print_tree(struct file_manager_t* manager) {
         }
 
         if (VERBOSE_OUTPUT && pheader->is_leaf) {
-            printf("(next %lx) ", pheader->special_page_number);
+            printf("(next %llu) ", pheader->special_page_number);
         }
         printf("| ");
     }
@@ -359,9 +359,9 @@ void find_and_print(prikey_t key, struct file_manager_t* manager) {
     struct record_t r;
     int retval = find(key, &r, manager);
     if (retval == FAILURE)
-        printf("Record not found under key %ld.\n", key);
+        printf("Record not found under key %lld.\n", key);
     else 
-        printf("Record -- key %ld, value %d.\n",
+        printf("Record -- key %lld, value %d.\n",
                key, *(int*)r.value);
 }
 
@@ -375,7 +375,7 @@ void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_mana
         printf("None found.\n");
     } else {
         for (i = 0; i < num_found; i++)
-            printf("Key: %ld   Value: %d\n",
+            printf("Key: %lld   Value: %d\n",
                    retval[i].key,
                    *(int*)retval[i].value);
     }
@@ -664,7 +664,7 @@ int start_new_tree(struct record_t* pointer,
     struct page_header_t* header = page_header(&root_page);
     header->number_of_keys++;
 
-    struct record_t* rec = &entries(&root_page)[0];
+    struct record_t* rec = &records(&root_page)[0];
     memcpy(rec, pointer, sizeof(struct record_t));
 
     commit_page(root, &root_page, manager);
