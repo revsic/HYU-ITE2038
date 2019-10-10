@@ -28,6 +28,14 @@ struct page_pair_t {
 
 // FUNCTION PROTOTYPES.
 
+// Page relative.
+int load_page(pagenum_t pagenum,
+              struct page_t* page,
+              struct file_manager_t* manager);
+int commit_page(pagenum_t pagenum,
+                struct page_t* page,
+                struct file_manager_t* manager);
+
 // Utility.
 void usage_1();
 void usage_2();

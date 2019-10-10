@@ -16,6 +16,22 @@
 #define TRUE 1
 #define FALSE 0
 
+int load_page(pagenum_t pagenum,
+              struct page_t* page,
+              struct file_manager_t* manager)
+{
+    page_read(pagenum, manager, page);
+    return SUCCESS;
+}
+
+int commit_page(pagenum_t pagenum,
+                struct page_t* page,
+                struct file_manager_t* manager)
+{
+    page_write(pagenum, manager, page);
+    return SUCCESS;
+}
+
 void usage_1() {
     printf("B+ Tree of Order %d.\n", ORDER);
     printf("Following Silberschatz, Korth, Sidarshan, Database Concepts, "
@@ -72,11 +88,11 @@ struct queue_t* dequeue(struct queue_t* queue, pagenum_t* retval) {
 int height(pagenum_t node, struct file_manager_t* manager) {
     int h = 0;
     struct page_t page;
-    page_read(node, manager, &page);
+    load_page(node, &page, manager);
 
     while (!page_header(&page)->is_leaf) {
         node = page_header(&page)->special_page_number;
-        page_read(node, manager, &page);
+        load_page(node, &page, manager);
         h++;
     }
     return h;
@@ -88,7 +104,7 @@ int path_to_root(pagenum_t node, struct file_manager_t* manager) {
     pagenum_t root = manager->file_header.root_page_number;
 
     while (node != root) {
-        page_read(node, manager, &page);
+        load_page(node, &page, manager);
         node = page_header(&page)->parent_page_number;
         length++;
     }
@@ -124,7 +140,7 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
     }
 
     pagenum_t c = root;
-    page_read(c, manager, page);
+    load_page(c, page, manager);
     while (!pheader->is_leaf) {
         if (VERBOSE_OUTPUT) {
             printf("[");
@@ -142,7 +158,7 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
         }
 
         c = internal[i].pagenum;
-        page_read(c, manager, page);
+        load_page(c, page, manager);
     }
 
     if (VERBOSE_OUTPUT) {
@@ -211,7 +227,7 @@ int find_range(prikey_t start,
             break;
         }
 
-        page_read(n, manager, &page);
+        load_page(n, &page, manager);
         nkey = page_header(&page)->number_of_keys;
         rec = records(&page);
     }
@@ -232,11 +248,11 @@ void print_leaves(struct file_manager_t* manager) {
     }
 
     struct page_t page;
-    page_read(root, manager, &page);    
+    load_page(root, &page, manager);    
 
     while (!page_header(&page)->is_leaf) {
         root = page_header(&page)->special_page_number;
-        page_read(root, manager, &page);
+        load_page(root, &page, manager);
     }
 
     struct page_header_t* pheader = page_header(&page);
@@ -255,7 +271,7 @@ void print_leaves(struct file_manager_t* manager) {
         if (pheader->special_page_number != INVALID_PAGENUM) {
             printf(" | ");
             root = pheader->special_page_number;
-            page_read(root, manager, &page);
+            load_page(root, &page, manager);
         } else {
             break;
         }
@@ -282,10 +298,10 @@ void print_tree(struct file_manager_t* manager) {
     queue = enqueue(queue, root);
     while (queue != NULL) {
         queue = dequeue(queue, &n);
-        page_read(n, manager, &page);
+        load_page(n, &page, manager);
 
         if (pheader->parent_page_number != INVALID_PAGENUM) {
-            page_read(pheader->parent_page_number, manager, &tmp);
+            load_page(pheader->parent_page_number, &tmp, manager);
             if (n == page_header(&tmp)->special_page_number) {
                 new_rank = path_to_root(n, manager);
                 if (new_rank != rank) {
@@ -539,7 +555,7 @@ pagenum_t insert_into_node_after_splitting(struct page_pair_t* old_node,
         } else {
             temp_pagenum = new_entries[i].pagenum;
         }
-        page_read(temp_pagenum, manager, &temp_page);
+        load_page(temp_pagenum, &temp_page, manager);
         page_header(&temp_page)->parent_page_number = new_node;
         page_write(temp_pagenum, manager, &temp_page);
     }
@@ -567,7 +583,7 @@ pagenum_t insert_into_parent(struct page_pair_t* left,
      * node.
      */
     struct page_t parent_page;
-    page_read(parent, manager, &parent_page);
+    load_page(parent, &parent_page, manager);
     left_index = get_left_index(&parent_page, left->pagenum);
 
     /* Simple case: the new key fits into the node. 
