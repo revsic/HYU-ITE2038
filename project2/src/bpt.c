@@ -402,7 +402,7 @@ pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf) {
 
     struct page_t page;
     page_init(&page, leaf);
-    page_write(new_node, manager, &page);
+    commit_page(new_node, &page, manager);
     return new_node;
 }
 
@@ -1101,9 +1101,33 @@ int insert(prikey_t key,
 //     free(root);
 // }
 
+int destroy_tree(struct file_manager_t* manager) {
+    int i;
+    pagenum_t pagenum;
+    struct page_t page;
+    struct queue_t* queue;
+    
+    pagenum_t root = manager->file_header.root_page_number;
+    if (root == INVALID_PAGENUM) {
+        return SUCCESS;
+    }
 
-// node * destroy_tree(node * root) {
-//     destroy_tree_nodes(root);
-//     return NULL;
-// }
+    queue = enqueue(NULL, root);
+    while (queue != NULL) {
+        queue = dequeue(queue, &pagenum);
+        load_page(pagenum, &page, manager);
 
+        if (!page_header(&page)->is_leaf) {
+            queue = enqueue(queue, page_header(&page)->special_page_number);
+            for (i = 0; i < page_header(&page)->number_of_keys; ++i) {
+                queue = enqueue(queue, entries(&page)[i].pagenum);
+            }
+        }
+
+        page_free(pagenum, manager);
+    }
+
+    manager->file_header.root_page_number = INVALID_PAGENUM;
+    manager->updated++;
+    return SUCCESS;
+}

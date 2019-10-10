@@ -102,7 +102,6 @@ int insert(prikey_t key,
            struct file_manager_t* manager);
 
 // Deletion.
-
 // int get_neighbor_index( node * n );
 // node * adjust_root(node * root);
 // node * coalesce_nodes(node * root, node * n, node * neighbor,
@@ -113,7 +112,6 @@ int insert(prikey_t key,
 // node * delete_entry( node * root, node * n, int key, void * pointer );
 // node * delete( node * root, int key );
 
-// void destroy_tree_nodes(node * root);
-// node * destroy_tree(node * root);
+int destroy_tree(struct file_manager_t* manager);
 
 #endif /* __BPT_H__*/
