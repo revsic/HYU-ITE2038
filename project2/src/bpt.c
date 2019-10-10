@@ -406,9 +406,13 @@ pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf) {
 }
 
 int get_index(struct page_t* parent, pagenum_t pagenum) {
-    int index = 0;
-    int num_key = page_header(parent)->number_of_keys;
-    for (;
+    int index, num_key;
+    if (page_header(parent)->special_page_number == pagenum) {
+        return -1;
+    }
+
+    num_key = page_header(parent)->number_of_keys;
+    for (index = 0;
          index < num_key && entries(parent)[index].pagenum != pagenum;
          ++index)
         {}
@@ -523,7 +527,7 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
                                      struct file_manager_t* manager)
 {
     int i, j, split_index, k_prime;
-    struct internal_t* temp = malloc(ORDER * sizeof(prikey_t));
+    struct internal_t* temp = malloc(ORDER * sizeof(struct internal_t));
     if (temp == NULL) {
         perror("Temporary array for splitting nodes.");
         exit(EXIT_FAILURE);
@@ -532,11 +536,11 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
     struct internal_t* ent = entries(old_node->page);
     struct page_header_t* header = page_header(old_node->page);
 
-    for (i = 0; i < header->number_of_keys; ++i) {
+    for (i = 0, j = 0; j < header->number_of_keys; ++i, ++j) {
         if (i == index) {
             i++;
         }
-        temp[i] = ent[i];
+        temp[i] = ent[j];
     }
     temp[index] = *entry;
 
@@ -550,7 +554,7 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
     struct page_header_t* new_header = page_header(&new_page);
 
     header->number_of_keys = 0;
-    for (i = 0; i < split_index - 1; i++) {
+    for (i = 0; i < split_index - 1; ++i) {
         ent[i] = temp[i];
         header->number_of_keys++;
     }
@@ -606,8 +610,11 @@ int insert_into_parent(struct page_pair_t* left,
      */
     struct page_t parent_page;
     load_page(parent, &parent_page, manager);
-    int index = get_index(&parent_page, right->pagenum);
-
+    int index = get_index(&parent_page, left->pagenum) + 1;
+DBG(key);
+DBG(left->pagenum);
+DBG(right->pagenum);
+DBG(index);
     /* Simple case: the new key fits into the node. 
      */
     struct internal_t entry = { key, right->pagenum };
