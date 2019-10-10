@@ -267,13 +267,13 @@ void print_leaves(struct file_manager_t* manager) {
     struct record_t* rec = records(&page);
     while (1) {
         for (i = 0; i < pheader->number_of_keys; ++i) {
-            if (VERBOSE_OUTPUT) {
-                printf("%x ", *(int*)rec[i].value);
-            }
             printf("%lld ", rec[i].key);
+            if (VERBOSE_OUTPUT) {
+                printf("{v: %x} ", *(int*)rec[i].value);
+            }
         }
         if (VERBOSE_OUTPUT) {
-            printf("%llu ", pheader->special_page_number);
+            printf("(next %llu) ", pheader->special_page_number);
         }
 
         if (pheader->special_page_number != INVALID_PAGENUM) {
