@@ -9,7 +9,7 @@ int main(int argc, char ** argv) {
     struct file_manager_t manager;
     file_open("datafile", &manager);
 
-    usage_1();  
+    usage_1();
     usage_2();
 
     printf("> ");
