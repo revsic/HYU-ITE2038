@@ -82,9 +82,9 @@ int insert_into_node(struct page_pair_t* node,
                      struct internal_t* entry,
                      struct file_manager_t* manager);
 int insert_into_node_after_splitting(struct page_pair_t* old_node,
-                                           int index,
-                                           struct internal_t* entry,
-                                           struct file_manager_t* manager);
+                                     int index,
+                                     struct internal_t* entry,
+                                     struct file_manager_t* manager);
 
 int insert_into_parent(struct page_pair_t* left,
                        prikey_t key,
