@@ -10,7 +10,7 @@
 
 // global constant
 #define ORDER 32
-#define VERBOSE_OUTPUT 1
+#define VERBOSE_OUTPUT 0
 
 #define SUCCESS 0
 #define FAILURE 1
@@ -69,34 +69,37 @@ pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf);
 
 int get_left_index(struct page_t* parent, pagenum_t left);
 
-int insert_into_leaf(struct page_pair_t* leaf, struct record_t* pointer);
-pagenum_t insert_into_leaf_after_splitting(struct page_pair_t* leaf,
-                                           struct record_t* record,
-                                           struct file_manager_t* manager);
+int insert_into_leaf(struct page_pair_t* leaf,
+                     struct record_t* pointer,
+                     struct file_manager_t* manager);
+int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
+                                     struct record_t* record,
+                                     struct file_manager_t* manager);
 
 int insert_into_node(struct page_pair_t* node,
                      int left_index,
-                     struct internal_t* entry);
-pagenum_t insert_into_node_after_splitting(struct page_pair_t* old_node,
+                     struct internal_t* entry,
+                     struct file_manager_t* manager);
+int insert_into_node_after_splitting(struct page_pair_t* old_node,
                                            int left_index,
                                            struct internal_t* entry,
                                            struct file_manager_t* manager);
 
-pagenum_t insert_into_parent(struct page_pair_t* left,
-                             prikey_t key,
-                             struct page_pair_t* right,
-                             struct file_manager_t* manager);
-pagenum_t insert_into_new_root(struct page_pair_t* left,
-                               prikey_t key,
-                               struct page_pair_t* right,
-                               struct file_manager_t* manager);
-
-pagenum_t start_new_tree(int key,
-                         struct record_t* pointer,
+int insert_into_parent(struct page_pair_t* left,
+                       prikey_t key,
+                       struct page_pair_t* right,
+                       struct file_manager_t* manager);
+int insert_into_new_root(struct page_pair_t* left,
+                         prikey_t key,
+                         struct page_pair_t* right,
                          struct file_manager_t* manager);
-pagenum_t insert(prikey_t key,
-                 int value,
-                 struct file_manager_t* manager);
+
+int start_new_tree(int key,
+                   struct record_t* pointer,
+                   struct file_manager_t* manager);
+int insert(prikey_t key,
+           int value,
+           struct file_manager_t* manager);
 
 // Deletion.
 
