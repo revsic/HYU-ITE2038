@@ -9,8 +9,9 @@
 #include "headers.h"
 
 // global constant
-#define ORDER 32
-#define VERBOSE_OUTPUT 0
+// #define ORDER 32
+#define ORDER 5
+#define VERBOSE_OUTPUT 1
 
 #define SUCCESS 0
 #define FAILURE 1
@@ -67,7 +68,7 @@ void find_and_print_range(prikey_t range1, prikey_t range2, struct file_manager_
 int make_record(struct record_t* record, prikey_t key, int value);
 pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf);
 
-int get_left_index(struct page_t* parent, pagenum_t left);
+int get_index(struct page_t* parent, pagenum_t pagenum);
 
 int insert_into_leaf(struct page_pair_t* leaf,
                      struct record_t* pointer,
@@ -77,11 +78,11 @@ int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
                                      struct file_manager_t* manager);
 
 int insert_into_node(struct page_pair_t* node,
-                     int left_index,
+                     int index,
                      struct internal_t* entry,
                      struct file_manager_t* manager);
 int insert_into_node_after_splitting(struct page_pair_t* old_node,
-                                           int left_index,
+                                           int index,
                                            struct internal_t* entry,
                                            struct file_manager_t* manager);
 
@@ -94,8 +95,7 @@ int insert_into_new_root(struct page_pair_t* left,
                          struct page_pair_t* right,
                          struct file_manager_t* manager);
 
-int start_new_tree(int key,
-                   struct record_t* pointer,
+int start_new_tree(struct record_t* pointer,
                    struct file_manager_t* manager);
 int insert(prikey_t key,
            int value,

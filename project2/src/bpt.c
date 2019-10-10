@@ -16,6 +16,8 @@
 #define TRUE 1
 #define FALSE 0
 
+#define DBG(x) printf("line %d, " #x ": %d\n", __LINE__, x);
+
 int load_page(pagenum_t pagenum,
               struct page_t* page,
               struct file_manager_t* manager)
@@ -65,8 +67,7 @@ struct queue_t* enqueue(struct queue_t* queue, pagenum_t pagenum) {
 
     if (queue == NULL) {
         queue = new_node;
-    }
-    else {
+    } else {
         tmp = queue;
         while(tmp->next != NULL) {
             tmp = tmp->next;
@@ -143,29 +144,37 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
     while (!pheader->is_leaf) {
         if (VERBOSE_OUTPUT) {
             printf("[");
-            for (i = 0; i < pheader->number_of_keys - 1; ++i)
+            for (i = 0; i < pheader->number_of_keys - 1; ++i) {
                 printf("%ld ", internal[i].key);
+            }
             printf("%ld] ", internal[i].key);
         }
 
-        i = 0;
         for (i = 0; i < pheader->number_of_keys && key >= internal[i].key; ++i)
             {}
 
+        --i;
         if (VERBOSE_OUTPUT) {
             printf("%d ->\n", i);
         }
 
-        c = internal[i].pagenum;
+        if (i < 0) {
+            c = pheader->special_page_number;
+        } else {
+            c = internal[i].pagenum;
+        }
         load_page(c, page, manager);
     }
 
+    struct record_t* rec;
     if (VERBOSE_OUTPUT) {
+        rec = records(page);
+
         printf("Leaf [");
         for (i = 0; i < pheader->number_of_keys - 1; ++i) {
-            printf("%ld ", internal[i].key);
+            printf("%ld ", rec[i].key);
         }
-        printf("%ld] ->\n", internal[i].key);
+        printf("%ld]\n", rec[i].key);
     }
 
     return c;
@@ -311,9 +320,9 @@ void print_tree(struct file_manager_t* manager) {
         }
 
         if (VERBOSE_OUTPUT) {
-            printf("(%lx)", n);
+            printf("(page %lx) ", n);
             if (!pheader->is_leaf) {
-                printf("%lx ", pheader->special_page_number);
+                printf("{v: %lx} ", pheader->special_page_number);
             }
         }
 
@@ -321,12 +330,12 @@ void print_tree(struct file_manager_t* manager) {
             if (pheader->is_leaf) {
                 printf("%ld ", records(&page)[i].key);
                 if (VERBOSE_OUTPUT) {
-                    printf("%x ", *(int*)records(&page)[i].value);
+                    printf("{v: %x} ", *(int*)records(&page)[i].value);
                 }
             } else {
                 printf("%ld ", entries(&page)[i].key);
                 if (VERBOSE_OUTPUT) {
-                    printf("%lx ", entries(&page)[i].pagenum);
+                    printf("{v: %lx} ", entries(&page)[i].pagenum);
                 }
             }
         }
@@ -339,7 +348,7 @@ void print_tree(struct file_manager_t* manager) {
         }
 
         if (VERBOSE_OUTPUT && pheader->is_leaf) {
-            printf("%lx ", pheader->special_page_number);
+            printf("(next %lx) ", pheader->special_page_number);
         }
         printf("| ");
     }
@@ -396,14 +405,14 @@ pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf) {
     return new_node;
 }
 
-int get_left_index(struct page_t* parent, pagenum_t left) {
-    int left_index = 0;
+int get_index(struct page_t* parent, pagenum_t pagenum) {
+    int index = 0;
     int num_key = page_header(parent)->number_of_keys;
     for (;
-         left_index < num_key && entries(parent)[left_index].pagenum != left;
-         ++left_index)
+         index < num_key && entries(parent)[index].pagenum != pagenum;
+         ++index)
         {}
-    return left_index;
+    return index;
 }
 
 int insert_into_leaf(struct page_pair_t* leaf,
@@ -492,24 +501,24 @@ int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
 }
 
 int insert_into_node(struct page_pair_t* node,
-                     int left_index,
+                     int index,
                      struct internal_t* entry,
                      struct file_manager_t* manager)
 {
     int i;
     struct internal_t* ent = entries(node->page);
     struct page_header_t* header = page_header(node->page);
-    for (i = header->number_of_keys; i > left_index; --i) {
+    for (i = header->number_of_keys; i > index; --i) {
         ent[i] = ent[i - 1];
     }
-    ent[left_index] = *entry;
+    ent[index] = *entry;
     header->number_of_keys++;
     commit_page(node->pagenum, node->page, manager);
     return SUCCESS;
 }
 
 int insert_into_node_after_splitting(struct page_pair_t* old_node,
-                                     int left_index, 
+                                     int index, 
                                      struct internal_t* entry,
                                      struct file_manager_t* manager)
 {
@@ -524,12 +533,12 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
     struct page_header_t* header = page_header(old_node->page);
 
     for (i = 0; i < header->number_of_keys; ++i) {
-        if (i == left_index) {
+        if (i == index) {
             i++;
         }
         temp[i] = ent[i];
     }
-    temp[left_index] = *entry;
+    temp[index] = *entry;
 
     split_index = cut(ORDER);
     pagenum_t new_node = make_node(manager, FALSE);
@@ -566,7 +575,7 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
         }
         load_page(temp_pagenum, &temp_page, manager);
         page_header(&temp_page)->parent_page_number = new_node;
-        page_write(temp_pagenum, manager, &temp_page);
+        commit_page(temp_pagenum, &temp_page, manager);
     }
 
     commit_page(old_node->pagenum, old_node->page, manager);
@@ -581,7 +590,6 @@ int insert_into_parent(struct page_pair_t* left,
                        struct page_pair_t* right,
                        struct file_manager_t* manager)
 {
-    int left_index;
     pagenum_t parent = page_header(left->page)->parent_page_number;
 
     /* Case: new root. */
@@ -598,20 +606,20 @@ int insert_into_parent(struct page_pair_t* left,
      */
     struct page_t parent_page;
     load_page(parent, &parent_page, manager);
-    left_index = get_left_index(&parent_page, left->pagenum);
+    int index = get_index(&parent_page, right->pagenum);
 
     /* Simple case: the new key fits into the node. 
      */
     struct internal_t entry = { key, right->pagenum };
     struct page_pair_t parent_pair = { parent, &parent_page };
     if (page_header(&parent_page)->number_of_keys < ORDER - 1) {
-        return insert_into_node(&parent_pair, left_index, &entry, manager);
+        return insert_into_node(&parent_pair, index, &entry, manager);
     }
 
     /* Harder case:  split a node in order 
      * to preserve the B+ tree properties.
      */
-    return insert_into_node_after_splitting(&parent_pair, left_index, &entry, manager);
+    return insert_into_node_after_splitting(&parent_pair, index, &entry, manager);
 }
 
 int insert_into_new_root(struct page_pair_t* left,
@@ -636,14 +644,16 @@ int insert_into_new_root(struct page_pair_t* left,
     ent[0].pagenum = right->pagenum;
 
     commit_page(root, &root_page, manager);
+    commit_page(left->pagenum, left->page, manager);
+    commit_page(right->pagenum, right->page, manager);
+
     manager->file_header.root_page_number = root;
     manager->updated++;
 
     return SUCCESS;
 }
 
-int start_new_tree(int key,
-                   struct record_t* pointer,
+int start_new_tree(struct record_t* pointer,
                    struct file_manager_t* manager)
 {
     pagenum_t root = make_node(manager, TRUE);
@@ -653,11 +663,9 @@ int start_new_tree(int key,
 
     struct page_header_t* header = page_header(&root_page);
     header->number_of_keys++;
-    header->special_page_number = key;
 
-    struct internal_t* entry = &entries(&root_page)[0];
-    entry->key = key;
-    entry->pagenum = INVALID_PAGENUM;
+    struct record_t* rec = &entries(&root_page)[0];
+    memcpy(rec, pointer, sizeof(struct record_t));
 
     commit_page(root, &root_page, manager);
     manager->file_header.root_page_number = root;
@@ -688,7 +696,7 @@ int insert(prikey_t key,
      * Start a new tree.
      */
     if (root == INVALID_PAGENUM) 
-        return start_new_tree(key, &record, manager);
+        return start_new_tree(&record, manager);
 
 
     /* Case: the tree already exists.
