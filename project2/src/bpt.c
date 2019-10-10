@@ -59,7 +59,6 @@ void usage_2() {
 
 struct queue_t* enqueue(struct queue_t* queue, pagenum_t pagenum) {
     struct queue_t* tmp;
-
     struct queue_t* new_node = malloc(sizeof(struct queue_t));
     new_node->pagenum = pagenum;
     new_node->next = NULL;
@@ -647,10 +646,10 @@ int start_new_tree(int key,
                    struct record_t* pointer,
                    struct file_manager_t* manager)
 {
-    pagenum_t root = make_node(manager, FALSE);
+    pagenum_t root = make_node(manager, TRUE);
 
     struct page_t root_page;
-    page_init(&root_page, FALSE);
+    page_init(&root_page, TRUE);
 
     struct page_header_t* header = page_header(&root_page);
     header->number_of_keys++;
