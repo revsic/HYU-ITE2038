@@ -813,7 +813,7 @@ int merge_nodes(struct page_pair_t* left,
      * Append k_prime and the following pointer.
      * Append all pointers and keys from the neighbor.
      */
-    if (!page_header(left)->is_leaf) {
+    if (!page_header(left->page)->is_leaf) {
         left_entries = entries(left->page);
         right_entries = entries(right->page);
 
@@ -972,17 +972,19 @@ int delete_entry(prikey_t key,
         ? entries(&parent)[0].pagenum
         : index ==  0 ? page_header(&parent)->special_page_number
                       : entries(&parent)[index - 1].pagenum;
-    load_page(left.pagenum, &left.page, manager);
+    load_page(left.pagenum, left.page, manager);
 
     if (index == -1) {
         swap_page_pair(&left, &right);
     }
 
-    struct page_pair_t parent = { header->parent_page_number, &parent };
+    struct page_pair_t parent_pair = { header->parent_page_number, &parent };
 
     int capacity = header->is_leaf ? ORDER : ORDER - 1;
-    if (page_header(left.page)->number_of_keys + page_header(right.page)->number_of_keys < capacity) {
-        return merge_nodes(&left, k_prime, &right, &parent, manager);
+    if (page_header(left.page)->number_of_keys
+        + page_header(right.page)->number_of_keys < capacity)
+    {
+        return merge_nodes(&left, k_prime, &right, &parent_pair, manager);
     } else {
         // return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_prime);
     }
