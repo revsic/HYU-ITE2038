@@ -15,11 +15,11 @@ int main(int argc, char ** argv) {
     printf("> ");
     while (scanf("%c", &instruction) != EOF) {
         switch (instruction) {
-        // case 'd':
-        //     scanf("%d", &input);
-        //     root = delete(root, input);
-        //     print_tree(root);
-        //     break;
+        case 'd':
+            scanf("%d", &input);
+            delete(input, &manager);
+            print_tree(&manager);
+            break;
         case 'i':
             scanf("%d", &input);
             insert(input, input, &manager);
