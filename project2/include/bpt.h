@@ -106,8 +106,11 @@ int insert(prikey_t key,
 
 // Deletion.
 int shrink_root(struct file_manager_t* manager);
-// node * coalesce_nodes(node * root, node * n, node * neighbor,
-//                       int neighbor_index, int k_prime);
+int merge_nodes(struct page_pair_t* left,
+                int k_prime,
+                struct page_pair_t* right,
+                struct page_pair_t* parent,
+                struct file_manager_t* manager);
 // node * redistribute_nodes(node * root, node * n, node * neighbor,
 //                           int neighbor_index,
 //         int k_prime_index, int k_prime);

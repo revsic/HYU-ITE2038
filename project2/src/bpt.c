@@ -793,96 +793,65 @@ int shrink_root(struct file_manager_t* manager) {
     return SUCCESS;
 }
 
-// node * coalesce_nodes(node * root, node * n, node * neighbor, int neighbor_index, int k_prime) {
+int merge_nodes(struct page_pair_t* left,
+                int k_prime,
+                struct page_pair_t* right,
+                struct page_pair_t* parent,
+                struct file_manager_t* manager)
+{
+    int i, insertion_index = page_header(left->page)->number_of_keys;
+    int* left_num_key = &page_header(left->page)->number_of_keys;
+    int* right_num_key = &page_header(right->page)->number_of_keys;
 
-//     int i, j, neighbor_insertion_index, n_end;
-//     node * tmp;
+    struct page_t temp;
+    struct internal_t* left_entries;
+    struct internal_t* right_entries;
+    struct record_t* left_records;
+    struct record_t* right_records;
 
-//     /* Swap neighbor with node if node is on the
-//      * extreme left and neighbor is to its right.
-//      */
+    /* Case:  nonleaf node.
+     * Append k_prime and the following pointer.
+     * Append all pointers and keys from the neighbor.
+     */
+    if (!page_header(left)->is_leaf) {
+        left_entries = entries(left->page);
+        right_entries = entries(right->page);
 
-//     if (neighbor_index == -1) {
-//         tmp = n;
-//         n = neighbor;
-//         neighbor = tmp;
-//     }
+        for (i = -1; *right_num_key > 0; ++i, ++insertion_index) {
+            if (i == -1) {
+                left_entries[insertion_index].key = k_prime;
+                left_entries[insertion_index].pagenum =
+                    page_header(right->page)->special_page_number;
+            } else {
+                left_entries[insertion_index] = right_entries[i];
+                *right_num_key--;
+            }
 
-//     /* Starting point in the neighbor for copying
-//      * keys and pointers from n.
-//      * Recall that n and neighbor have swapped places
-//      * in the special case of n being a leftmost child.
-//      */
+            load_page(left_entries[insertion_index].pagenum, &temp, manager);
+            page_header(&temp)->parent_page_number = left->pagenum;
+            commit_page(left_entries[insertion_index].pagenum, &temp, manager);
 
-//     neighbor_insertion_index = neighbor->num_keys;
+            *left_num_key++;
+        }
+    } else {
+        left_records = records(left->page);
+        right_records = records(right->page);
+        for (i = 0; *right_num_key > 0; ++i, ++insertion_index) {
+            left_records[insertion_index] = right_records[i];
+        }
 
-//     /* Case:  nonleaf node.
-//      * Append k_prime and the following pointer.
-//      * Append all pointers and keys from the neighbor.
-//      */
+        page_header(left->page)->special_page_number =
+            page_header(right->page)->special_page_number;
+    }
 
-//     if (!n->is_leaf) {
+    commit_page(left->pagenum, left->page, manager);
 
-//         /* Append k_prime.
-//          */
+    delete_entry(k_prime, parent, manager);
+    page_free(right->pagenum, manager);
 
-//         neighbor->keys[neighbor_insertion_index] = k_prime;
-//         neighbor->num_keys++;
+    return SUCCESS;
+}
 
-
-//         n_end = n->num_keys;
-
-//         for (i = neighbor_insertion_index + 1, j = 0; j < n_end; i++, j++) {
-//             neighbor->keys[i] = n->keys[j];
-//             neighbor->pointers[i] = n->pointers[j];
-//             neighbor->num_keys++;
-//             n->num_keys--;
-//         }
-
-//         /* The number of pointers is always
-//          * one more than the number of keys.
-//          */
-
-//         neighbor->pointers[i] = n->pointers[j];
-
-//         /* All children must now point up to the same parent.
-//          */
-
-//         for (i = 0; i < neighbor->num_keys + 1; i++) {
-//             tmp = (node *)neighbor->pointers[i];
-//             tmp->parent = neighbor;
-//         }
-//     }
-
-//     /* In a leaf, append the keys and pointers of
-//      * n to the neighbor.
-//      * Set the neighbor's last pointer to point to
-//      * what had been n's right neighbor.
-//      */
-
-//     else {
-//         for (i = neighbor_insertion_index, j = 0; j < n->num_keys; i++, j++) {
-//             neighbor->keys[i] = n->keys[j];
-//             neighbor->pointers[i] = n->pointers[j];
-//             neighbor->num_keys++;
-//         }
-//         neighbor->pointers[order - 1] = n->pointers[order - 1];
-//     }
-
-//     root = delete_entry(root, n->parent, k_prime, n);
-//     free(n->keys);
-//     free(n->pointers);
-//     free(n); 
-//     return root;
-// }
-
-
-// /* Redistributes entries between two nodes when
-//  * one has become too small after deletion
-//  * but its neighbor is too big to append the
-//  * small node's entries without exceeding the
-//  * maximum
-//  */
 // node * redistribute_nodes(node * root, node * n, node * neighbor, int neighbor_index, 
 //         int k_prime_index, int k_prime) {  
 
@@ -1009,11 +978,14 @@ int delete_entry(prikey_t key,
         swap_page_pair(&left, &right);
     }
 
+    struct page_pair_t parent = { header->parent_page_number, &parent };
+
     int capacity = header->is_leaf ? ORDER : ORDER - 1;
-    if (page_header(left.page)->number_of_keys + page_header(right.page)->number_of_keys < capacity)
-        return coalesce_nodes(root, n, neighbor, neighbor_index, k_prime);
-    else
-        return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_prime);
+    if (page_header(left.page)->number_of_keys + page_header(right.page)->number_of_keys < capacity) {
+        return merge_nodes(&left, k_prime, &right, &parent, manager);
+    } else {
+        // return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_prime);
+    }
 }
 
 int delete(prikey_t key, struct file_manager_t* manager) {
