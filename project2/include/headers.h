@@ -8,6 +8,9 @@
 
 #define PAGE_SIZE 4096
 
+#define CHECK_TRUE(x) if (!x) { return FAILURE; }
+#define CHECK_SUCCESS(x) if (x == SUCCESS) { return FAILURE; }
+
 typedef uint64_t pagenum_t;
 typedef int64_t prikey_t;
 
