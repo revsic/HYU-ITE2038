@@ -1,13 +1,15 @@
 #include "bpt.h"
-#include "disk_manager.h"
+#include "dbapi.h"
 
 // MAIN
 
 int main(int argc, char ** argv) {
     int input, range2;
     char instruction;
-    struct file_manager_t manager;
-    file_open("datafile", &manager);
+    char value[100];
+
+    int tid = open_table("datafile");
+    struct file_manager_t* manager = get_file_manager(tid);
 
     usage_1();
     usage_2();
@@ -17,17 +19,20 @@ int main(int argc, char ** argv) {
         switch (instruction) {
         case 'd':
             scanf("%d", &input);
-            delete(input, &manager);
-            print_tree(&manager);
+            db_delete(input);
+            print_tree(manager);
             break;
         case 'i':
             scanf("%d", &input);
-            insert(input, input, &manager);
-            print_tree(&manager);
+            snprintf(value, 100, "%d value", input);
+            db_insert(input, value);
+            print_tree(manager);
             break;
         case 'f':
             scanf("%d", &input);
-            find_and_print(input, &manager);
+            db_find(input, value);
+            printf("Key: %d  Value: %s\n", input, value);
+            //find_and_print(input, manager);
             break;
         case 'r':
             scanf("%d %d", &input, &range2);
@@ -36,22 +41,22 @@ int main(int argc, char ** argv) {
                 range2 = input;
                 input = tmp;
             }
-            find_and_print_range(input, range2, &manager);
+            find_and_print_range(input, range2, manager);
             break;
         case 'l':
-            print_leaves(&manager);
+            print_leaves(manager);
             break;
         case 'q':
             while (getchar() != (int)'\n');
-            file_close(&manager);
+            close_table(tid);
             return 0;
             break;
         case 't':
-            print_tree(&manager);
+            print_tree(manager);
             break;
         case 'x':
-            destroy_tree(&manager);
-            print_tree(&manager);
+            destroy_tree(manager);
+            print_tree(manager);
             break;
         default:
             usage_2();
