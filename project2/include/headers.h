@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define SUCCESS 0
+#define FAILURE 1
+
 #define PAGE_SIZE 4096
 
 typedef uint64_t pagenum_t;

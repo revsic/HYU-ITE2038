@@ -17,9 +17,6 @@
 
 #define DEFAULT_RECORD_VEC_CAP 4
 
-#define SUCCESS 0
-#define FAILURE 1
-
 // STRUCTURE DEFINITION
 struct queue_t {
     pagenum_t pagenum;
