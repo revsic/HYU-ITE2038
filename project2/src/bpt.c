@@ -22,16 +22,14 @@ int load_page(pagenum_t pagenum,
               struct page_t* page,
               struct file_manager_t* manager)
 {
-    page_read(pagenum, manager, page);
-    return SUCCESS;
+    return page_read(pagenum, manager, page);
 }
 
 int commit_page(pagenum_t pagenum,
                 struct page_t* page,
                 struct file_manager_t* manager)
 {
-    page_write(pagenum, manager, page);
-    return SUCCESS;
+    return page_write(pagenum, manager, page);
 }
 
 void swap_page_pair(struct page_pair_t* left, struct page_pair_t* right) {
@@ -114,7 +112,7 @@ int record_vec_expand(struct record_vec_t* vec) {
 
 int record_vec_append(struct record_vec_t* vec, struct record_t* rec) {
     if (vec->size >= vec->capacity) {
-        record_vec_expand(vec);
+        CHECK_SUCCESS(record_vec_expand(vec));
     }
     memcpy(&vec->rec[vec->size++], rec, sizeof(struct record_t));
     return SUCCESS;
@@ -123,11 +121,11 @@ int record_vec_append(struct record_vec_t* vec, struct record_t* rec) {
 int height(pagenum_t node, struct file_manager_t* manager) {
     int h = 0;
     struct page_t page;
-    load_page(node, &page, manager);
+    EXIT_ON_FAILURE(load_page(node, &page, manager));
 
     while (!page_header(&page)->is_leaf) {
         node = page_header(&page)->special_page_number;
-        load_page(node, &page, manager);
+        EXIT_ON_FAILURE(load_page(node, &page, manager));
         h++;
     }
     return h;
@@ -139,7 +137,7 @@ int path_to_root(pagenum_t node, struct file_manager_t* manager) {
     pagenum_t root = manager->file_header.root_page_number;
 
     while (node != root) {
-        load_page(node, &page, manager);
+        EXIT_ON_FAILURE(load_page(node, &page, manager));
         node = page_header(&page)->parent_page_number;
         length++;
     }
@@ -175,7 +173,7 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
     }
 
     pagenum_t c = root;
-    load_page(c, page, manager);
+    EXIT_ON_FAILURE(load_page(c, page, manager));
     while (!pheader->is_leaf) {
         if (VERBOSE_OUTPUT) {
             printf("[");
@@ -198,7 +196,7 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
         } else {
             c = internal[i].pagenum;
         }
-        load_page(c, page, manager);
+        EXIT_ON_FAILURE(load_page(c, page, manager));
     }
 
     struct record_t* rec;
@@ -255,7 +253,7 @@ int find_range(prikey_t start,
     struct page_t page;
     pagenum_t n = find_leaf(start, &page, manager);
     if (n == INVALID_PAGENUM) {
-        return 0;
+        return FAILURE;
     }
 
     uint32_t nkey = page_header(&page)->number_of_keys;
@@ -270,7 +268,7 @@ int find_range(prikey_t start,
 
     while (1) {
         for (; i < nkey && rec[i].key <= end; i++) {
-            record_vec_append(retval, &rec[i]);
+            CHECK_SUCCESS(record_vec_append(retval, &rec[i]));
         }
 
         n = page_header(&page)->special_page_number;
@@ -278,7 +276,7 @@ int find_range(prikey_t start,
             break;
         }
 
-        load_page(n, &page, manager);
+        CHECK_SUCCESS(load_page(n, &page, manager));
 
         i = 0;
         rec = records(&page);
@@ -301,11 +299,11 @@ void print_leaves(struct file_manager_t* manager) {
     }
 
     struct page_t page;
-    load_page(root, &page, manager);    
+    EXIT_ON_FAILURE(load_page(root, &page, manager));    
 
     while (!page_header(&page)->is_leaf) {
         root = page_header(&page)->special_page_number;
-        load_page(root, &page, manager);
+        EXIT_ON_FAILURE(load_page(root, &page, manager));
     }
 
     struct page_header_t* pheader = page_header(&page);
@@ -324,7 +322,7 @@ void print_leaves(struct file_manager_t* manager) {
         if (pheader->special_page_number != INVALID_PAGENUM) {
             printf(" | ");
             root = pheader->special_page_number;
-            load_page(root, &page, manager);
+            EXIT_ON_FAILURE(load_page(root, &page, manager));
         } else {
             break;
         }
@@ -351,10 +349,10 @@ void print_tree(struct file_manager_t* manager) {
     queue = enqueue(queue, root);
     while (queue != NULL) {
         queue = dequeue(queue, &n);
-        load_page(n, &page, manager);
+        EXIT_ON_FAILURE(load_page(n, &page, manager));
 
         if (pheader->parent_page_number != INVALID_PAGENUM) {
-            load_page(pheader->parent_page_number, &tmp, manager);
+            EXIT_ON_FAILURE(load_page(pheader->parent_page_number, &tmp, manager));
             if (n == page_header(&tmp)->special_page_number) {
                 new_rank = path_to_root(n, manager);
                 if (new_rank != rank) {
@@ -417,7 +415,7 @@ void find_and_print(prikey_t key, struct file_manager_t* manager) {
 void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_manager_t* manager) {
     int i;
     struct record_vec_t retval;
-    record_vec_init(&retval);
+    CHECK_SUCCESS(record_vec_init(&retval));
 
     find_range(key_start, key_end, &retval, manager);
     if (retval.size == 0) {
@@ -450,8 +448,8 @@ pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf) {
     }
 
     struct page_t page;
-    page_init(&page, leaf);
-    commit_page(new_node, &page, manager);
+    EXIT_ON_FAILURE(page_init(&page, leaf));
+    EXIT_ON_FAILURE(commit_page(new_node, &page, manager));
     return new_node;
 }
 
@@ -488,7 +486,7 @@ int insert_into_leaf(struct page_pair_t* leaf,
     page_header(leaf->page)->number_of_keys += 1;
     memcpy(&rec[insertion_point], pointer, sizeof(struct record_t));
 
-    commit_page(leaf->pagenum, leaf->page, manager);
+    CHECK_SUCCESS(commit_page(leaf->pagenum, leaf->page, manager));
     return SUCCESS;
 }
 
@@ -500,7 +498,7 @@ int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
     pagenum_t new_leaf = make_node(manager, TRUE);
 
     struct page_t new_page;
-    page_init(&new_page, TRUE);
+    CHECK_SUCCESS(page_init(&new_page, TRUE));
 
     struct record_t temp_record[LEAF_ORDER];
 
@@ -541,8 +539,8 @@ int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
 
     new_header->parent_page_number = leaf_header->parent_page_number;
 
-    commit_page(leaf->pagenum, leaf->page, manager);
-    commit_page(new_leaf, &new_page, manager);
+    CHECK_SUCCESS(commit_page(leaf->pagenum, leaf->page, manager));
+    CHECK_SUCCESS(commit_page(new_leaf, &new_page, manager));
 
     struct page_pair_t right = { new_leaf, &new_page };
     return insert_into_parent(leaf, new_rec[0].key, &right, manager);
@@ -561,7 +559,7 @@ int insert_into_node(struct page_pair_t* node,
     }
     ent[index] = *entry;
     header->number_of_keys++;
-    commit_page(node->pagenum, node->page, manager);
+    CHECK_SUCCESS(commit_page(node->pagenum, node->page, manager));
     return SUCCESS;
 }
 
@@ -588,7 +586,7 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
     pagenum_t new_node = make_node(manager, FALSE);
 
     struct page_t new_page;
-    page_init(&new_page, FALSE);
+    CHECK_SUCCESS(page_init(&new_page, FALSE));
 
     struct internal_t* new_entries = entries(&new_page);
     struct page_header_t* new_header = page_header(&new_page);
@@ -615,13 +613,13 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
         } else {
             temp_pagenum = new_entries[i].pagenum;
         }
-        load_page(temp_pagenum, &temp_page, manager);
+        CHECK_SUCCESS(load_page(temp_pagenum, &temp_page, manager));
         page_header(&temp_page)->parent_page_number = new_node;
-        commit_page(temp_pagenum, &temp_page, manager);
+        CHECK_SUCCESS(commit_page(temp_pagenum, &temp_page, manager));
     }
 
-    commit_page(old_node->pagenum, old_node->page, manager);
-    commit_page(new_node, &new_page, manager);
+    CHECK_SUCCESS(commit_page(old_node->pagenum, old_node->page, manager));
+    CHECK_SUCCESS(commit_page(new_node, &new_page, manager));
 
     struct page_pair_t right = { new_node, &new_page };
     return insert_into_parent(old_node, k_prime, &right, manager);
@@ -685,12 +683,12 @@ int insert_into_new_root(struct page_pair_t* left,
     ent[0].key = key;
     ent[0].pagenum = right->pagenum;
 
-    commit_page(root, &root_page, manager);
-    commit_page(left->pagenum, left->page, manager);
-    commit_page(right->pagenum, right->page, manager);
+    CHECK_SUCCESS(commit_page(root, &root_page, manager));
+    CHECK_SUCCESS(commit_page(left->pagenum, left->page, manager));
+    CHECK_SUCCESS(commit_page(right->pagenum, right->page, manager));
 
     manager->file_header.root_page_number = root;
-    file_write_header(manager);
+    CHECK_SUCCESS(file_write_header(manager));
 
     return SUCCESS;
 }
@@ -701,7 +699,7 @@ int start_new_tree(struct record_t* pointer,
     pagenum_t root = make_node(manager, TRUE);
 
     struct page_t root_page;
-    page_init(&root_page, TRUE);
+    CHECK_SUCCESS(page_init(&root_page, TRUE));
 
     struct page_header_t* header = page_header(&root_page);
     header->number_of_keys++;
@@ -709,10 +707,10 @@ int start_new_tree(struct record_t* pointer,
     struct record_t* rec = &records(&root_page)[0];
     memcpy(rec, pointer, sizeof(struct record_t));
 
-    commit_page(root, &root_page, manager);
+    CHECK_SUCCESS(commit_page(root, &root_page, manager));
 
     manager->file_header.root_page_number = root;
-    file_write_header(manager);
+    CHECK_SUCCESS(file_write_header(manager));
 
     return SUCCESS;
 }
@@ -737,7 +735,7 @@ int insert(prikey_t key,
      * value.
      */
     struct record_t record;
-    make_record(&record, key, value);
+    CHECK_SUCCESS(make_record(&record, key, value));
 
     /* Case: the tree does not exist yet.
      * Start a new tree.
@@ -755,8 +753,7 @@ int insert(prikey_t key,
      */
     struct page_pair_t pair = { leaf, &leaf_page };
     if (page_header(&leaf_page)->number_of_keys < LEAF_ORDER - 1) {
-        insert_into_leaf(&pair, &record, manager);
-        return SUCCESS;
+        return insert_into_leaf(&pair, &record, manager);
     }
 
     /* Case:  leaf must be split.
@@ -807,7 +804,7 @@ int shrink_root(struct file_manager_t* manager) {
     pagenum_t root = manager->file_header.root_page_number;
     
     struct page_t root_page;
-    load_page(root, &root_page, manager);
+    CHECK_SUCCESS(load_page(root, &root_page, manager));
 
     if (page_header(&root_page)->number_of_keys > 0) {
         return SUCCESS;
@@ -820,17 +817,17 @@ int shrink_root(struct file_manager_t* manager) {
         child = page_header(&root_page)->special_page_number;
         manager->file_header.root_page_number = child;
 
-        load_page(child, &child_page, manager);
+        CHECK_SUCCESS(load_page(child, &child_page, manager));
         page_header(&child_page)->parent_page_number = INVALID_PAGENUM;
-        commit_page(child, &child_page, manager);        
+        CHECK_SUCCESS(commit_page(child, &child_page, manager));        
     } else {
         manager->file_header.root_page_number = INVALID_PAGENUM;
     }
 
     manager->file_header.number_of_pages++;
-    file_write_header(manager);
+    CHECK_SUCCESS(file_write_header(manager));
 
-    page_free(root, manager);
+    CHECK_SUCCESS(page_free(root, manager));
     return SUCCESS;
 }
 
@@ -866,9 +863,11 @@ int merge_nodes(struct page_pair_t* left,
                 *right_num_key -= 1;
             }
 
-            load_page(left_entries[insertion_index].pagenum, &temp, manager);
+            CHECK_SUCCESS(
+                load_page(left_entries[insertion_index].pagenum, &temp, manager));
             page_header(&temp)->parent_page_number = left->pagenum;
-            commit_page(left_entries[insertion_index].pagenum, &temp, manager);
+            CHECK_SUCCESS(
+                commit_page(left_entries[insertion_index].pagenum, &temp, manager));
 
             *left_num_key += 1;
         }
@@ -885,10 +884,10 @@ int merge_nodes(struct page_pair_t* left,
             page_header(right->page)->special_page_number;
     }
 
-    commit_page(left->pagenum, left->page, manager);
+    CHECK_SUCCESS(commit_page(left->pagenum, left->page, manager));
 
-    delete_entry(k_prime, parent, manager);
-    page_free(right->pagenum, manager);
+    CHECK_SUCCESS(delete_entry(k_prime, parent, manager));
+    CHECK_SUCCESS(page_free(right->pagenum, manager));
 
     return SUCCESS;
 }
@@ -930,9 +929,9 @@ int rotate_to_right(struct page_pair_t* left,
         entries(parent->page)[k_prime_index].key = tmp.key;
         page_header(right->page)->special_page_number = tmp.pagenum;
 
-        load_page(tmp.pagenum, &temp_page, manager);
+        CHECK_SUCCESS(load_page(tmp.pagenum, &temp_page, manager));
         page_header(&temp_page)->parent_page_number = right->pagenum;
-        commit_page(tmp.pagenum, &temp_page, manager);
+        CHECK_SUCCESS(commit_page(tmp.pagenum, &temp_page, manager));
     }
 
     page_header(left->page)->number_of_keys -= 1;
@@ -974,9 +973,11 @@ int rotate_to_left(struct page_pair_t* left,
         entries(parent->page)[k_prime_index].key = right_internal[0].key;
         page_header(right->page)->special_page_number = right_internal[0].pagenum;
 
-        load_page(left_internal[num_key].pagenum, &temp_page, manager);
+        CHECK_SUCCESS(
+            load_page(left_internal[num_key].pagenum, &temp_page, manager));
         page_header(&temp_page)->parent_page_number = left->pagenum;
-        commit_page(left_internal[num_key].pagenum, &temp_page, manager);
+        CHECK_SUCCESS(
+            commit_page(left_internal[num_key].pagenum, &temp_page, manager));
 
         num_key = page_header(right->page)->number_of_keys;
         for (i = 0; i < num_key -1; ++i) {
@@ -1000,14 +1001,16 @@ int redistribute_nodes(struct page_pair_t* left,
     if (page_header(left->page)->number_of_keys 
         < page_header(right->page)->number_of_keys)
     {
-        rotate_to_left(left, k_prime, k_prime_index, right, parent, manager);
+        CHECK_SUCCESS(
+            rotate_to_left(left, k_prime, k_prime_index, right, parent, manager));
     } else {
-        rotate_to_right(left, k_prime, k_prime_index, right, parent, manager);
+        CHECK_SUCCESS(
+            rotate_to_right(left, k_prime, k_prime_index, right, parent, manager));
     }
 
-    commit_page(left->pagenum, left->page, manager);
-    commit_page(right->pagenum, right->page, manager);
-    commit_page(parent->pagenum, parent->page, manager);
+    CHECK_SUCCESS(commit_page(left->pagenum, left->page, manager));
+    CHECK_SUCCESS(commit_page(right->pagenum, right->page, manager));
+    CHECK_SUCCESS(commit_page(parent->pagenum, parent->page, manager));
 
     return SUCCESS;
 }
@@ -1018,11 +1021,11 @@ int delete_entry(prikey_t key,
 {
     struct page_header_t* header = page_header(pair->page);
     if (header->is_leaf) {
-        remove_record_from_leaf(key, pair->page);
+        CHECK_SUCCESS(remove_record_from_leaf(key, pair->page));
     } else {
-        remove_entry_from_internal(key, pair->page);
+        CHECK_SUCCESS(remove_entry_from_internal(key, pair->page));
     }
-    commit_page(pair->pagenum, pair->page, manager);
+    CHECK_SUCCESS(commit_page(pair->pagenum, pair->page, manager));
 
     /* Case:  deletion from the root. 
      */
@@ -1056,7 +1059,8 @@ int delete_entry(prikey_t key,
      * is needed.
      */
     struct page_t parent;
-    load_page(header->parent_page_number, &parent, manager);
+    CHECK_SUCCESS(
+        load_page(header->parent_page_number, &parent, manager));
 
     int index = get_index(&parent, pair->pagenum);
     int k_prime_index = index == -1 ? 0 : index;
@@ -1071,7 +1075,7 @@ int delete_entry(prikey_t key,
         ? entries(&parent)[0].pagenum
         : index ==  0 ? page_header(&parent)->special_page_number
                       : entries(&parent)[index - 1].pagenum;
-    load_page(left.pagenum, left.page, manager);
+    CHECK_SUCCESS(load_page(left.pagenum, left.page, manager));
 
     if (index == -1) {
         swap_page_pair(&left, &right);
@@ -1131,7 +1135,7 @@ int destroy_tree(struct file_manager_t* manager) {
     queue = enqueue(NULL, root);
     while (queue != NULL) {
         queue = dequeue(queue, &pagenum);
-        load_page(pagenum, &page, manager);
+        CHECK_SUCCESS(load_page(pagenum, &page, manager));
 
         if (!page_header(&page)->is_leaf) {
             queue = enqueue(queue, page_header(&page)->special_page_number);
@@ -1140,10 +1144,10 @@ int destroy_tree(struct file_manager_t* manager) {
             }
         }
 
-        page_free(pagenum, manager);
+        CHECK_SUCCESS(page_free(pagenum, manager));
     }
 
     manager->file_header.root_page_number = INVALID_PAGENUM;
-    file_write_header(manager);
+    CHECK_SUCCESS(file_write_header(manager));
     return SUCCESS;
 }
