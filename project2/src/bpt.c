@@ -41,7 +41,7 @@ void swap_page_pair(struct page_pair_t* left, struct page_pair_t* right) {
 }
 
 void usage_1() {
-    printf("B+ Tree of Order %d.\n", ORDER);
+    printf("B+ Tree of leaf order %d, internal order %d.\n", LEAF_ORDER, INTERNAL_ORDER);
     printf("Following Silberschatz, Korth, Sidarshan, Database Concepts, "
            "5th ed.\n\n");
 }
@@ -473,11 +473,7 @@ int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
     struct page_t new_page;
     page_init(&new_page, TRUE);
 
-    struct record_t* temp_record = malloc(ORDER * sizeof(struct record_t));
-    if (temp_record == NULL) {
-        perror("Temporary records array.");
-        exit(EXIT_FAILURE);
-    }
+    struct record_t temp_record[LEAF_ORDER];
 
     struct record_t* leaf_rec = records(leaf->page);
     struct page_header_t* leaf_header = page_header(leaf->page);
@@ -497,7 +493,7 @@ int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
     memcpy(&temp_record[insertion_index], record, sizeof(struct record_t));
 
     leaf_header->number_of_keys = 0;
-    split_index = cut(ORDER - 1);
+    split_index = cut(LEAF_ORDER - 1);
 
     for (i = 0; i < split_index; i++) {
         memcpy(&leaf_rec[i], &temp_record[i], sizeof(struct record_t));
@@ -506,12 +502,10 @@ int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
 
     struct record_t* new_rec = records(&new_page);
     struct page_header_t* new_header = page_header(&new_page);
-    for (i = split_index, j = 0; i < ORDER; i++, j++) {
+    for (i = split_index, j = 0; i < LEAF_ORDER; i++, j++) {
         memcpy(&new_rec[j], &temp_record[i], sizeof(struct record_t));
         new_header->number_of_keys++;
     }
-
-    free(temp_record);
 
     new_header->special_page_number = leaf_header->special_page_number;
     leaf_header->special_page_number = new_leaf;
@@ -548,11 +542,7 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
                                      struct file_manager_t* manager)
 {
     int i, j, split_index, k_prime;
-    struct internal_t* temp = malloc(ORDER * sizeof(struct internal_t));
-    if (temp == NULL) {
-        perror("Temporary array for splitting nodes.");
-        exit(EXIT_FAILURE);
-    }
+    struct internal_t temp[INTERNAL_ORDER];
 
     struct internal_t* ent = entries(old_node->page);
     struct page_header_t* header = page_header(old_node->page);
@@ -565,7 +555,7 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
     }
     temp[index] = *entry;
 
-    split_index = cut(ORDER);
+    split_index = cut(INTERNAL_ORDER);
     pagenum_t new_node = make_node(manager, FALSE);
 
     struct page_t new_page;
@@ -582,12 +572,10 @@ int insert_into_node_after_splitting(struct page_pair_t* old_node,
 
     k_prime = temp[split_index - 1].key;
     new_header->special_page_number = temp[split_index - 1].pagenum;
-    for (++i, j = 0; i < ORDER; ++i, ++j) {
+    for (++i, j = 0; i < INTERNAL_ORDER; ++i, ++j) {
         new_entries[j] = temp[i];
         new_header->number_of_keys++;
     }
-
-    free(temp);
 
     pagenum_t temp_pagenum;
     struct page_t temp_page;
@@ -637,7 +625,7 @@ int insert_into_parent(struct page_pair_t* left,
      */
     struct internal_t entry = { key, right->pagenum };
     struct page_pair_t parent_pair = { parent, &parent_page };
-    if (page_header(&parent_page)->number_of_keys < ORDER - 1) {
+    if (page_header(&parent_page)->number_of_keys < INTERNAL_ORDER - 1) {
         return insert_into_node(&parent_pair, index, &entry, manager);
     }
 
@@ -736,7 +724,7 @@ int insert(prikey_t key,
     /* Case: leaf has room for key and pointer.
      */
     struct page_pair_t pair = { leaf, &leaf_page };
-    if (page_header(&leaf_page)->number_of_keys < ORDER - 1) {
+    if (page_header(&leaf_page)->number_of_keys < LEAF_ORDER - 1) {
         insert_into_leaf(&pair, &record, manager);
         return SUCCESS;
     }
@@ -1018,7 +1006,7 @@ int delete_entry(prikey_t key,
     /* Determine minimum allowable size of node,
      * to be preserved after deletion.
      */
-    int min_keys = header->is_leaf ? cut(ORDER - 1) : cut(ORDER) - 1;
+    int min_keys = header->is_leaf ? cut(LEAF_ORDER - 1) : cut(INTERNAL_ORDER) - 1;
 
     /* Case:  node stays at or above minimum.
      * (The simple case.)
@@ -1055,7 +1043,7 @@ int delete_entry(prikey_t key,
 
     struct page_pair_t parent_pair = { header->parent_page_number, &parent };
 
-    int capacity = header->is_leaf ? ORDER : ORDER - 1;
+    int capacity = header->is_leaf ? LEAF_ORDER : INTERNAL_ORDER - 1;
     if (page_header(left.page)->number_of_keys
         + page_header(right.page)->number_of_keys < capacity)
     {

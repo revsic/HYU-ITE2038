@@ -9,8 +9,9 @@
 #include "headers.h"
 
 // global constant
-// #define ORDER 32
-#define ORDER 5
+#define LEAF_ORDER 3
+#define INTERNAL_ORDER 5
+
 #define VERBOSE_OUTPUT 1
 
 #define SUCCESS 0
