@@ -62,6 +62,10 @@ void usage_2() {
 struct queue_t* enqueue(struct queue_t* queue, pagenum_t pagenum) {
     struct queue_t* tmp;
     struct queue_t* new_node = malloc(sizeof(struct queue_t));
+    if (new_node == NULL) {
+        return NULL;
+    }
+
     new_node->pagenum = pagenum;
     new_node->next = NULL;
 
@@ -89,6 +93,9 @@ int record_vec_init(struct record_vec_t* vec) {
     vec->size = 0;
     vec->capacity = DEFAULT_RECORD_VEC_CAP;
     vec->rec = malloc(sizeof(struct record_t) * DEFAULT_RECORD_VEC_CAP);
+    if (vec->rec == NULL) {
+        return FAILURE;
+    }
     return SUCCESS;
 }
 
@@ -101,6 +108,9 @@ int record_vec_expand(struct record_vec_t* vec) {
     vec->capacity *= 2;
     struct record_t* new_records =
         malloc(sizeof(struct record_t) * vec->capacity);
+    if (new_records == NULL) {
+        return FAILURE;
+    }
     
     memcpy(new_records, vec->rec, sizeof(struct record_t) * vec->size);
     
