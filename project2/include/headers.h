@@ -2,6 +2,7 @@
 #define HEADERS_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #define SUCCESS 0
 #define FAILURE 1
@@ -9,7 +10,8 @@
 #define PAGE_SIZE 4096
 
 #define CHECK_TRUE(x) if (!x) { return FAILURE; }
-#define CHECK_SUCCESS(x) if (x == SUCCESS) { return FAILURE; }
+#define CHECK_SUCCESS(x) if (x != SUCCESS) { return FAILURE; }
+#define EXIT_ON_FAILURE(x) if (x == FAILURE) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(FAILURE); }
 
 typedef uint64_t pagenum_t;
 typedef int64_t prikey_t;
