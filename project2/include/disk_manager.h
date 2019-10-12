@@ -17,6 +17,8 @@ struct file_manager_t {
 
 int file_init(struct file_manager_t* manager);
 
+int file_create(char* filename, struct file_manager_t* manager);
+
 int file_open(char* filename, struct file_manager_t* manager);
 
 int file_close(struct file_manager_t* manager);
