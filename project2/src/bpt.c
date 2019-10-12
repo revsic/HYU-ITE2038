@@ -879,9 +879,9 @@ int rotate_to_right(struct page_pair_t* left,
                     int k_prime_index,
                     struct page_pair_t* right,
                     struct page_pair_t* parent,
-                    struct file_maanger_t* manager)
+                    struct file_manager_t* manager)
 {
-    int i, num_key = page_header(right)->number_of_keys;
+    int i, num_key = page_header(right->page)->number_of_keys;
     struct page_t temp_page;
     struct record_t *right_record, *left_record;
     struct internal_t *right_internal, *left_internal, tmp;
@@ -894,7 +894,7 @@ int rotate_to_right(struct page_pair_t* left,
             right_record[i] = right_record[i - 1];
         }
 
-        right_record[0] = left_record[page_header(left)->number_of_keys - 1];
+        right_record[0] = left_record[page_header(left->page)->number_of_keys - 1];
         entries(parent->page)[k_prime_index].key = right_record[0].key;
     } else {
         right_internal = entries(right->page);
@@ -907,7 +907,7 @@ int rotate_to_right(struct page_pair_t* left,
         right_internal[0].key = k_prime;
         right_internal[0].pagenum = page_header(right->page)->special_page_number;
 
-        tmp = left_internal[page_header(left)->number_of_keys - 1];
+        tmp = left_internal[page_header(left->page)->number_of_keys - 1];
         entries(parent->page)[k_prime_index].key = tmp.key;
         page_header(right->page)->special_page_number = tmp.pagenum;
 
@@ -929,7 +929,7 @@ int rotate_to_left(struct page_pair_t* left,
                    struct page_pair_t* parent,
                    struct file_manager_t* manager)
 {
-    int i, num_key = page_header(left)->number_of_keys;
+    int i, num_key = page_header(left->page)->number_of_keys;
     struct page_t temp_page;
     struct record_t *left_record, *right_record;
     struct internal_t* left_internal, *right_internal;
@@ -941,7 +941,7 @@ int rotate_to_left(struct page_pair_t* left,
         left_record[num_key] = right_record[0];
         entries(parent->page)[k_prime_index].key = right_record[1].key;
 
-        num_key = page_header(right)->number_of_keys;
+        num_key = page_header(right->page)->number_of_keys;
         for (i = 0; i < num_key - 1; ++i) {
             right_record[i] = right_record[i + 1];
         }
@@ -950,16 +950,16 @@ int rotate_to_left(struct page_pair_t* left,
         left_internal = entries(left->page);
 
         left_internal[num_key].key = k_prime;
-        left_internal[num_key].pagenum = page_header(right)->special_page_number;
+        left_internal[num_key].pagenum = page_header(right->page)->special_page_number;
 
         entries(parent->page)[k_prime_index].key = right_internal[0].key;
-        page_header(right)->special_page_number = right_internal[0].pagenum;
+        page_header(right->page)->special_page_number = right_internal[0].pagenum;
 
         load_page(left_internal[num_key].pagenum, &temp_page, manager);
         page_header(&temp_page)->parent_page_number = left->pagenum;
         commit_page(left_internal[num_key].pagenum, &temp_page, manager);
 
-        num_key = page_header(right)->number_of_keys;
+        num_key = page_header(right->page)->number_of_keys;
         for (i = 0; i < num_key -1; ++i) {
             right_internal[i] = right_internal[i + 1];
         }
