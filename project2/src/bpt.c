@@ -767,6 +767,24 @@ int remove_record_from_leaf(prikey_t key, struct page_t* node) {
     return SUCCESS;
 }
 
+int remove_entry_from_internal(prikey_t key, struct page_t* node) {
+    struct internal_t* ent = entries(node);
+    int i, num_key = page_header(node)->number_of_keys;
+    for (i = 0; i < num_key && ent[i].key != key; ++i)
+        {}
+    
+    if (i == num_key) {
+        return FAILURE;
+    }
+
+    for (++i; i < num_key; ++i) {
+        ent[i - 1] = ent[i];
+    }
+
+    --page_header(node)->number_of_keys;
+    return SUCCESS;
+}
+
 int shrink_root(struct file_manager_t* manager) {
     pagenum_t root = manager->file_header.root_page_number;
     
@@ -930,15 +948,20 @@ int merge_nodes(struct page_pair_t* left,
 // }
 
 int delete_entry(prikey_t key,
-                 struct page_pair_t* leaf_page,
+                 struct page_pair_t* pair,
                  struct file_manager_t* manager)
 {
-    remove_record_from_leaf(key, leaf_page->page);
-    commit_page(leaf_page->pagenum, leaf_page->page, manager);
+    struct page_header_t* header = page_header(pair->page);
+    if (header->is_leaf) {
+        remove_record_from_leaf(key, pair->page);
+    } else {
+        remove_entry_from_internal(key, pair->page);
+    }
+    commit_page(pair->pagenum, pair->page, manager);
 
     /* Case:  deletion from the root. 
      */
-    if (leaf_page->pagenum == manager->file_header.root_page_number) {
+    if (pair->pagenum == manager->file_header.root_page_number) {
         return shrink_root(manager);
     }
 
@@ -949,7 +972,6 @@ int delete_entry(prikey_t key,
     /* Determine minimum allowable size of node,
      * to be preserved after deletion.
      */
-    struct page_header_t* header = page_header(leaf_page->page);
     int min_keys = header->is_leaf ? cut(ORDER - 1) : cut(ORDER) - 1;
 
     /* Case:  node stays at or above minimum.
@@ -966,14 +988,14 @@ int delete_entry(prikey_t key,
     struct page_t parent;
     load_page(header->parent_page_number, &parent, manager);
 
-    int index = get_index(&parent, leaf_page->pagenum);
+    int index = get_index(&parent, pair->pagenum);
     int k_prime_index = index == -1 ? 0 : index;
     int k_prime = entries(&parent)[k_prime_index].key;
 
     struct page_t tmp;
     struct page_pair_t left, right;
     
-    right = *leaf_page;
+    right = *pair;
     left.page = &tmp;
     left.pagenum = index == -1
         ? entries(&parent)[0].pagenum
