@@ -1035,7 +1035,12 @@ int delete_entry(prikey_t key,
     /* Determine minimum allowable size of node,
      * to be preserved after deletion.
      */
-    int min_keys = header->is_leaf ? cut(LEAF_ORDER - 1) : cut(INTERNAL_ORDER) - 1;
+    int min_keys;
+    if (DELAYED_MERGE) {
+        min_keys = 1;
+    } else {
+        min_keys = header->is_leaf ? cut(LEAF_ORDER - 1) : cut(INTERNAL_ORDER) - 1;
+    }
 
     /* Case:  node stays at or above minimum.
      * (The simple case.)
@@ -1074,7 +1079,14 @@ int delete_entry(prikey_t key,
 
     int capacity;
     if (DELAYED_MERGE) {
-
+        capacity = header->is_leaf ? LEAF_ORDER - 1 : INTERNAL_ORDER - 1;
+        if (page_header(left.page)->number_of_keys
+            + page_header(right.page)->number_of_keys == capacity)
+        {
+            return redistribute_nodes(&left, k_prime, k_prime_index, &right, &parent_pair, manager);
+        } else {
+            return merge_nodes(&left, k_prime, &right, &parent_pair, manager);
+        }
     } else {
         capacity = header->is_leaf ? LEAF_ORDER : INTERNAL_ORDER - 1;
         if (page_header(left.page)->number_of_keys
@@ -1084,7 +1096,7 @@ int delete_entry(prikey_t key,
         } else {
             return redistribute_nodes(&left, k_prime, k_prime_index, &right, &parent_pair, manager);
         }
-    }
+    }    
 }
 
 int delete(prikey_t key, struct file_manager_t* manager) {
