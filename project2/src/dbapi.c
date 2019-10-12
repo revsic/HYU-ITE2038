@@ -58,6 +58,18 @@ int open_table(char* pathname) {
     return GLOBAL_TABLE_ID;
 }
 
+int close_table(int tableid) {
+    int i;
+    struct file_vec_t* ptr = &GLOBAL_FILE_MANAGER;
+    struct file_manager_t* res = get_file_manager(tableid);
+    CHECK_SUCCESS(file_close(res));
+
+    for (i = tableid; i < ptr->size - 1; ++i) {
+        ptr->manager[i] = ptr->manager[i + 1];
+    }
+    return SUCCESS;
+}
+
 struct file_manager_t* get_file_manager(int tableid) {
     if (0 <= tableid && tableid < GLOBAL_FILE_MANAGER.size) {
         return &GLOBAL_FILE_MANAGER.manager[tableid];
