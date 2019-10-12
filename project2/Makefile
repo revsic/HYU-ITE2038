@@ -19,7 +19,7 @@ TARGET_OBJ:=$(SRCDIR)main.o
 TARGET_TEST_SRC:=$(TESTSRC)*.c
 
 # Include more files if you write another source file.
-SRCS_FOR_LIB:=$(SRCDIR)bpt.c ${SRCDIR}disk_manager.c ${SRCDIR}fileio.c ${SRCDIR}utility.c
+SRCS_FOR_LIB:=$(SRCDIR)bpt.c ${SRCDIR}dbapi.c ${SRCDIR}disk_manager.c ${SRCDIR}fileio.c ${SRCDIR}utility.c
 OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.c=.o)
 
 CFLAGS+= -g -fPIC -I $(INC)
@@ -31,6 +31,9 @@ all: $(TARGET) $(TARGET_TEST)
 
 $(SRCDIR)bpt.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
+
+$(SRCDIR)dbapi.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.c
 
 $(SRCDIR)disk_manager.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
