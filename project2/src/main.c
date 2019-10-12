@@ -61,5 +61,6 @@ int main(int argc, char ** argv) {
     }
     printf("\n");
 
+    file_close(&manager);
     return 0;
 }
