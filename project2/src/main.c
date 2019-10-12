@@ -43,6 +43,7 @@ int main(int argc, char ** argv) {
             break;
         case 'q':
             while (getchar() != (int)'\n');
+            file_close(&manager);
             return 0;
             break;
         case 't':
@@ -61,6 +62,5 @@ int main(int argc, char ** argv) {
     }
     printf("\n");
 
-    file_close(&manager);
     return 0;
 }
