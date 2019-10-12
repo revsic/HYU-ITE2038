@@ -30,8 +30,11 @@ int main(int argc, char ** argv) {
             break;
         case 'f':
             scanf("%d", &input);
-            db_find(input, value);
-            printf("Key: %d  Value: %s\n", input, value);
+            if (db_find(input, value) == SUCCESS) {
+                printf("Key: %d  Value: %s\n", input, value);
+            } else {
+                printf("not found\n");
+            }
             //find_and_print(input, manager);
             break;
         case 'r':
