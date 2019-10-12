@@ -1091,26 +1091,14 @@ int delete_entry(prikey_t key,
 
     struct page_pair_t parent_pair = { header->parent_page_number, &parent };
 
-    int capacity;
-    if (DELAYED_MERGE) {
-        capacity = header->is_leaf ? LEAF_ORDER - 1 : INTERNAL_ORDER - 1;
-        if (page_header(left.page)->number_of_keys
-            + page_header(right.page)->number_of_keys == capacity)
-        {
-            return redistribute_nodes(&left, k_prime, k_prime_index, &right, &parent_pair, manager);
-        } else {
-            return merge_nodes(&left, k_prime, &right, &parent_pair, manager);
-        }
+    int capacity = header->is_leaf ? LEAF_ORDER : INTERNAL_ORDER - 1;
+    if (page_header(left.page)->number_of_keys
+        + page_header(right.page)->number_of_keys < capacity)
+    {
+        return merge_nodes(&left, k_prime, &right, &parent_pair, manager);
     } else {
-        capacity = header->is_leaf ? LEAF_ORDER : INTERNAL_ORDER - 1;
-        if (page_header(left.page)->number_of_keys
-            + page_header(right.page)->number_of_keys < capacity)
-        {
-            return merge_nodes(&left, k_prime, &right, &parent_pair, manager);
-        } else {
-            return redistribute_nodes(&left, k_prime, k_prime_index, &right, &parent_pair, manager);
-        }
-    }    
+        return redistribute_nodes(&left, k_prime, k_prime_index, &right, &parent_pair, manager);
+    }
 }
 
 int delete(prikey_t key, struct file_manager_t* manager) {

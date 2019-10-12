@@ -9,8 +9,8 @@
 #include "headers.h"
 
 // global constant
-#define LEAF_ORDER 4        // 32
-#define INTERNAL_ORDER 5    // 249
+#define LEAF_ORDER 32        // 32
+#define INTERNAL_ORDER 249    // 249
 
 #define VERBOSE_OUTPUT 0
 #define DELAYED_MERGE 1
