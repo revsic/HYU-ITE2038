@@ -9,11 +9,11 @@
 #include "headers.h"
 
 // global constant
-#define LEAF_ORDER 3        // 32
+#define LEAF_ORDER 4        // 32
 #define INTERNAL_ORDER 5    // 249
 
-#define VERBOSE_OUTPUT 1
-#define DELAYED_MERGE 0
+#define VERBOSE_OUTPUT 0
+#define DELAYED_MERGE 1
 
 #define DEFAULT_RECORD_VEC_CAP 4
 
