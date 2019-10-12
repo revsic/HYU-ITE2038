@@ -107,13 +107,16 @@ int insert(prikey_t key,
 // Deletion.
 int shrink_root(struct file_manager_t* manager);
 int merge_nodes(struct page_pair_t* left,
-                int k_prime,
+                prikey_t k_prime,
                 struct page_pair_t* right,
                 struct page_pair_t* parent,
                 struct file_manager_t* manager);
-// node * redistribute_nodes(node * root, node * n, node * neighbor,
-//                           int neighbor_index,
-//         int k_prime_index, int k_prime);
+int redistribute_nodes(struct page_pair_t* left,
+                       prikey_t k_prime,
+                       int k_prime_index,
+                       struct page_pair_t* right,
+                       struct page_pair_t* parent,
+                       struct file_manager_t* manager);
 int delete_entry(prikey_t key,
                  struct page_pair_t* leaf_page,
                  struct file_manager_t* manager);

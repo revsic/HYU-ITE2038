@@ -816,7 +816,7 @@ int shrink_root(struct file_manager_t* manager) {
 }
 
 int merge_nodes(struct page_pair_t* left,
-                int k_prime,
+                prikey_t k_prime,
                 struct page_pair_t* right,
                 struct page_pair_t* parent,
                 struct file_manager_t* manager)
@@ -826,10 +826,8 @@ int merge_nodes(struct page_pair_t* left,
     int* right_num_key = (int*)&page_header(right->page)->number_of_keys;
 
     struct page_t temp;
-    struct internal_t* left_entries;
-    struct internal_t* right_entries;
-    struct record_t* left_records;
-    struct record_t* right_records;
+    struct internal_t *left_entries, *right_entries;
+    struct record_t *left_records, *right_records;
 
     /* Case:  nonleaf node.
      * Append k_prime and the following pointer.
@@ -876,76 +874,124 @@ int merge_nodes(struct page_pair_t* left,
     return SUCCESS;
 }
 
-// node * redistribute_nodes(node * root, node * n, node * neighbor, int neighbor_index, 
-//         int k_prime_index, int k_prime) {  
+int rotate_to_right(struct page_pair_t* left,
+                    prikey_t k_prime,
+                    int k_prime_index,
+                    struct page_pair_t* right,
+                    struct page_pair_t* parent,
+                    struct file_maanger_t* manager)
+{
+    int i, num_key = page_header(right)->number_of_keys;
+    struct page_t temp_page;
+    struct record_t *right_record, *left_record;
+    struct internal_t *right_internal, *left_internal, tmp;
 
-//     int i;
-//     node * tmp;
+    if (page_header(left->page)->is_leaf) {
+        right_record = records(right->page);
+        left_record = records(left->page);
 
-//     /* Case: n has a neighbor to the left. 
-//      * Pull the neighbor's last key-pointer pair over
-//      * from the neighbor's right end to n's left end.
-//      */
+        for (i = num_key; i > 0; --i) {
+            right_record[i] = right_record[i - 1];
+        }
 
-//     if (neighbor_index != -1) {
-//         if (!n->is_leaf)
-//             n->pointers[n->num_keys + 1] = n->pointers[n->num_keys];
-//         for (i = n->num_keys; i > 0; i--) {
-//             n->keys[i] = n->keys[i - 1];
-//             n->pointers[i] = n->pointers[i - 1];
-//         }
-//         if (!n->is_leaf) {
-//             n->pointers[0] = neighbor->pointers[neighbor->num_keys];
-//             tmp = (node *)n->pointers[0];
-//             tmp->parent = n;
-//             neighbor->pointers[neighbor->num_keys] = NULL;
-//             n->keys[0] = k_prime;
-//             n->parent->keys[k_prime_index] = neighbor->keys[neighbor->num_keys - 1];
-//         }
-//         else {
-//             n->pointers[0] = neighbor->pointers[neighbor->num_keys - 1];
-//             neighbor->pointers[neighbor->num_keys - 1] = NULL;
-//             n->keys[0] = neighbor->keys[neighbor->num_keys - 1];
-//             n->parent->keys[k_prime_index] = n->keys[0];
-//         }
-//     }
+        right_record[0] = left_record[page_header(left)->number_of_keys - 1];
+        entries(parent->page)[k_prime_index].key = right_record[0].key;
+    } else {
+        right_internal = entries(right->page);
+        left_internal = entries(left->page);
 
-//     /* Case: n is the leftmost child.
-//      * Take a key-pointer pair from the neighbor to the right.
-//      * Move the neighbor's leftmost key-pointer pair
-//      * to n's rightmost position.
-//      */
+        for (i = num_key; i > 0; --i) {
+            right_internal[i] = right_internal[i - 1];
+        }
 
-//     else {  
-//         if (n->is_leaf) {
-//             n->keys[n->num_keys] = neighbor->keys[0];
-//             n->pointers[n->num_keys] = neighbor->pointers[0];
-//             n->parent->keys[k_prime_index] = neighbor->keys[1];
-//         }
-//         else {
-//             n->keys[n->num_keys] = k_prime;
-//             n->pointers[n->num_keys + 1] = neighbor->pointers[0];
-//             tmp = (node *)n->pointers[n->num_keys + 1];
-//             tmp->parent = n;
-//             n->parent->keys[k_prime_index] = neighbor->keys[0];
-//         }
-//         for (i = 0; i < neighbor->num_keys - 1; i++) {
-//             neighbor->keys[i] = neighbor->keys[i + 1];
-//             neighbor->pointers[i] = neighbor->pointers[i + 1];
-//         }
-//         if (!n->is_leaf)
-//             neighbor->pointers[i] = neighbor->pointers[i + 1];
-//     }
+        right_internal[0].key = k_prime;
+        right_internal[0].pagenum = page_header(right->page)->special_page_number;
 
-//     /* n now has one more key and one more pointer;
-//      * the neighbor has one fewer of each.
-//      */
+        tmp = left_internal[page_header(left)->number_of_keys - 1];
+        entries(parent->page)[k_prime_index].key = tmp.key;
+        page_header(right->page)->special_page_number = tmp.pagenum;
 
-//     n->num_keys++;
-//     neighbor->num_keys--;
+        load_page(tmp.pagenum, &temp_page, manager);
+        page_header(&temp_page)->parent_page_number = right->pagenum;
+        commit_page(tmp.pagenum, &temp_page, manager);
+    }
 
-//     return root;
-// }
+    page_header(left->page)->number_of_keys -= 1;
+    page_header(right->page)->number_of_keys += 1;
+
+    return SUCCESS;
+}
+
+int rotate_to_left(struct page_pair_t* left,
+                   prikey_t k_prime,
+                   int k_prime_index,
+                   struct page_pair_t* right,
+                   struct page_pair_t* parent,
+                   struct file_manager_t* manager)
+{
+    int i, num_key = page_header(left)->number_of_keys;
+    struct page_t temp_page;
+    struct record_t *left_record, *right_record;
+    struct internal_t* left_internal, *right_internal;
+
+    if (page_header(left->page)->is_leaf) {
+        right_record = records(right->page);
+        left_record = records(left->page);
+
+        left_record[num_key] = right_record[0];
+        entries(parent->page)[k_prime_index].key = right_record[1].key;
+
+        num_key = page_header(right)->number_of_keys;
+        for (i = 0; i < num_key - 1; ++i) {
+            right_record[i] = right_record[i + 1];
+        }
+    } else {
+        right_internal = entries(right->page);
+        left_internal = entries(left->page);
+
+        left_internal[num_key].key = k_prime;
+        left_internal[num_key].pagenum = page_header(right)->special_page_number;
+
+        entries(parent->page)[k_prime_index].key = right_internal[0].key;
+        page_header(right)->special_page_number = right_internal[0].pagenum;
+
+        load_page(left_internal[num_key].pagenum, &temp_page, manager);
+        page_header(&temp_page)->parent_page_number = left->pagenum;
+        commit_page(left_internal[num_key].pagenum, &temp_page, manager);
+
+        num_key = page_header(right)->number_of_keys;
+        for (i = 0; i < num_key -1; ++i) {
+            right_internal[i] = right_internal[i + 1];
+        }
+    }
+
+    page_header(left->page)->number_of_keys += 1;
+    page_header(right->page)->number_of_keys -= 1;
+
+    return SUCCESS;
+}
+
+int redistribute_nodes(struct page_pair_t* left,
+                       prikey_t k_prime,
+                       int k_prime_index,
+                       struct page_pair_t* right,
+                       struct page_pair_t* parent,
+                       struct file_manager_t* manager)
+{
+    if (page_header(left->page)->number_of_keys 
+        < page_header(right->page)->number_of_keys)
+    {
+        rotate_to_left(left, k_prime, k_prime_index, right, parent, manager);
+    } else {
+        rotate_to_right(left, k_prime, k_prime_index, right, parent, manager);
+    }
+
+    commit_page(left->pagenum, left->page, manager);
+    commit_page(right->pagenum, right->page, manager);
+    commit_page(parent->pagenum, parent->page, manager);
+
+    return SUCCESS;
+}
 
 int delete_entry(prikey_t key,
                  struct page_pair_t* pair,
@@ -990,7 +1036,7 @@ int delete_entry(prikey_t key,
 
     int index = get_index(&parent, pair->pagenum);
     int k_prime_index = index == -1 ? 0 : index;
-    int k_prime = entries(&parent)[k_prime_index].key;
+    prikey_t k_prime = entries(&parent)[k_prime_index].key;
 
     struct page_t tmp;
     struct page_pair_t left, right;
@@ -1015,7 +1061,7 @@ int delete_entry(prikey_t key,
     {
         return merge_nodes(&left, k_prime, &right, &parent_pair, manager);
     } else {
-        // return redistribute_nodes(root, n, neighbor, neighbor_index, k_prime_index, k_prime);
+        return redistribute_nodes(&left, k_prime, k_prime_index, &right, &parent_pair, manager);
     }
 }
 
