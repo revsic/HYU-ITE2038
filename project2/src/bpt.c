@@ -729,7 +729,7 @@ int insert(prikey_t key,
     if (leaf != INVALID_PAGENUM
         && find_key_from_leaf(key, &leaf_page, NULL) == SUCCESS)
     {
-        return SUCCESS;
+        return FAILURE;
     }
 
     /* Create a new record for the
