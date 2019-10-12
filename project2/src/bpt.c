@@ -707,7 +707,9 @@ int insert(prikey_t key,
     /* The current implementation ignores
      * duplicates.
      */
-    if (find_key_from_leaf(key, &leaf_page, NULL) == SUCCESS) {
+    if (leaf != INVALID_PAGENUM
+        && find_key_from_leaf(key, &leaf_page, NULL) == SUCCESS)
+    {
         return SUCCESS;
     }
 
@@ -777,7 +779,7 @@ int shrink_root(struct file_manager_t* manager) {
     struct page_t child_page;
 
     if (!page_header(&root_page)->is_leaf) {
-        child = entries(&root_page)[0].pagenum;
+        child = page_header(&root_page)->special_page_number;
         manager->file_header.root_page_number = child;
 
         load_page(child, &child_page, manager);
@@ -800,8 +802,8 @@ int merge_nodes(struct page_pair_t* left,
                 struct file_manager_t* manager)
 {
     int i, insertion_index = page_header(left->page)->number_of_keys;
-    int* left_num_key = &page_header(left->page)->number_of_keys;
-    int* right_num_key = &page_header(right->page)->number_of_keys;
+    uint32_t* left_num_key = &page_header(left->page)->number_of_keys;
+    int* right_num_key = (int*)&page_header(right->page)->number_of_keys;
 
     struct page_t temp;
     struct internal_t* left_entries;
@@ -928,10 +930,11 @@ int delete_entry(prikey_t key,
                  struct file_manager_t* manager)
 {
     remove_record_from_leaf(key, leaf_page->page);
+    commit_page(leaf_page->pagenum, leaf_page->page, manager);
 
     /* Case:  deletion from the root. 
      */
-    if (leaf_page->pagenum == manager->file_header.root_page_number) { 
+    if (leaf_page->pagenum == manager->file_header.root_page_number) {
         return shrink_root(manager);
     }
 
