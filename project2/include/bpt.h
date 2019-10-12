@@ -13,6 +13,7 @@
 #define INTERNAL_ORDER 5
 
 #define VERBOSE_OUTPUT 1
+#define MAX_RANGE_SEARCH 1024
 
 #define SUCCESS 0
 #define FAILURE 1

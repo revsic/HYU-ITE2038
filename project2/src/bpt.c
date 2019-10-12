@@ -387,8 +387,7 @@ void find_and_print(prikey_t key, struct file_manager_t* manager) {
 
 void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_manager_t* manager) {
     int i;
-    int array_size = key_end - key_start + 1;
-    struct record_t* retval = malloc(sizeof(struct record_t) * array_size);
+    struct record_t retval[MAX_RANGE_SEARCH];
 
     int num_found = find_range(key_start, key_end, retval, manager);
     if (!num_found) {
@@ -400,8 +399,6 @@ void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_mana
                    *(int*)retval[i].value);
         }
     }
-
-    free(retval);
 }
 
 
@@ -799,7 +796,7 @@ int shrink_root(struct file_manager_t* manager) {
 
     manager->file_header.number_of_pages++;
 
-    free_page(&root_page);
+    page_free(root, manager);
     return SUCCESS;
 }
 
