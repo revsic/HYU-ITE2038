@@ -26,7 +26,6 @@ int main(int argc, char ** argv) {
             print_tree(&manager);
             break;
         case 'f':
-        case 'p':
             scanf("%d", &input);
             find_and_print(input, &manager);
             break;
