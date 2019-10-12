@@ -91,6 +91,39 @@ struct queue_t* dequeue(struct queue_t* queue, pagenum_t* retval) {
     return tmp;
 }
 
+int record_vec_init(struct record_vec_t* vec) {
+    vec->size = 0;
+    vec->capacity = DEFAULT_RECORD_VEC_CAP;
+    vec->rec = malloc(sizeof(struct record_t) * DEFAULT_RECORD_VEC_CAP);
+    return SUCCESS;
+}
+
+int record_vec_free(struct record_vec_t* vec) {
+    free(vec->rec);
+    return SUCCESS;
+}
+
+int record_vec_expand(struct record_vec_t* vec) {
+    vec->capacity *= 2;
+    struct record_t* new_records =
+        malloc(sizeof(struct record_t) * vec->capacity);
+    
+    memcpy(new_records, vec->rec, sizeof(struct record_t) * vec->size);
+    
+    free(vec->rec);
+    vec->rec = new_records;
+
+    return SUCCESS;
+}
+
+int record_vec_append(struct record_vec_t* vec, struct record_t* rec) {
+    if (vec->size >= vec->capacity) {
+        record_vec_expand(vec);
+    }
+    memcpy(&vec->rec[vec->size++], rec, sizeof(struct record_t));
+    return SUCCESS;
+}
+
 int height(pagenum_t node, struct file_manager_t* manager) {
     int h = 0;
     struct page_t page;
@@ -219,10 +252,10 @@ int find(prikey_t key, struct record_t* record, struct file_manager_t* manager) 
 
 int find_range(prikey_t start,
                prikey_t end,
-               struct record_t* retval,
+               struct record_vec_t* retval,
                struct file_manager_t* manager)
 {
-    int i, num_found = 0;
+    int i;
     struct page_t page;
     pagenum_t n = find_leaf(start, &page, manager);
     if (n == INVALID_PAGENUM) {
@@ -241,7 +274,7 @@ int find_range(prikey_t start,
 
     while (1) {
         for (; i < nkey && rec[i].key <= end; i++) {
-            memcpy(&retval[num_found++], &rec[i], sizeof(struct record_t));
+            record_vec_append(retval, &rec[i]);
         }
 
         n = page_header(&page)->special_page_number;
@@ -256,7 +289,7 @@ int find_range(prikey_t start,
         nkey = page_header(&page)->number_of_keys;
     }
 
-    return num_found;
+    return SUCCESS;
 }
 
 
@@ -387,18 +420,21 @@ void find_and_print(prikey_t key, struct file_manager_t* manager) {
 
 void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_manager_t* manager) {
     int i;
-    struct record_t retval[MAX_RANGE_SEARCH];
+    struct record_vec_t retval;
+    record_vec_init(&retval);
 
-    int num_found = find_range(key_start, key_end, retval, manager);
-    if (!num_found) {
+    find_range(key_start, key_end, &retval, manager);
+    if (retval.size == 0) {
         printf("None found.\n");
     } else {
-        for (i = 0; i < num_found; i++) {
+        for (i = 0; i < retval.size; i++) {
             printf("Key: %lld   Value: %d\n",
-                   retval[i].key,
-                   *(int*)retval[i].value);
+                   retval.rec[i].key,
+                   *(int*)retval.rec[i].value);
         }
     }
+
+    record_vec_free(&retval);
 }
 
 

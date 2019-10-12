@@ -13,7 +13,7 @@
 #define INTERNAL_ORDER 5
 
 #define VERBOSE_OUTPUT 1
-#define MAX_RANGE_SEARCH 1024
+#define DEFAULT_RECORD_VEC_CAP 4
 
 #define SUCCESS 0
 #define FAILURE 1
@@ -22,6 +22,12 @@
 struct queue_t {
     pagenum_t pagenum;
     struct queue_t* next;
+};
+
+struct record_vec_t {
+    int size;
+    int capacity;
+    struct record_t* rec;
 };
 
 struct page_pair_t {
@@ -48,6 +54,11 @@ void usage_2();
 struct queue_t* enqueue(struct queue_t* queue, pagenum_t pagenum);
 struct queue_t* dequeue(struct queue_t* queue, pagenum_t* retval);
 
+int record_vec_init(struct record_vec_t* vec);
+int record_vec_free(struct record_vec_t* vec);
+int record_vec_expand(struct record_vec_t* vec);
+int record_vec_append(struct record_vec_t* vec, struct record_t* rec);
+
 int height(pagenum_t node, struct file_manager_t* manager);
 int path_to_root(pagenum_t node, struct file_manager_t* manager);
 
@@ -59,7 +70,7 @@ int find_key_from_leaf(prikey_t key, struct page_t* page, struct record_t* recor
 int find(prikey_t key, struct record_t* record, struct file_manager_t* manager);
 int find_range(prikey_t start,
                prikey_t end,
-               struct record_t* retval,
+               struct record_vec_t* retval,
                struct file_manager_t* manager);
 
 // Output.
