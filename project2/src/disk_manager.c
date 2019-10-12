@@ -61,6 +61,7 @@ int file_write_header(struct file_manager_t* manager) {
                 sizeof(struct file_header_t),
                 0,
                 manager->fp));
+    fflush(manager->fp);
     return SUCCESS;
 }
 
