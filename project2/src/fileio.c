@@ -21,7 +21,7 @@ long fsize(FILE* fp) {
 int fresize(FILE* fp, size_t size) {
 #if defined(__GNUC__)
     int fd = fileno(fp);
-    return ftruncate(fd, size);
+    return ftruncate(fd, size) == 0;
 #elif defined(_MSC_VER)
 #endif
 }
@@ -32,10 +32,10 @@ int fpwrite(const void* ptr, size_t size, long pos, FILE* stream) {
 #if defined(__GNUC__)
     fsync(fileno(stream));
 #endif
-    return retval;
+    return retval == 1;
 }
 
 int fpread(void* ptr, size_t size, long pos, FILE* stream) {
     fseek(stream, pos, SEEK_SET);
-    return fread(ptr, size, 1, stream);
+    return fread(ptr, size, 1, stream) == 1;
 }
