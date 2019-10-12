@@ -21,6 +21,10 @@ int file_open(char* filename, struct file_manager_t* manager);
 
 int file_close(struct file_manager_t* manager);
 
+int file_write_header(struct file_manager_t* manager);
+
+int file_write_update(struct file_manager_t* manager);
+
 pagenum_t last_pagenum(struct file_manager_t* manager);
 
 pagenum_t last_pagenum_from_size(long size);

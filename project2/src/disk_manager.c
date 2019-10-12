@@ -35,14 +35,25 @@ int file_open(char* filename, struct file_manager_t* manager) {
 }
 
 int file_close(struct file_manager_t* manager) {
-    if (manager->updated > 0) {
-        fpwrite(&manager->file_header,
-                sizeof(struct file_header_t),
-                0,
-                manager->fp);
-    }
+    file_write_update(manager);
     fclose(manager->fp);
     memset(manager, 0, sizeof(struct file_manager_t));
+    return 0;
+}
+
+int file_write_header(struct file_manager_t* manager) {
+    fpwrite(&manager->file_header,
+            sizeof(struct file_header_t),
+            0,
+            manager->fp);
+    return 0;
+}
+
+int file_write_update(struct file_manager_t* manager) {
+    if (manager->updated > 0) {
+        manager->updated = 0;
+        file_write_header(manager);
+    }
     return 0;
 }
 
