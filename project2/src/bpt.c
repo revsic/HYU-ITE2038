@@ -357,9 +357,11 @@ void print_tree(struct file_manager_t* manager) {
         }
 
         if (!pheader->is_leaf) {
-            queue = enqueue(queue, pheader->special_page_number);
-            for (i = 0; i < pheader->number_of_keys; i++) {
-                queue = enqueue(queue, entries(&page)[i].pagenum);
+            if (pheader->special_page_number != INVALID_PAGENUM) {
+                queue = enqueue(queue, pheader->special_page_number);
+                for (i = 0; i < pheader->number_of_keys; i++) {
+                    queue = enqueue(queue, entries(&page)[i].pagenum);
+                }
             }
         }
 
@@ -811,6 +813,9 @@ int merge_nodes(struct page_pair_t* left,
     struct record_t* left_records;
     struct record_t* right_records;
 
+DBG(k_prime);
+DBG(left->pagenum);
+DBG(right->pagenum);
     /* Case:  nonleaf node.
      * Append k_prime and the following pointer.
      * Append all pointers and keys from the neighbor.
@@ -826,26 +831,27 @@ int merge_nodes(struct page_pair_t* left,
                     page_header(right->page)->special_page_number;
             } else {
                 left_entries[insertion_index] = right_entries[i];
-                *right_num_key--;
+                *right_num_key -= 1;
             }
 
             load_page(left_entries[insertion_index].pagenum, &temp, manager);
             page_header(&temp)->parent_page_number = left->pagenum;
             commit_page(left_entries[insertion_index].pagenum, &temp, manager);
 
-            *left_num_key++;
+            *left_num_key += 1;
         }
     } else {
         left_records = records(left->page);
         right_records = records(right->page);
         for (i = 0; *right_num_key > 0; ++i, ++insertion_index) {
             left_records[insertion_index] = right_records[i];
+            *right_num_key -= 1;
         }
 
         page_header(left->page)->special_page_number =
             page_header(right->page)->special_page_number;
     }
-
+DBG(k_prime);
     commit_page(left->pagenum, left->page, manager);
 
     delete_entry(k_prime, parent, manager);
