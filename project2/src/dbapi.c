@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <string.h>
+
 #include "bpt.h"
 #include "dbapi.h"
 
@@ -55,17 +58,31 @@ int open_table(char* pathname) {
     return GLOBAL_TABLE_ID;
 }
 
+struct file_manager_t* get_file_manager(int tableid) {
+    if (0 <= tableid && tableid < GLOBAL_FILE_MANAGER.size) {
+        return &GLOBAL_FILE_MANAGER.manager[tableid];
+    }
+    return NULL;
+}
+
 int db_insert(int64_t key, char* value) {
-    return insert(key, value, strlen(value) + 1, &GLOBAL_FILE_MANAGER);
+    return insert(
+        key,
+        value,
+        strlen(value) + 1,
+        get_file_manager(GLOBAL_TABLE_ID));
 }
 
 int db_find(int64_t key, char* ret_val) {
     struct record_t rec;
-    CHECK_SUCCESS(find(key, &rec, &GLOBAL_FILE_MANAGER));
-    memcpy(ret_val, rec.value, sizeof(struct record_t) - sizeof(prikey_t));
+    CHECK_SUCCESS(find(key, &rec, get_file_manager(GLOBAL_TABLE_ID)));
+
+    if (ret_val != NULL) {
+        memcpy(ret_val, rec.value, sizeof(struct record_t) - sizeof(prikey_t));
+    }
     return SUCCESS;
 }
 
 int db_delete(int64_t key) {
-    return delete(key, &GLOBAL_FILE_MANAGER);
+    return delete(key, get_file_manager(GLOBAL_TABLE_ID));
 }
