@@ -80,7 +80,7 @@ void find_and_print(prikey_t key, struct file_manager_t* manager);
 void find_and_print_range(prikey_t range1, prikey_t range2, struct file_manager_t* manager);
 
 // Insertion.
-int make_record(struct record_t* record, prikey_t key, int value);
+int make_record(struct record_t* record, prikey_t key, uint8_t* value, int value_size);
 pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf);
 
 int get_index(struct page_t* parent, pagenum_t pagenum);
@@ -113,7 +113,8 @@ int insert_into_new_root(struct page_pair_t* left,
 int start_new_tree(struct record_t* pointer,
                    struct file_manager_t* manager);
 int insert(prikey_t key,
-           int value,
+           uint8_t* value,
+           int value_size,
            struct file_manager_t* manager);
 
 // Deletion.

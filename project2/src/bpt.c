@@ -434,9 +434,10 @@ void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_mana
 
 // INSERTION
 
-int make_record(struct record_t* record, prikey_t key, int value) {
-    record->key = key;
-    *(int*)record->value = value;
+int make_record(struct record_t* record, prikey_t key, uint8_t* value, int value_size) {
+    record->key = key;    
+    value_size = max(value_size, sizeof(struct record_t) - sizeof(prikey_t));
+    memcpy(record->value, value, value_size);
     return SUCCESS;
 }
 
@@ -716,7 +717,8 @@ int start_new_tree(struct record_t* pointer,
 }
 
 int insert(prikey_t key,
-           int value,
+           uint8_t* value,
+           int value_size,
            struct file_manager_t* manager)
 {
     struct page_t leaf_page;
@@ -735,7 +737,7 @@ int insert(prikey_t key,
      * value.
      */
     struct record_t record;
-    CHECK_SUCCESS(make_record(&record, key, value));
+    CHECK_SUCCESS(make_record(&record, key, value, value_size));
 
     /* Case: the tree does not exist yet.
      * Start a new tree.
