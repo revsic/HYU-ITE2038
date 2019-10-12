@@ -690,7 +690,7 @@ int insert_into_new_root(struct page_pair_t* left,
     commit_page(right->pagenum, right->page, manager);
 
     manager->file_header.root_page_number = root;
-    manager->updated++;
+    file_write_header(manager);
 
     return SUCCESS;
 }
@@ -710,8 +710,9 @@ int start_new_tree(struct record_t* pointer,
     memcpy(rec, pointer, sizeof(struct record_t));
 
     commit_page(root, &root_page, manager);
+
     manager->file_header.root_page_number = root;
-    manager->updated++;
+    file_write_header(manager);
 
     return SUCCESS;
 }
@@ -827,6 +828,7 @@ int shrink_root(struct file_manager_t* manager) {
     }
 
     manager->file_header.number_of_pages++;
+    file_write_header(manager);
 
     page_free(root, manager);
     return SUCCESS;
@@ -1142,6 +1144,6 @@ int destroy_tree(struct file_manager_t* manager) {
     }
 
     manager->file_header.root_page_number = INVALID_PAGENUM;
-    manager->updated++;
+    file_write_header(manager);
     return SUCCESS;
 }
