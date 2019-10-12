@@ -50,8 +50,6 @@ void usage_2() {
     printf("Enter any of the following commands after the prompt > :\n"
     "\ti <k>  -- Insert <k> (an integer) as both key and value).\n"
     "\tf <k>  -- Find the value under key <k>.\n"
-    "\tp <k> -- Print the path from the root to key k and its associated "
-           "value.\n"
     "\tr <k1> <k2> -- Print the keys and values found in the range "
             "[<k1>, <k2>\n"
     "\td <k>  -- Delete key <k> and its associated value.\n"
@@ -59,8 +57,6 @@ void usage_2() {
            "same order.\n"
     "\tt -- Print the B+ tree.\n"
     "\tl -- Print the keys of the leaves (bottom row of the tree).\n"
-    "\tv -- Toggle output of pointer addresses (\"verbose\") in tree and "
-           "leaves.\n"
     "\tq -- Quit. (Or use Ctl-D.)\n"
     "\t? -- Print this help message.\n");
 }
@@ -1076,13 +1072,18 @@ int delete_entry(prikey_t key,
 
     struct page_pair_t parent_pair = { header->parent_page_number, &parent };
 
-    int capacity = header->is_leaf ? LEAF_ORDER : INTERNAL_ORDER - 1;
-    if (page_header(left.page)->number_of_keys
-        + page_header(right.page)->number_of_keys < capacity)
-    {
-        return merge_nodes(&left, k_prime, &right, &parent_pair, manager);
+    int capacity;
+    if (DELAYED_MERGE) {
+
     } else {
-        return redistribute_nodes(&left, k_prime, k_prime_index, &right, &parent_pair, manager);
+        capacity = header->is_leaf ? LEAF_ORDER : INTERNAL_ORDER - 1;
+        if (page_header(left.page)->number_of_keys
+            + page_header(right.page)->number_of_keys < capacity)
+        {
+            return merge_nodes(&left, k_prime, &right, &parent_pair, manager);
+        } else {
+            return redistribute_nodes(&left, k_prime, k_prime_index, &right, &parent_pair, manager);
+        }
     }
 }
 

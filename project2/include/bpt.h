@@ -13,6 +13,8 @@
 #define INTERNAL_ORDER 5
 
 #define VERBOSE_OUTPUT 1
+#define DELAYED_MERGE 0
+
 #define DEFAULT_RECORD_VEC_CAP 4
 
 #define SUCCESS 0
