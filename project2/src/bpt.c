@@ -188,9 +188,9 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
         if (VERBOSE_OUTPUT) {
             printf("[");
             for (i = 0; i < pheader->number_of_keys - 1; ++i) {
-                printf("%lld ", internal[i].key);
+                printf("%ld ", internal[i].key);
             }
-            printf("%lld] ", internal[i].key);
+            printf("%ld] ", internal[i].key);
         }
 
         for (i = 0; i < pheader->number_of_keys && key >= internal[i].key; ++i)
@@ -215,9 +215,9 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
 
         printf("Leaf [");
         for (i = 0; i < pheader->number_of_keys - 1; ++i) {
-            printf("%lld ", rec[i].key);
+            printf("%ld ", rec[i].key);
         }
-        printf("%lld]\n", rec[i].key);
+        printf("%ld]\n", rec[i].key);
     }
 
     return c;
@@ -320,13 +320,13 @@ void print_leaves(struct file_manager_t* manager) {
     struct record_t* rec = records(&page);
     while (1) {
         for (i = 0; i < pheader->number_of_keys; ++i) {
-            printf("%lld ", rec[i].key);
+            printf("%ld ", rec[i].key);
             if (VERBOSE_OUTPUT) {
-                printf("{v: %x} ", *(int*)rec[i].value);
+                printf("{v: %s} ", rec[i].value);
             }
         }
         if (VERBOSE_OUTPUT) {
-            printf("(next %llu) ", pheader->special_page_number);
+            printf("(next %lu) ", pheader->special_page_number);
         }
 
         if (pheader->special_page_number != INVALID_PAGENUM) {
@@ -373,22 +373,22 @@ void print_tree(struct file_manager_t* manager) {
         }
 
         if (VERBOSE_OUTPUT) {
-            printf("(page %llu) ", n);
+            printf("(page %lu) ", n);
             if (!pheader->is_leaf) {
-                printf("{v: %llu} ", pheader->special_page_number);
+                printf("{v: %lu} ", pheader->special_page_number);
             }
         }
 
         for (i = 0; i < pheader->number_of_keys; i++) {
             if (pheader->is_leaf) {
-                printf("%lld ", records(&page)[i].key);
+                printf("%ld ", records(&page)[i].key);
                 if (VERBOSE_OUTPUT) {
-                    printf("{v: %x} ", *(int*)records(&page)[i].value);
+                    printf("{v: %s} ", records(&page)[i].value);
                 }
             } else {
-                printf("%lld ", entries(&page)[i].key);
+                printf("%ld ", entries(&page)[i].key);
                 if (VERBOSE_OUTPUT) {
-                    printf("{v: %lld} ", entries(&page)[i].pagenum);
+                    printf("{v: %ld} ", entries(&page)[i].pagenum);
                 }
             }
         }
@@ -403,7 +403,7 @@ void print_tree(struct file_manager_t* manager) {
         }
 
         if (VERBOSE_OUTPUT && pheader->is_leaf) {
-            printf("(parent %llu, next %llu) ",
+            printf("(parent %lu, next %lu) ",
                 pheader->parent_page_number, pheader->special_page_number);
         }
         printf("| ");
@@ -415,26 +415,23 @@ void find_and_print(prikey_t key, struct file_manager_t* manager) {
     struct record_t r;
     int retval = find(key, &r, manager);
     if (retval == FAILURE) {
-        printf("Record not found under key %lld.\n", key);
+        printf("Record not found under key %ld.\n", key);
     } else {
-        printf("Record -- key %lld, value %d.\n",
-               key, *(int*)r.value);
+        printf("Record -- key %ld, value %s.\n", key, r.value);
     }
 }
 
 void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_manager_t* manager) {
     int i;
     struct record_vec_t retval;
-    CHECK_SUCCESS(record_vec_init(&retval));
+    EXIT_ON_FAILURE(record_vec_init(&retval));
 
-    find_range(key_start, key_end, &retval, manager);
+    EXIT_ON_FAILURE(find_range(key_start, key_end, &retval, manager));
     if (retval.size == 0) {
         printf("None found.\n");
     } else {
         for (i = 0; i < retval.size; i++) {
-            printf("Key: %lld   Value: %d\n",
-                   retval.rec[i].key,
-                   *(int*)retval.rec[i].value);
+            printf("Key: %ld   Value: %s\n", retval.rec[i].key, retval.rec[i].value);
         }
     }
 
