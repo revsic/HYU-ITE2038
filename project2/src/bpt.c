@@ -862,14 +862,13 @@ int merge_nodes(struct page_pair_t* left,
         left_entries = entries(left->page);
         right_entries = entries(right->page);
 
-        for (i = -1; *right_num_key > 0; ++i, ++insertion_index) {
+        for (i = -1; *right_num_key >= 0; ++i, ++insertion_index) {
             if (i == -1) {
                 left_entries[insertion_index].key = k_prime;
                 left_entries[insertion_index].pagenum =
                     page_header(right->page)->special_page_number;
             } else {
                 left_entries[insertion_index] = right_entries[i];
-                *right_num_key -= 1;
             }
 
             CHECK_SUCCESS(
@@ -878,6 +877,7 @@ int merge_nodes(struct page_pair_t* left,
             CHECK_SUCCESS(
                 commit_page(left_entries[insertion_index].pagenum, &temp, manager));
 
+            *right_num_key -= 1;
             *left_num_key += 1;
         }
     } else {
@@ -894,7 +894,6 @@ int merge_nodes(struct page_pair_t* left,
     }
 
     CHECK_SUCCESS(commit_page(left->pagenum, left->page, manager));
-
     CHECK_SUCCESS(delete_entry(k_prime, parent, manager));
     CHECK_SUCCESS(page_free(right->pagenum, manager));
 
