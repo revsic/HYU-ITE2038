@@ -1,16 +1,28 @@
 #include "bpt.h"
 #include "dbapi.h"
 
+#define INVOKE(method, tid)                     \
+if (tid != -1) {                                \
+    method(get_file_manager(tid));              \
+} else {                                        \
+    printf("invalid tid\n");                    \
+}
+
+#define INVOKE_VARIADIC(method, tid, ...)       \
+if (tid != -1) {                                \
+    method(__VA_ARGS__, get_file_manager(tid)); \
+} else {                                        \
+    printf("invalid tid\n");                    \
+}
+
 // MAIN
 
 int main(int argc, char ** argv) {
     int tid, input, range2;
     char instruction;
     char value[1024];
-    struct file_manager_t* manager;
 
     tid = open_table("datafile");
-    manager = get_file_manager(tid);
 
     usage_1();
     usage_2();
@@ -29,20 +41,18 @@ int main(int argc, char ** argv) {
             // table id validation
             if (tid == -1) {
                 printf("cannot open file %s\n", value);
-                break;
             }
-            manager = get_file_manager(tid);
             break;
         case 'd':
             scanf("%d", &input);
             db_delete(input);
-            print_tree(manager);
+            INVOKE(print_tree, tid);
             break;
         case 'i':
             scanf("%d", &input);
             snprintf(value, 100, "%d value", input);
             db_insert(input, value);
-            print_tree(manager);
+            INVOKE(print_tree, tid);
             break;
         case 'f':
             scanf("%d", &input);
@@ -60,10 +70,10 @@ int main(int argc, char ** argv) {
                 range2 = input;
                 input = tmp;
             }
-            find_and_print_range(input, range2, manager);
+            INVOKE_VARIADIC(find_and_print_range, tid, input, range2);
             break;
         case 'l':
-            print_leaves(manager);
+            INVOKE(print_leaves, tid);
             break;
         case 'q':
             while (getchar() != (int)'\n');
@@ -72,11 +82,11 @@ int main(int argc, char ** argv) {
             return 0;
             break;
         case 't':
-            print_tree(manager);
+            INVOKE(print_tree, tid);
             break;
         case 'x':
-            destroy_tree(manager);
-            print_tree(manager);
+            INVOKE(destroy_tree, tid);
+            INVOKE(print_tree, tid);
             break;
         default:
             usage_2();
