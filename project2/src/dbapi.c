@@ -17,7 +17,17 @@ int file_vec_init(struct file_vec_t* vec) {
 }
 
 int file_vec_free(struct file_vec_t* vec) {
+    int i;
+    // release file manager
+    for (i = 0; i < vec->size; ++i) {
+        if (vec->manager[i].fp != NULL) {
+            file_close(&vec->manager[i]);
+        }
+    }
+    // clean up
     free(vec->manager);
+    memset(vec, 0, sizeof(struct file_vec_t));
+    return SUCCESS;
 }
 
 int file_vec_expand(struct file_vec_t* vec) {
@@ -31,6 +41,8 @@ int file_vec_expand(struct file_vec_t* vec) {
         malloc(sizeof(struct file_vec_t) * vec->capacity);
     // copy file managers
     memcpy(new_vec, vec->manager, sizeof(struct file_vec_t) * vec->size);
+    // free previous array
+    free(vec->manager);
     // update array
     vec->manager = new_vec;
     return SUCCESS;
