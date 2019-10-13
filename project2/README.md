@@ -4,7 +4,7 @@ Database 내부 Record Mangement system을 위한 On-disk B+ Tree 소개 및 In-
 
 ## 0. Real implementation
 
-Reference [README2.md].
+Reference [README2.md](./README2.md).
 
 ## 1. What is B+ Tree
 
