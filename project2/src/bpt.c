@@ -11,12 +11,8 @@
 #include "disk_manager.h"
 #include "utility.h"
 
-#define EXIT_FAILURE 1
-
 #define TRUE 1
 #define FALSE 0
-
-#define DBG(x) printf("line %d, " #x ": %d\n", __LINE__, x);
 
 int load_page(pagenum_t pagenum,
               struct page_t* page,
@@ -452,7 +448,7 @@ pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf) {
     pagenum_t new_node = page_create(manager);
     if (new_node == INVALID_PAGENUM) {
         perror("Node creation.");
-        exit(EXIT_FAILURE);
+        exit(FAILURE);
     }
 
     struct page_t page;
