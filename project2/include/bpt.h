@@ -275,23 +275,53 @@ int insert(prikey_t key,
 
 // DELETION
 
+/// Shrink root page if it is blank.
+/// \param manager struct file_manager_t*, file mangaer.
+/// \return int, whether success to shrink root or not.
 int shrink_root(struct file_manager_t* manager);
+/// Merge two nodes into one node.
+/// \param left struct page_pair_t*, lett child.
+/// \param key_prime prikey_t, parent key for merging two nodes.
+/// \param right struct page_pair_t*, right child.
+/// \param parent struct page_pair_t*, parent page.
+/// \param manager struct file_manager_t*, file mangaer.
+/// \return int, whether success to merge nodes or not.
 int merge_nodes(struct page_pair_t* left,
                 prikey_t k_prime,
                 struct page_pair_t* right,
                 struct page_pair_t* parent,
                 struct file_manager_t* manager);
+/// Redistribute records or entries from one node to other node.
+/// \param left struct page_pair_t*, lett child.
+/// \param key_prime prikey_t, parent key for merging two nodes.
+/// \param key_prim_index int, index of the `key_prime` from parent node.
+/// \param right struct page_pair_t*, right child.
+/// \param parent struct page_pair_t*, parent page.
+/// \param manager struct file_manager_t*, file mangaer.
+/// \return int, whether success to redistribute key or not.
 int redistribute_nodes(struct page_pair_t* left,
                        prikey_t k_prime,
                        int k_prime_index,
                        struct page_pair_t* right,
                        struct page_pair_t* parent,
                        struct file_manager_t* manager);
+/// Delete key from given page with several rebalancing policy.
+/// \param key prikey_t, target key.
+/// \param page struct page_pair_t*, target page.
+/// \param manager struct file_manager_t*, file manager.
+/// \return int, whether success to delete key or not.
 int delete_entry(prikey_t key,
-                 struct page_pair_t* leaf_page,
+                 struct page_pair_t* page,
                  struct file_manager_t* manager);
+/// Mother function, delete key from tree.
+/// \param key prikey_t, target key.
+/// \param manager struct file_manager_t*, file manager.
+/// \return int, whether success to delete key or not.
 int delete(prikey_t key, struct file_manager_t* manager);
 
+/// Free all tree pages to make empty tree.
+/// \param manager struct file_manager_t*, file manager.
+/// \return int, whether success to destroy tree or not.
 int destroy_tree(struct file_manager_t* manager);
 
 #endif /* __BPT_H__*/
