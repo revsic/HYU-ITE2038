@@ -289,7 +289,7 @@ int find_range(prikey_t start,
         nkey = page_header(&page)->number_of_keys;
     }
 
-    return SUCCESS;
+    return retval->size;
 }
 
 
@@ -422,7 +422,7 @@ void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_mana
     struct record_vec_t retval;
     EXIT_ON_FAILURE(record_vec_init(&retval));
 
-    EXIT_ON_FAILURE(find_range(key_start, key_end, &retval, manager));
+    find_range(key_start, key_end, &retval, manager);
     if (retval.size == 0) {
         printf("None found.\n");
     } else {
