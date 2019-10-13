@@ -4,12 +4,13 @@
 // MAIN
 
 int main(int argc, char ** argv) {
-    int input, range2;
+    int tid, input, range2;
     char instruction;
-    char value[100];
+    char value[1024];
+    struct file_manager_t* manager;
 
-    int tid = open_table("datafile");
-    struct file_manager_t* manager = get_file_manager(tid);
+    tid = open_table("datafile");
+    manager = get_file_manager(tid);
 
     usage_1();
     usage_2();
@@ -17,6 +18,21 @@ int main(int argc, char ** argv) {
     printf("> ");
     while (scanf("%c", &instruction) != EOF) {
         switch (instruction) {
+        case 'o':
+            // close table
+            if (tid != -1) {
+                close_table(tid);
+            }
+            // open table
+            scanf("%1023s", value);
+            tid = open_table(value);
+            // table id validation
+            if (tid == -1) {
+                printf("cannot open file %s\n", value);
+                break;
+            }
+            manager = get_file_manager(tid);
+            break;
         case 'd':
             scanf("%d", &input);
             db_delete(input);
