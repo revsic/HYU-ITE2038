@@ -2,6 +2,10 @@
 
 Database 내부 Record Mangement system을 위한 On-disk B+ Tree 소개 및 In-Memory 구현체 분석.
 
+## 0. Real implementation
+
+Reference [README2.md].
+
 ## 1. What is B+ Tree
 
 Tree형 자료구조의 일종으로 정렬된 Key-Value Pair에 대한 효율적인 삽입, 검색, 삭제를 지원한다.
