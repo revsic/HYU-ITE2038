@@ -6,7 +6,7 @@
 #elif defined(_MSC_VER)
 #endif
 
-int fexist(char* filename) {
+int fexist(const char* filename) {
 #if defined(__GNUC__)
     return access(filename, F_OK) != -1;
 #elif defined(_MSC_VER)
@@ -29,6 +29,7 @@ int fresize(FILE* fp, size_t size) {
 int fpwrite(const void* ptr, size_t size, long pos, FILE* stream) {
     fseek(stream, pos, SEEK_SET);
     int retval = fwrite(ptr, size, 1, stream);
+    fflush(stream);
 #if defined(__GNUC__)
     fsync(fileno(stream));
 #endif
