@@ -4,94 +4,94 @@
 #include <stdint.h>
 #include <stdio.h>
 
-// GLOBAL CONSTANTS
+/// GLOBAL CONSTANTS
 
-// Return value for successful execution.
+/// Return value for successful execution.
 #define SUCCESS 0
 
-// Return value for failure execution.
+/// Return value for failure execution.
 #define FAILURE 1
 
-// Size of page.
+/// Size of page.
 #define PAGE_SIZE 4096
 
 
-// VALIDATION MACRO
+/// VALIDATION MACRO
 
-// Return FAILURE if given is false or 0.
+/// Return FAILURE if given is false or 0.
 #define CHECK_TRUE(x) if (!x) { return FAILURE; }
 
-// Return FAILURE if given is not SUCCESS.
+/// Return FAILURE if given is not SUCCESS.
 #define CHECK_SUCCESS(x) if (x != SUCCESS) { return FAILURE; }
 
-// Exit process if given is FAILURE.
+/// Exit process if given is FAILURE.
 #define EXIT_ON_FAILURE(x) if (x == FAILURE) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(FAILURE); }
 
 
-// TYPE DEFINITION
+/// TYPE DEFINITION
 
-// Type for page ID.
+/// Type for page ID.
 typedef uint64_t pagenum_t;
 
-// Type for primary key.
+/// Type for primary key.
 typedef int64_t prikey_t;
 
-// File header.
+/// File header.
 struct file_header_t {
-    pagenum_t free_page_number;     // 0~8, ID of first free page.
-    pagenum_t root_page_number;     // 8~16, ID of root page.
-    uint64_t number_of_pages;       // 16~24, the number of total pages.
+    pagenum_t free_page_number;     /// 0~8, ID of first free page.
+    pagenum_t root_page_number;     /// 8~16, ID of root page.
+    uint64_t number_of_pages;       /// 16~24, the number of total pages.
 };
 
-// File header padded with page size.
+/// File header padded with page size.
 struct padded_file_header_t {
-    struct file_header_t header;    // 0~24, file header.
-    uint8_t not_used[PAGE_SIZE - sizeof(struct file_header_t)]; // 24~4096, padding.
+    struct file_header_t header;    /// 0~24, file header.
+    uint8_t not_used[PAGE_SIZE - sizeof(struct file_header_t)]; /// 24~4096, padding.
 };
 
-// Page header
+/// Page header
 struct page_header_t {
-    pagenum_t parent_page_number;   // 0~8, ID of parent page.
-    uint32_t is_leaf;               // 8~12, bool, whether leaf page or not.
-    uint32_t number_of_keys;        // 12~16, the number of keys.
-    uint8_t reserved[104];          // 16~120, reserved space.
-    pagenum_t special_page_number;  // 120~128, sibling pointer for leaf page, leftmost page ID for internal page.
+    pagenum_t parent_page_number;   /// 0~8, ID of parent page.
+    uint32_t is_leaf;               /// 8~12, bool, whether leaf page or not.
+    uint32_t number_of_keys;        /// 12~16, the number of keys.
+    uint8_t reserved[104];          /// 16~120, reserved space.
+    pagenum_t special_page_number;  /// 120~128, sibling pointer for leaf page, leftmost page ID for internal page.
 };
 
-// Free page header.
+/// Free page header.
 struct free_page_t {
-    pagenum_t next_page_number;     // 0~8, ID of next free page.
+    pagenum_t next_page_number;     /// 0~8, ID of next free page.
 };
 
-// Free page header padded with to 128 bytes, same as page header.
+/// Free page header padded with to 128 bytes, same as page header.
 struct padded_free_page_t {
-    struct free_page_t header;      // 0~8, free page header.
-    uint8_t not_used[128 - sizeof(struct free_page_t)]; // 120, padding.
+    struct free_page_t header;      /// 0~8, free page header.
+    uint8_t not_used[128 - sizeof(struct free_page_t)]; /// 120, padding.
 };
 
-// Record structure for leaf page.
+/// Record structure for leaf page.
 struct record_t {
-    prikey_t key;       // 0~8, key for given record.
-    uint8_t value[120]; // 8~128, value for given record.
+    prikey_t key;       /// 0~8, key for given record.
+    uint8_t value[120]; /// 8~128, value for given record.
 };
 
-// Entry structure for internal page.
+/// Entry structure for internal page.
 struct internal_t {
-    prikey_t key;       // 0~8, key for given entry.
-    pagenum_t pagenum;  // 8~16, child page ID.
+    prikey_t key;       /// 0~8, key for given entry.
+    pagenum_t pagenum;  /// 8~16, child page ID.
 };
 
-// Page structure.
+/// Page structure.
 struct page_t {
     union {
         struct page_header_t page_header;
         struct padded_free_page_t free_page;
-    } header;                       // 0~128, page or free page header.
+    } header;                       /// 0~128, page or free page header.
 
     union {
         struct record_t records[31];
         struct internal_t entries[248];
-    } content;                      // 128~4096, contents.
+    } content;                      /// 128~4096, contents.
 };
 
 #endif
