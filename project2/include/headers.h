@@ -27,6 +27,9 @@
 /// Exit process if given is FAILURE.
 #define EXIT_ON_FAILURE(x) if (x == FAILURE) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(FAILURE); }
 
+/// Debug variable
+#define DBG(x) printf("line %d, " #x ": %d\n", __LINE__, x);
+
 
 /// TYPE DEFINITION
 
