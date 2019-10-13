@@ -13,6 +13,15 @@ struct file_vec_t {
 };
 
 
+// GLOBAL CONSTANTS
+
+/// Default file manager vector capacity
+#define DEFAULT_FILE_VEC_CAPACITY 4
+
+/// Maximum file manager vector capacity
+#define MAXIMUM_FILE_VEC_CAPACITY 8
+
+
 // GLOBAL VARIABLES
 
 /// Table id for operating db-prefix operations.

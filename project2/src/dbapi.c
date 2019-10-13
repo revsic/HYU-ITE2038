@@ -4,8 +4,6 @@
 #include "bpt.h"
 #include "dbapi.h"
 
-#define DEFAULT_FILE_VEC_CAPACITY 4
-
 int GLOBAL_TABLE_ID = -1;
 
 struct file_vec_t GLOBAL_FILE_MANAGER = { 0, 0, NULL };
@@ -23,6 +21,10 @@ int file_vec_free(struct file_vec_t* vec) {
 }
 
 int file_vec_expand(struct file_vec_t* vec) {
+    // check max size constraint
+    if (vec->capacity >= MAXIMUM_FILE_VEC_CAPACITY) {
+        return FAILURE;
+    }
     // expand capacity as twice
     vec->capacity *= 2;
     struct file_manager_t* new_vec =
@@ -57,13 +59,19 @@ int open_table(const char* pathname) {
         return -1;
     }
     // append manager
-    EXIT_ON_FAILURE(file_vec_append(&GLOBAL_FILE_MANAGER, &manager));
+    if (file_vec_append(&GLOBAL_FILE_MANAGER, &manager) == FAILURE) {
+        return -1;
+    }
     // update global table id
     GLOBAL_TABLE_ID = GLOBAL_FILE_MANAGER.size - 1;
     return GLOBAL_TABLE_ID;
 }
 
 int close_table(int tableid) {
+    // table id validation
+    if (0 <= tableid && tableid < GLOBAL_FILE_MANAGER.size) {
+        return FAILURE;
+    }
     // close file
     struct file_manager_t* res = get_file_manager(tableid);
     CHECK_SUCCESS(file_close(res));
@@ -79,6 +87,7 @@ struct file_manager_t* get_file_manager(int tableid) {
 }
 
 int db_insert(int64_t key, char* value) {
+    // insert key value pair
     return insert(
         key,
         value,
@@ -87,9 +96,10 @@ int db_insert(int64_t key, char* value) {
 }
 
 int db_find(int64_t key, char* ret_val) {
+    // find key
     struct record_t rec;
     CHECK_SUCCESS(find(key, &rec, get_file_manager(GLOBAL_TABLE_ID)));
-
+    // whether return value or not
     if (ret_val != NULL) {
         memcpy(ret_val, rec.value, sizeof(struct record_t) - sizeof(prikey_t));
     }
@@ -97,5 +107,6 @@ int db_find(int64_t key, char* ret_val) {
 }
 
 int db_delete(int64_t key) {
+    // delete key.
     return delete(key, get_file_manager(GLOBAL_TABLE_ID));
 }
