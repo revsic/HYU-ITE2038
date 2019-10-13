@@ -1,20 +1,6 @@
 #include "bpt.h"
 #include "dbapi.h"
 
-#define INVOKE(method, tid)                     \
-if (tid != -1) {                                \
-    method(get_file_manager(tid));              \
-} else {                                        \
-    printf("invalid tid\n");                    \
-}
-
-#define INVOKE_VARIADIC(method, tid, ...)       \
-if (tid != -1) {                                \
-    method(__VA_ARGS__, get_file_manager(tid)); \
-} else {                                        \
-    printf("invalid tid\n");                    \
-}
-
 // MAIN
 
 int main(int argc, char ** argv) {
@@ -33,7 +19,7 @@ int main(int argc, char ** argv) {
         case 'o':
             // close table
             if (tid != -1) {
-                close_table(tid);
+                close_table();
             }
             // open table
             scanf("%1023s", value);
@@ -46,13 +32,13 @@ int main(int argc, char ** argv) {
         case 'd':
             scanf("%d", &input);
             db_delete(input);
-            INVOKE(print_tree, tid);
+            print_tree(&GLOBAL_MANAGER);
             break;
         case 'i':
             scanf("%d", &input);
             snprintf(value, 100, "%d value", input);
             db_insert(input, value);
-            INVOKE(print_tree, tid);
+            print_tree(&GLOBAL_MANAGER);
             break;
         case 'f':
             scanf("%d", &input);
@@ -70,23 +56,22 @@ int main(int argc, char ** argv) {
                 range2 = input;
                 input = tmp;
             }
-            INVOKE_VARIADIC(find_and_print_range, tid, input, range2);
+            find_and_print_range(input, range2, &GLOBAL_MANAGER);
             break;
         case 'l':
-            INVOKE(print_leaves, tid);
+            print_leaves(&GLOBAL_MANAGER);
             break;
         case 'q':
             while (getchar() != (int)'\n');
-            close_table(tid);
-            file_vec_free(&GLOBAL_FILE_MANAGER);
+            close_table();
             return 0;
             break;
         case 't':
-            INVOKE(print_tree, tid);
+            print_tree(&GLOBAL_MANAGER);
             break;
         case 'x':
-            INVOKE(destroy_tree, tid);
-            INVOKE(print_tree, tid);
+            destroy_tree(&GLOBAL_MANAGER);
+            print_tree(&GLOBAL_MANAGER);
             break;
         default:
             usage_2();
