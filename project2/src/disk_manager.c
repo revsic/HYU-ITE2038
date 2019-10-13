@@ -18,7 +18,7 @@ int file_init(struct file_manager_t* manager) {
     return SUCCESS;
 }
 
-int file_create(char* filename, struct file_manager_t* manager) {
+int file_create(const char* filename, struct file_manager_t* manager) {
     manager->fp = fopen(filename, "w+");
     if (manager->fp == NULL) {
         return FAILURE;
@@ -28,7 +28,7 @@ int file_create(char* filename, struct file_manager_t* manager) {
     return file_init(manager);
 }
 
-int file_open(char* filename, struct file_manager_t* manager) {
+int file_open(const char* filename, struct file_manager_t* manager) {
     if (fexist(filename)) {
         manager->fp = fopen(filename, "r+");
         if (manager->fp == NULL) {
