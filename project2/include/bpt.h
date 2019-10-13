@@ -176,38 +176,97 @@ void find_and_print_range(prikey_t range1, prikey_t range2, struct file_manager_
 
 // INSERTION
 
+/// Write record with given key and value.
+/// \param record struct record_t*, target record.
+/// \param key prikey_t, key.
+/// \param value uint8_t*, value data.
+/// \param value_size int, size of the value data.
+/// \return int, whether success to write record or not.
 int make_record(struct record_t* record, prikey_t key, uint8_t* value, int value_size);
+/// Create new page.
+/// \param manager struct manager_t*, file manager.
+/// \param leaf int, whether leaf page or not.
+/// \return pagenum_t, created page ID.
 pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf);
 
+/// Get index of given page ID from parent key array.
+/// \param parent struct page_t*, parent page.
+/// \param pagenum pagenum_t, target page ID.
+/// \return int, index of the page ID, if failed, return -1.
 int get_index(struct page_t* parent, pagenum_t pagenum);
 
+/// Insert record into the leaf page without any balancing policy.
+/// \param leaf struct page_pair_t*, leaf page.
+/// \param pointer struct record_t*, target record.
+/// \param manager struct manager_t*, file manager.
+/// \return int, whether success to insert record or not.
 int insert_into_leaf(struct page_pair_t* leaf,
                      struct record_t* pointer,
                      struct file_manager_t* manager);
+/// Insert record into the leaf page with splitting given leaf node.
+/// \param leaf struct page_pair_t*, leaf page.
+/// \param pointer struct record_t*, target record.
+/// \param manager struct manager_t*, file manager.
+/// \return int, whether success to insert record or not.
 int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
                                      struct record_t* record,
                                      struct file_manager_t* manager);
 
+/// Insert entry into the internal page without any balancing policy.
+/// \param node struct page_pair_t*, target internal node.
+/// \param index int, insertion point.
+/// \param entry struct internal_t*, target entry.
+/// \param manager struct manager_t*, file manager.
+/// \return int whether success to insert entry or not.
 int insert_into_node(struct page_pair_t* node,
                      int index,
                      struct internal_t* entry,
                      struct file_manager_t* manager);
+
+/// Insert entry into the internal page with splitting given internal node.
+/// \param node struct page_pair_t*, target internal node.
+/// \param index int, insertion point.
+/// \param entry struct internal_t*, target entry.
+/// \param manager struct manager_t*, file manager.
+/// \return int whether success to insert entry or not.
 int insert_into_node_after_splitting(struct page_pair_t* old_node,
                                      int index,
                                      struct internal_t* entry,
                                      struct file_manager_t* manager);
 
+/// Insert key into the parent page with given left, right child.
+/// \param left struct page_pair_t*, lett child.
+/// \param key prikey_t, target key.
+/// \param right struct page_pair_t*, right child.
+/// \param manager struct manager_t*, file manager.
+/// \return int whether success to insert key or not.
 int insert_into_parent(struct page_pair_t* left,
                        prikey_t key,
                        struct page_pair_t* right,
                        struct file_manager_t* manager);
+/// Create new root to insert key and left, right child pages.
+/// \param left struct page_pair_t*, lett child.
+/// \param key prikey_t, target key.
+/// \param right struct page_pair_t*, right child.
+/// \param manager struct manager_t*, file manager.
+/// \return int whether success to insert key or not.
 int insert_into_new_root(struct page_pair_t* left,
                          prikey_t key,
                          struct page_pair_t* right,
                          struct file_manager_t* manager);
 
+/// Create new tree.
+/// \param pointer struct record_t*, first record of the new root.
+/// \param manager struct file_manager_t*, file manager.
+/// \return int, whether success to create new tree or not.
 int start_new_tree(struct record_t* pointer,
                    struct file_manager_t* manager);
+/// Mother method, insert key and value to the tree.
+/// \param key prikey_t, target key.
+/// \param value uint8_t*, target value.
+/// \param value_size int, size of the value data.
+/// \param manager struct file_manager_t*, file manager.
+/// \return int, whether success to insert key or not.
 int insert(prikey_t key,
            uint8_t* value,
            int value_size,
