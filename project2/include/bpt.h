@@ -156,10 +156,21 @@ int find_range(prikey_t start,
 
 // OUTPUT
 
+/// Print leaves.
+/// \param manager struct manager_t*, file manager.
 void print_leaves(struct file_manager_t* manager);
+/// Print tree.
+/// \param manager struct manager_t*, file manager.
 void print_tree(struct file_manager_t* manager);
 
+/// Find key and print result.
+/// \param key prikey_t, searching key.
+/// \param manager struct manager_t*, file manager.
 void find_and_print(prikey_t key, struct file_manager_t* manager); 
+/// Find key range and print result sequence.
+/// \param range1 prikey_t, start point.
+/// \param range2 prikey_t, end point.
+/// \param manager struct manager_t*, file manager.
 void find_and_print_range(prikey_t range1, prikey_t range2, struct file_manager_t* manager);
 
 
