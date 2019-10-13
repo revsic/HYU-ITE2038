@@ -31,6 +31,7 @@ int fpwrite(const void* ptr, size_t size, long pos, FILE* stream) {
     int retval = fwrite(ptr, size, 1, stream);
     fflush(stream);
 #if defined(__GNUC__)
+    // for synchronizing kernel level caching
     fsync(fileno(stream));
 #endif
     return retval == 1;
