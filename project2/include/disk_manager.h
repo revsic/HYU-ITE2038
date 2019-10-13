@@ -5,16 +5,27 @@
 
 #include "headers.h"
 
-#define MAX_FILE_PATH 512
+// GLOBAL CONSTANTS
 
+/// Value for pointing null page.
 #define INVALID_PAGENUM 0
 
+
+// TYPE DEFINITION
+
+/// File level disk manager.
 struct file_manager_t {
-    FILE* fp;
-    int updated;
-    struct file_header_t file_header;
+    FILE* fp;                           // file pointer.
+    int updated;                        // whether current file header cache is updated or not.
+    struct file_header_t file_header;   // file header cache.
 };
 
+
+// PROCEDURE DEFINITION
+
+/// Initialize file manager.
+/// \param manager struct file_manager_t* file manager.
+/// \return whether initializing is successful (= SUCCESS) or not (= FAILURE).
 int file_init(struct file_manager_t* manager);
 
 int file_create(char* filename, struct file_manager_t* manager);
