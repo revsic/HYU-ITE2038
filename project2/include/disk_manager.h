@@ -15,9 +15,9 @@
 
 /// File level disk manager.
 struct file_manager_t {
-    FILE* fp;                           // file pointer.
-    int updated;                        // whether current file header cache is updated or not.
-    struct file_header_t file_header;   // file header cache.
+    FILE* fp;                           /// file pointer.
+    int updated;                        /// whether current file header cache is updated or not.
+    struct file_header_t file_header;   /// file header cache.
 };
 
 
