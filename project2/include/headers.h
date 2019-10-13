@@ -5,9 +5,14 @@
 #include <stdio.h>
 
 // GLOBAL CONSTANTS
+
+// Return value for successful execution.
 #define SUCCESS 0
+
+// Return value for failure execution.
 #define FAILURE 1
 
+// Size of page.
 #define PAGE_SIZE 4096
 
 
