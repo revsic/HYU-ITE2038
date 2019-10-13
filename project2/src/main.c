@@ -68,6 +68,7 @@ int main(int argc, char ** argv) {
         case 'q':
             while (getchar() != (int)'\n');
             close_table(tid);
+            file_vec_free(&GLOBAL_FILE_MANAGER);
             return 0;
             break;
         case 't':
