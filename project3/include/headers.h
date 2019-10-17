@@ -21,6 +21,15 @@
 /// Value for header page number.
 #define FILE_HEADER_PAGENUM 0
 
+/// Value for invalid table id.
+#define INVALID_TABLENUM -1
+
+/// True value.
+#define TRUE 1
+
+/// False value.
+#define FALSE 0
+
 
 /// VALIDATION MACRO
 
@@ -44,6 +53,9 @@ typedef uint64_t pagenum_t;
 
 /// Type for primary key.
 typedef int64_t prikey_t;
+
+/// Type for table ID.
+typedef int32_t tablenum_t;
 
 /// File header.
 struct file_header_t {
