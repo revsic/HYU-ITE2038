@@ -140,8 +140,10 @@ int height(pagenum_t node, struct file_manager_t* manager) {
 int path_to_root(pagenum_t node, struct file_manager_t* manager) {
     int length = 0;
     struct page_t page;
-    pagenum_t root = manager->file_header.root_page_number;
+    struct page_t fheader;
+    EXIT_ON_FAILURE(load_page(FILE_HEADER_PAGENUM, &fheader, manager));
 
+    pagenum_t root = file_header(&fheader)->root_page_number;
     while (node != root) {
         EXIT_ON_FAILURE(load_page(node, &page, manager));
         node = page_header(&page)->parent_page_number;
@@ -170,7 +172,10 @@ pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* ma
 
     struct internal_t* internal = entries(page);
     struct page_header_t* pheader = page_header(page);
-    pagenum_t root = manager->file_header.root_page_number;
+
+    struct page_t fheader;
+    EXIT_ON_FAILURE(load_page(FILE_HEADER_PAGENUM, &fheader, manager));
+    pagenum_t root = file_header(&fheader)->root_page_number;
     if (root == INVALID_PAGENUM) {
         if (VERBOSE_OUTPUT) {
             printf("Empty tree.\n");
@@ -297,7 +302,9 @@ int find_range(prikey_t start,
 
 void print_leaves(struct file_manager_t* manager) {
     int i;
-    pagenum_t root = manager->file_header.root_page_number;
+    struct page_t file_page;
+    EXIT_ON_FAILURE(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
+    pagenum_t root = file_header(&file_page)->root_page_number;
 
     if (root == INVALID_PAGENUM) {
         printf("Empty tree.\n");
@@ -341,7 +348,10 @@ void print_tree(struct file_manager_t* manager) {
     int rank = 0;
     int new_rank = 0;
     pagenum_t n = INVALID_PAGENUM;
-    pagenum_t root = manager->file_header.root_page_number;
+
+    struct page_t file_page;
+    EXIT_ON_FAILURE(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
+    pagenum_t root = file_header(&file_page)->root_page_number;
 
     if (root == INVALID_PAGENUM) {
         printf("Empty tree.\n");
@@ -691,8 +701,11 @@ int insert_into_new_root(struct page_pair_t* left,
     CHECK_SUCCESS(commit_page(left->pagenum, left->page, manager));
     CHECK_SUCCESS(commit_page(right->pagenum, right->page, manager));
 
-    manager->file_header.root_page_number = root;
-    CHECK_SUCCESS(file_write_header(manager));
+    struct page_t file_page;
+    CHECK_SUCCESS(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
+
+    file_header(&file_page)->root_page_number = root;
+    CHECK_SUCCESS(commit_page(FILE_HEADER_PAGENUM, &file_page, manager));
 
     return SUCCESS;
 }
@@ -713,8 +726,11 @@ int start_new_tree(struct record_t* pointer,
 
     CHECK_SUCCESS(commit_page(root, &root_page, manager));
 
-    manager->file_header.root_page_number = root;
-    CHECK_SUCCESS(file_write_header(manager));
+    struct page_t file_page;
+    CHECK_SUCCESS(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
+
+    file_header(&file_page)->root_page_number = root;
+    CHECK_SUCCESS(commit_page(FILE_HEADER_PAGENUM, &file_page, manager));
 
     return SUCCESS;
 }
@@ -745,7 +761,9 @@ int insert(prikey_t key,
     /* Case: the tree does not exist yet.
      * Start a new tree.
      */
-    pagenum_t root = manager->file_header.root_page_number;
+    struct page_t file_page;
+    CHECK_SUCCESS(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
+    pagenum_t root = file_header(&file_page)->root_page_number;
     if (root == INVALID_PAGENUM) {
         return start_new_tree(&record, manager);
     }
@@ -806,7 +824,10 @@ int remove_entry_from_internal(prikey_t key, struct page_t* node) {
 }
 
 int shrink_root(struct file_manager_t* manager) {
-    pagenum_t root = manager->file_header.root_page_number;
+    struct page_t file_page;
+    struct file_header_t* header = file_header(&file_page);
+    CHECK_SUCCESS(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
+    pagenum_t root = header->root_page_number;
     
     struct page_t root_page;
     CHECK_SUCCESS(load_page(root, &root_page, manager));
@@ -820,17 +841,17 @@ int shrink_root(struct file_manager_t* manager) {
 
     if (!page_header(&root_page)->is_leaf) {
         child = page_header(&root_page)->special_page_number;
-        manager->file_header.root_page_number = child;
+        header->root_page_number = child;
 
         CHECK_SUCCESS(load_page(child, &child_page, manager));
         page_header(&child_page)->parent_page_number = INVALID_PAGENUM;
         CHECK_SUCCESS(commit_page(child, &child_page, manager));        
     } else {
-        manager->file_header.root_page_number = INVALID_PAGENUM;
+        header->root_page_number = INVALID_PAGENUM;
     }
 
-    manager->file_header.number_of_pages++;
-    CHECK_SUCCESS(file_write_header(manager));
+    header->number_of_pages++;
+    CHECK_SUCCESS(commit_page(FILE_HEADER_PAGENUM, &file_page, manager));
 
     CHECK_SUCCESS(page_free(root, manager));
     return SUCCESS;
@@ -1033,7 +1054,9 @@ int delete_entry(prikey_t key,
 
     /* Case:  deletion from the root. 
      */
-    if (pair->pagenum == manager->file_header.root_page_number) {
+    struct page_t file_page;
+    CHECK_SUCCESS(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
+    if (pair->pagenum == file_header(&file_page)->root_page_number) {
         return shrink_root(manager);
     }
 
@@ -1118,8 +1141,10 @@ int destroy_tree(struct file_manager_t* manager) {
     pagenum_t pagenum;
     struct page_t page;
     struct queue_t* queue;
-    
-    pagenum_t root = manager->file_header.root_page_number;
+    struct page_t file_page;
+    CHECK_SUCCESS(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
+
+    pagenum_t root = file_header(&file_page)->root_page_number;
     if (root == INVALID_PAGENUM) {
         return SUCCESS;
     }
@@ -1139,7 +1164,7 @@ int destroy_tree(struct file_manager_t* manager) {
         CHECK_SUCCESS(page_free(pagenum, manager));
     }
 
-    manager->file_header.root_page_number = INVALID_PAGENUM;
-    CHECK_SUCCESS(file_write_header(manager));
+    file_header(&file_page)->root_page_number = INVALID_PAGENUM;
+    CHECK_SUCCESS(commit_page(FILE_HEADER_PAGENUM, &file_page, manager));
     return SUCCESS;
 }
