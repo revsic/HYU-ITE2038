@@ -14,7 +14,10 @@ int buffer_init(struct buffer_t* buffer) {
     return SUCCESS;
 }
 
-int buffer_load(struct buffer_t* buffer, struct table_t* table, pagenum_t pagenum) {
+int buffer_load(struct buffer_t* buffer,
+                struct table_t* table,
+                pagenum_t pagenum)
+{
     CHECK_SUCCESS(page_read(pagenum, &table->file_manager, &buffer->frame));
     buffer->table_id = table->table_id;
     buffer->pagenum = pagenum;
@@ -45,7 +48,9 @@ int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
     return SUCCESS;
 }
 
-int buffer_manager_shutdown(struct buffer_manager_t* manager, struct table_manager_t* tables) {
+int buffer_manager_shutdown(struct buffer_manager_t* manager,
+                            struct table_manager_t* tables)
+{
     int i;
     struct buffer_t* buffer;
     struct table_t* table;
@@ -62,6 +67,9 @@ int buffer_manager_shutdown(struct buffer_manager_t* manager, struct table_manag
     return SUCCESS;
 }
 
-int buffer_manager_load(struct buffer_manager_t* manager, pagenum_t pagenum) {
+int buffer_manager_load(struct buffer_manager_t* manager,
+                        struct table_manager_t* tables,
+                        pagenum_t pagenum)
+{
     return SUCCESS;
 }

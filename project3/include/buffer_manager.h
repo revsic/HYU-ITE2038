@@ -24,14 +24,19 @@ struct buffer_manager_t {
 
 int buffer_init(struct buffer_t* buffer);
 
-int buffer_load(struct buffer_t* buffer, struct table_t* table, pagenum_t pagenum);
+int buffer_load(struct buffer_t* buffer,
+                struct table_t* table,
+                pagenum_t pagenum);
 
 int buffer_release(struct buffer_t* buffer, struct table_t* table);
 
 int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer);
 
-int buffer_manager_shutdown(struct buffer_manager_t* manager, struct table_manager_t* tables);
+int buffer_manager_shutdown(struct buffer_manager_t* manager,
+                            struct table_manager_t* tables);
 
-int buffer_manager_load(struct buffer_manager_t* manager, pagenum_t pagenum);
+int buffer_manager_load(struct buffer_manager_t* manager,
+                        struct table_manager_t* tables,
+                        pagenum_t pagenum);
 
 #endif
