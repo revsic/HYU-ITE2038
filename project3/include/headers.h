@@ -93,14 +93,20 @@ struct internal_t {
 /// Page structure.
 struct page_t {
     union {
-        struct page_header_t page_header;
-        struct padded_free_page_t free_page;
-    } header;                       /// 0~128, page or free page header.
+        struct {
+            union {
+                struct page_header_t page_header;
+                struct padded_free_page_t free_page;
+            } header;                       /// 0~128, page or free page header.
 
-    union {
-        struct record_t records[31];
-        struct internal_t entries[248];
-    } content;                      /// 128~4096, contents.
+            union {
+                struct record_t records[31];
+                struct internal_t entries[248];
+            } content;                      /// 128~4096, contents.
+        } node;
+
+        struct padded_file_header_t file;
+    } impl;
 };
 
 #endif
