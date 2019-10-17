@@ -88,18 +88,20 @@ pagenum_t page_create(struct file_manager_t* manager) {
     pagenum_t pagenum = header.free_page_number;
     if (pagenum == 0) {
         // allocate free page
-        CHECK_SUCCESS(
+        EXIT_ON_FAILURE(
             page_extend_free(
                 manager,
                 max(1, header.number_of_pages)));
+
+        CHECK_SUCCESS(file_read_header(manager, &header));
         pagenum = header.free_page_number;
     }
     // read free page
     struct page_t page;
-    CHECK_SUCCESS(page_read(pagenum, manager, &page));
+    EXIT_ON_FAILURE(page_read(pagenum, manager, &page));
     // fix next free page number
     header.free_page_number = free_page(&page)->next_page_number;
-    CHECK_SUCCESS(file_write_header(manager, &header));
+    EXIT_ON_FAILURE(file_write_header(manager, &header));
 
     return pagenum;
 }
