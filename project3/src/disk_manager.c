@@ -41,8 +41,6 @@ int file_open(const char* filename, struct file_manager_t* manager) {
 }
 
 int file_close(struct file_manager_t* manager) {
-    // write update
-    file_write_update(manager);
     // close
     fclose(manager->fp);
     memset(manager, 0, sizeof(struct file_manager_t));
@@ -155,7 +153,7 @@ int page_free(pagenum_t pagenum, struct file_manager_t* manager) {
     CHECK_SUCCESS(page_read(pagenum, manager, &page));
     // read file header
     struct file_header_t header;
-    CHECK_SUCESS(file_read_header(manager, &header));
+    CHECK_SUCCESS(file_read_header(manager, &header));
     // write free page header
     free_page(&page)->next_page_number = header.free_page_number;
     CHECK_SUCCESS(page_write(pagenum, manager, &page));
