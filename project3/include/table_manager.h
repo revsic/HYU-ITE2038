@@ -1,6 +1,7 @@
 #ifndef TABLE_MANAGER_H
 #define TABLE_MANAGER_H
 
+#include "disk_manager.h"
 #include "headers.h"
 
 #define TABLE_VEC_DEFAULT_CAPACITY 4
