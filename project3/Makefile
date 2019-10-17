@@ -16,7 +16,7 @@ TARGET_SRC:=$(SRCDIR)main.c
 TARGET_OBJ:=$(SRCDIR)main.o
 
 # Include more files if you write another source file.
-SRCS_FOR_LIB:=$(SRCDIR)bpt.c ${SRCDIR}dbapi.c ${SRCDIR}disk_manager.c ${SRCDIR}fileio.c ${SRCDIR}utility.c
+SRCS_FOR_LIB:=$(SRCDIR)bpt.c ${SRCDIR}dbapi.c ${SRCDIR}disk_manager.c ${SRCDIR}fileio.c ${SRCDIR}utility.c ${SRCDIR}buffer_manager.c
 OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.c=.o)
 
 CFLAGS+= -g -fPIC -I $(INC)
@@ -39,6 +39,9 @@ $(SRCDIR)fileio.o:
 
 $(SRCDIR)utility.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)utility.o -c $(SRCDIR)utility.c
+
+$(SRCDIR)buffer_manager.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.c
 
 $(TARGET): $(TARGET_OBJ)
 	make static_library
