@@ -4,6 +4,7 @@
 #include "disk_manager.h"
 #include "table_manager.h"
 
+// sdbm
 tablenum_t create_tablenum(const char* filename) {
     char c;
     unsigned long hash = 0;
@@ -17,6 +18,7 @@ tablenum_t create_tablenum(const char* filename) {
     return (tablenum_t)hash;
 }
 
+// sdbm
 tablenum_t rehash_tablenum(tablenum_t tablenum) {
     int i;
     unsigned long hash = 0;
