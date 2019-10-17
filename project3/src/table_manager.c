@@ -120,7 +120,12 @@ int table_vec_remove(struct table_vec_t* table_vec, tablenum_t table_id) {
 
 int table_vec_shrink(struct table_vec_t* table_vec) {
     int i;
-    struct table_t* vec = malloc(sizeof(struct table_t) * table_vec->size);
+    struct table_t* vec;
+    if (table_vec->size == table_vec->capacity) {
+        return SUCCESS;
+    }
+
+    vec = malloc(sizeof(struct table_t) * table_vec->size);
     if (vec == NULL) {
         return FAILURE;
     }
@@ -144,8 +149,7 @@ int table_vec_release(struct table_vec_t* table_vec) {
 }
 
 int table_manager_init(struct table_manager_t* manager) {
-    table_vec_init(&manager->vec);
-    return SUCCESS;
+    return table_vec_init(&manager->vec);
 }
 
 tablenum_t table_manager_load(struct table_manager_t* manager,
