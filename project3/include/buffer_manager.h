@@ -2,33 +2,35 @@
 #define BUFFER_MANAGER_H
 
 #include "headers.h"
+#include "table_manager.h"
 
 struct buffer_t {
     struct page_t frame;
-    int32_t table_id;
-    pagenum_t page_num;
+    tablenum_t table_id;
+    pagenum_t pagenum;
     uint32_t is_dirty;
     uint32_t is_pinned;
-    size_t prev_use;
-    size_t next_use;
+    int prev_use;
+    int next_use;
 };
 
 struct buffer_manager_t {
+    int capacity;
     int num_buffer;
-    size_t lru;
-    size_t mru;
+    int lru;
+    int mru;
     struct buffer_t *buffers;
 };
 
 int buffer_init(struct buffer_t* buffer);
 
-int buffer_load(struct buffer_t* buffer, pagenum_t pagenum);
+int buffer_load(struct buffer_t* buffer, struct table_t* table, pagenum_t pagenum);
 
-int buffer_release(struct buffer_t* buffer);
+int buffer_release(struct buffer_t* buffer, struct table_t* table);
 
-int buffer_manager_init(struct buffer_manager_t* manager);
+int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer);
 
-int buffer_manager_shutdown(struct buffer_manager_t* manager);
+int buffer_manager_shutdown(struct buffer_manager_t* manager, struct table_manager_t* tables);
 
 int buffer_manager_load(struct buffer_manager_t* manager, pagenum_t pagenum);
 
