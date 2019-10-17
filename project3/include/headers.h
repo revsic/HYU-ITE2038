@@ -15,6 +15,12 @@
 /// Size of page.
 #define PAGE_SIZE 4096
 
+/// Value for pointing null page.
+#define INVALID_PAGENUM 0
+
+/// Value for header page number.
+#define FILE_HEADER_PAGENUM 0
+
 
 /// VALIDATION MACRO
 
