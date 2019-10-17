@@ -11,9 +11,6 @@
 #include "disk_manager.h"
 #include "utility.h"
 
-#define TRUE 1
-#define FALSE 0
-
 int load_page(pagenum_t pagenum,
               struct page_t* page,
               struct file_manager_t* manager)
