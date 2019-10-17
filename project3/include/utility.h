@@ -9,6 +9,11 @@
 /// \return int, maximum value between two arguments.
 int max(int a, int b);
 
+/// Return the file header from page structure.
+/// \param page struct page_t*, page structure.
+/// \return struct file_header_t*, file header.
+struct file_header_t* file_header(struct page_t* page);
+
 /// Return page header from page structure.
 /// \param page struct page_t*, page structure.
 /// \return struct page_header_t*, page header.
