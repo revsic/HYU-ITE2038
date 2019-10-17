@@ -39,7 +39,8 @@ int table_vec_extend(struct table_vec_t* table_vec);
 
 int table_vec_append(struct table_vec_t* table_vec, struct table_t* table);
 
-struct table_t* table_vec_find(struct table_vec_t* table_vec, tablenum_t table_id);
+struct table_t* table_vec_find(struct table_vec_t* table_vec,
+                               tablenum_t table_id);
 
 int table_vec_remove(struct table_vec_t* table_vec, tablenum_t table_id);
 
@@ -49,7 +50,8 @@ int table_vec_release(struct table_vec_t* table_vec);
 
 int table_manager_init(struct table_manager_t* manager);
 
-tablenum_t table_manager_load(struct table_manager_t* manager, const char* filename);
+tablenum_t table_manager_load(struct table_manager_t* manager,
+                              const char* filename);
 
 int table_manager_remove(struct table_manager_t* manager, tablenum_t table_id);
 

@@ -95,7 +95,9 @@ int table_vec_append(struct table_vec_t* table_vec, struct table_t* table) {
     return SUCCESS;
 }
 
-struct table_t* table_vec_find(struct table_vec_t* table_vec, tablenum_t table_id) {
+struct table_t* table_vec_find(struct table_vec_t* table_vec,
+                               tablenum_t table_id)
+{
     int idx = searching_policy(table_vec, table_id);
     if (idx == -1) {
         return NULL;
@@ -146,7 +148,9 @@ int table_manager_init(struct table_manager_t* manager) {
     return SUCCESS;
 }
 
-tablenum_t table_manager_load(struct table_manager_t* manager, const char* filename) {
+tablenum_t table_manager_load(struct table_manager_t* manager,
+                              const char* filename)
+{
     tablenum_t id;
     struct table_t table;
     if (table_load(&table, filename) == FAILURE) {
