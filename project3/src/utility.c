@@ -6,7 +6,7 @@ int max(int a, int b) {
 }
 
 struct file_header_t* file_header(struct page_t* page) {
-    return &page->impl.file;
+    return &page->impl.file.header;
 }
 
 struct page_header_t* page_header(struct page_t* page) {
