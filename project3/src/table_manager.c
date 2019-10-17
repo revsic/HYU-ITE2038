@@ -168,6 +168,12 @@ tablenum_t table_manager_load(struct table_manager_t* manager,
     return id;
 }
 
+struct table_t* table_manager_find(struct table_manager_t* manager,
+                                   tablenum_t table_id)
+{
+    return table_vec_find(&manager->vec, table_id);
+}
+
 int table_manager_remove(struct table_manager_t* manager, tablenum_t table_id) {
     return table_vec_remove(&manager->vec, table_id);
 }

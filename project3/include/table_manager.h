@@ -53,6 +53,9 @@ int table_manager_init(struct table_manager_t* manager);
 tablenum_t table_manager_load(struct table_manager_t* manager,
                               const char* filename);
 
+struct table_t* table_manager_find(struct table_manager_t* manager,
+                                   tablenum_t table_id);
+
 int table_manager_remove(struct table_manager_t* manager, tablenum_t table_id);
 
 int table_manager_release(struct table_manager_t* manager);
