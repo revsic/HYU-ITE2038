@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "disk_manager.h"
@@ -82,7 +83,7 @@ pagenum_t last_pagenum_from_size(long size) {
 pagenum_t page_create(struct file_manager_t* manager) {
     // read file header
     struct file_header_t header;
-    CHECK_SUCCESS(file_read_header(manager, &header));
+    EXIT_ON_FAILURE(file_read_header(manager, &header));
 
     // if there exists no more free page
     pagenum_t pagenum = header.free_page_number;
@@ -93,7 +94,7 @@ pagenum_t page_create(struct file_manager_t* manager) {
                 manager,
                 max(1, header.number_of_pages)));
 
-        CHECK_SUCCESS(file_read_header(manager, &header));
+        EXIT_ON_FAILURE(file_read_header(manager, &header));
         pagenum = header.free_page_number;
     }
     // read free page
