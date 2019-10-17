@@ -5,19 +5,11 @@
 
 #include "headers.h"
 
-// GLOBAL CONSTANTS
-
-/// Value for pointing null page.
-#define INVALID_PAGENUM 0
-
-
 // TYPE DEFINITION
 
 /// File level disk manager.
 struct file_manager_t {
     FILE* fp;                           /// file pointer.
-    int updated;                        /// whether current file header cache is updated or not.
-    struct file_header_t file_header;   /// file header cache.
 };
 
 
@@ -45,15 +37,17 @@ int file_open(const char* filename, struct file_manager_t* manager);
 /// \return int, return SUCCESS (doesn't check the success).
 int file_close(struct file_manager_t* manager);
 
-/// Write the file header cache through file manager.
+/// Read file header through file manager.
 /// \param manager struct file_manager_t*, file manager.
+/// \param header struct file_header_t*, memory to save the read header.
 /// \return int, whether writing operation is successful or not.
-int file_write_header(struct file_manager_t* manager);
+int file_read_header(struct file_manager_t* manager, struct file_header_t* header);
 
-/// Write the file header cache if updated flag is set.
+/// Write the file header through file manager.
 /// \param manager struct file_manager_t*, file manager.
-/// \return int, whether updating operation is successful or not.
-int file_write_update(struct file_manager_t* manager);
+/// \param header struct file_header_t*, target file header.
+/// \return int, whether writing operation is successful or not.
+int file_write_header(struct file_manager_t* manager, struct file_header_t* header);
 
 /// Get last page ID of current record system.
 /// \param manager struct file_manager_t*, file manager.
