@@ -124,11 +124,11 @@ int buffer_manager_shutdown(struct buffer_manager_t* manager) {
 
 int buffer_manager_load(struct buffer_manager_t* manager,
                         struct table_manager_t* tables,
-                        struct record_id_t* record_id)
+                        struct page_uri_t* page_uri)
 {
     int idx;
     struct buffer_t* buffer;
-    struct table_t* table = table_manager_find(tables, record_id->table_id);
+    struct table_t* table = table_manager_find(tables, page_uri->table_id);
     if (table == NULL) {
         return -1;
     }
@@ -147,7 +147,7 @@ int buffer_manager_load(struct buffer_manager_t* manager,
     }
 
     buffer = &manager->buffers[idx];
-    if (buffer_load(buffer, table, record_id->pagenum) == FAILURE) {
+    if (buffer_load(buffer, table, page_uri->pagenum) == FAILURE) {
         return -1;
     }
 
@@ -215,7 +215,7 @@ int buffer_manager_release(struct buffer_manager_t* manager,
 }
 
 int buffer_manager_find(struct buffer_manager_t* manager,
-                        struct record_id_t* record_id)
+                        struct page_uri_t* page_uri)
 {
     int i;
     struct buffer_t* buffer;
@@ -225,8 +225,8 @@ int buffer_manager_find(struct buffer_manager_t* manager,
         }
 
         buffer = &manager->buffers[i];
-        if (buffer->pagenum == record_id->pagenum
-            && buffer->table_id == record_id->table_id)
+        if (buffer->pagenum == page_uri->pagenum
+            && buffer->table_id == page_uri->table_id)
         {
             return i;
         }
@@ -237,11 +237,11 @@ int buffer_manager_find(struct buffer_manager_t* manager,
 
 struct buffer_t* buffer_manager_get(struct buffer_manager_t* manager,
                                     struct table_manager_t* tables,
-                                    struct record_id_t* record_id)
+                                    struct page_uri_t* page_uri)
 {
-    int idx = buffer_manager_find(manager, record_id);
+    int idx = buffer_manager_find(manager, page_uri);
     if (idx == -1) {
-        idx = buffer_manager_load(manager, tables, record_id);
+        idx = buffer_manager_load(manager, tables, page_uri);
         if (idx == -1) {
             return NULL;
         }
@@ -251,11 +251,11 @@ struct buffer_t* buffer_manager_get(struct buffer_manager_t* manager,
 
 int buffer_manager_read(struct buffer_manager_t* manager, 
                         struct table_manager_t* tables,
-                        struct record_id_t* record_id,
+                        struct page_uri_t* page_uri,
                         reader_t reader,
                         void* param)
 {
-    struct buffer_t* buffer = buffer_manager_get(manager, tables, record_id);
+    struct buffer_t* buffer = buffer_manager_get(manager, tables, page_uri);
     CHECK_NULL(buffer);
 
     return buffer_read_api(buffer, reader, param);
@@ -263,11 +263,11 @@ int buffer_manager_read(struct buffer_manager_t* manager,
 
 int buffer_manager_write(struct buffer_manager_t* manager,
                          struct table_manager_t* tables,
-                         struct record_id_t* record_id,
+                         struct page_uri_t* page_uri,
                          writer_t writer,
                          void* param)
 {
-    struct buffer_t* buffer = buffer_manager_get(manager, tables, record_id);
+    struct buffer_t* buffer = buffer_manager_get(manager, tables, page_uri);
     CHECK_NULL(buffer);
 
     return buffer_write_api(buffer, writer, param);

@@ -4,7 +4,7 @@
 #include "headers.h"
 #include "table_manager.h"
 
-struct record_id_t {
+struct page_uri_t {
     tablenum_t table_id;
     pagenum_t pagenum;
 };
@@ -59,7 +59,7 @@ int buffer_manager_shutdown(struct buffer_manager_t* manager);
 
 int buffer_manager_load(struct buffer_manager_t* manager,
                         struct table_manager_t* tables,
-                        struct record_id_t* record_id);
+                        struct page_uri_t* page_uri);
 
 int buffer_manager_release_table(struct buffer_manager_t* manager,
                                  tablenum_t table_id);
@@ -68,21 +68,21 @@ int buffer_manager_release(struct buffer_manager_t* manager,
                            const struct release_policy_t* policy);
 
 int buffer_manager_find(struct buffer_manager_t* manager,
-                        struct record_id_t* record_id);
+                        struct page_uri_t* page_uri);
 
 struct buffer_t* buffer_manager_get(struct buffer_manager_t* manager,
                                     struct table_manager_t* tables,
-                                    struct record_id_t* record_id);
+                                    struct page_uri_t* page_uri);
 
 int buffer_manager_read(struct buffer_manager_t* manager, 
                         struct table_manager_t* tables,
-                        struct record_id_t* record_id,
+                        struct page_uri_t* page_uri,
                         reader_t reader,
                         void* param);
 
 int buffer_manager_write(struct buffer_manager_t* manager,
                          struct table_manager_t* tables,
-                         struct record_id_t* record_id,
+                         struct page_uri_t* page_uri,
                          writer_t writer,
                          void* param);
 
