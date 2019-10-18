@@ -17,6 +17,9 @@ tablenum_t dbms_open_table(struct dbms_t* dbms, const char* filename);
 
 int dbms_close_table(struct dbms_t* dbms, tablenum_t table_id);
 
+struct buffer_t* dbms_buffering(struct dbms_t* dbms,
+                                struct page_uri_t* page_uri);
+
 int dbms_find(struct dbms_t* dbms,
               tablenum_t table_id,
               struct record_t* record);

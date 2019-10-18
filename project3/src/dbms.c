@@ -23,6 +23,12 @@ int dbms_close_table(struct dbms_t* dbms, tablenum_t table_id) {
     return SUCCESS;
 }
 
+struct buffer_t* dbms_buffering(struct dbms_t* dbms,
+                                struct page_uri_t* page_uri)
+{
+    return buffer_manager_buffering(&dbms->buffers, &dbms->tables, page_uri);
+}
+
 int dbms_find(struct dbms_t* dbms,
               tablenum_t table_id,
               struct record_t* record)
