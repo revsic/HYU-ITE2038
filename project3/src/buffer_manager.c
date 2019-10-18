@@ -235,9 +235,9 @@ int buffer_manager_find(struct buffer_manager_t* manager,
     return -1;
 }
 
-struct buffer_t* buffer_manager_get(struct buffer_manager_t* manager,
-                                    struct table_manager_t* tables,
-                                    struct page_uri_t* page_uri)
+struct buffer_t* buffer_manager_buffering(struct buffer_manager_t* manager,
+                                          struct table_manager_t* tables,
+                                          struct page_uri_t* page_uri)
 {
     int idx = buffer_manager_find(manager, page_uri);
     if (idx == -1) {
@@ -247,28 +247,4 @@ struct buffer_t* buffer_manager_get(struct buffer_manager_t* manager,
         }
     }
     return &manager->buffers[idx];
-}
-
-int buffer_manager_read(struct buffer_manager_t* manager, 
-                        struct table_manager_t* tables,
-                        struct page_uri_t* page_uri,
-                        reader_t reader,
-                        void* param)
-{
-    struct buffer_t* buffer = buffer_manager_get(manager, tables, page_uri);
-    CHECK_NULL(buffer);
-
-    return buffer_read_api(buffer, reader, param);
-}
-
-int buffer_manager_write(struct buffer_manager_t* manager,
-                         struct table_manager_t* tables,
-                         struct page_uri_t* page_uri,
-                         writer_t writer,
-                         void* param)
-{
-    struct buffer_t* buffer = buffer_manager_get(manager, tables, page_uri);
-    CHECK_NULL(buffer);
-
-    return buffer_write_api(buffer, writer, param);
 }

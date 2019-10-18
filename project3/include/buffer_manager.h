@@ -70,20 +70,8 @@ int buffer_manager_release(struct buffer_manager_t* manager,
 int buffer_manager_find(struct buffer_manager_t* manager,
                         struct page_uri_t* page_uri);
 
-struct buffer_t* buffer_manager_get(struct buffer_manager_t* manager,
-                                    struct table_manager_t* tables,
-                                    struct page_uri_t* page_uri);
-
-int buffer_manager_read(struct buffer_manager_t* manager, 
-                        struct table_manager_t* tables,
-                        struct page_uri_t* page_uri,
-                        reader_t reader,
-                        void* param);
-
-int buffer_manager_write(struct buffer_manager_t* manager,
-                         struct table_manager_t* tables,
-                         struct page_uri_t* page_uri,
-                         writer_t writer,
-                         void* param);
+struct buffer_t* buffer_manager_buffering(struct buffer_manager_t* manager,
+                                          struct table_manager_t* tables,
+                                          struct page_uri_t* page_uri);
 
 #endif
