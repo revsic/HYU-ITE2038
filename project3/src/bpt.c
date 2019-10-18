@@ -241,7 +241,7 @@ int find_key_from_leaf(prikey_t key, struct page_t* page, struct record_t* recor
     }
 }
 
-int find(prikey_t key, struct record_t* record, struct file_manager_t* manager) {
+int bpt_find(prikey_t key, struct record_t* record, struct file_manager_t* manager) {
     int i = 0;
     struct page_t page;
     pagenum_t c = find_leaf(key, &page, manager);
@@ -252,10 +252,10 @@ int find(prikey_t key, struct record_t* record, struct file_manager_t* manager) 
     return find_key_from_leaf(key, &page, record);
 }
 
-int find_range(prikey_t start,
-               prikey_t end,
-               struct record_vec_t* retval,
-               struct file_manager_t* manager)
+int bpt_find_range(prikey_t start,
+                   prikey_t end,
+                   struct record_vec_t* retval,
+                   struct file_manager_t* manager)
 {
     int i;
     struct page_t page;
@@ -416,7 +416,7 @@ void print_tree(struct file_manager_t* manager) {
 
 void find_and_print(prikey_t key, struct file_manager_t* manager) {
     struct record_t r;
-    int retval = find(key, &r, manager);
+    int retval = bpt_find(key, &r, manager);
     if (retval == FAILURE) {
         printf("Record not found under key %ld.\n", key);
     } else {
@@ -429,7 +429,7 @@ void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_mana
     struct record_vec_t retval;
     EXIT_ON_FAILURE(record_vec_init(&retval));
 
-    find_range(key_start, key_end, &retval, manager);
+    bpt_find_range(key_start, key_end, &retval, manager);
     if (retval.size == 0) {
         printf("None found.\n");
     } else {
@@ -732,10 +732,10 @@ int start_new_tree(struct record_t* pointer,
     return SUCCESS;
 }
 
-int insert(prikey_t key,
-           uint8_t* value,
-           int value_size,
-           struct file_manager_t* manager)
+int bpt_insert(prikey_t key,
+               uint8_t* value,
+               int value_size,
+               struct file_manager_t* manager)
 {
     struct page_t leaf_page;
     pagenum_t leaf = find_leaf(key, &leaf_page, manager);
@@ -1117,7 +1117,7 @@ int delete_entry(prikey_t key,
     }
 }
 
-int delete(prikey_t key, struct file_manager_t* manager) {
+int bpt_delete(prikey_t key, struct file_manager_t* manager) {
     pagenum_t leaf;
     struct page_t leaf_page;
     struct page_pair_t pair;

@@ -141,17 +141,17 @@ int find_key_from_leaf(prikey_t key, struct page_t* page, struct record_t* recor
 /// \param record struct record_t*, returned record.
 /// \param manager struct manager_t*, file manager.
 /// \return int, whether key exists or not.
-int find(prikey_t key, struct record_t* record, struct file_manager_t* manager);
+int bpt_find(prikey_t key, struct record_t* record, struct file_manager_t* manager);
 /// Range based searching from tree.
 /// \param start prikey_t, start point.
 /// \param end prikey_t, end point.
 /// \param record struct record_t*, record vector for returning sequence.
 /// \param manager struct manager_t*, file manager.
 /// \return int, size of the return sequence.
-int find_range(prikey_t start,
-               prikey_t end,
-               struct record_vec_t* retval,
-               struct file_manager_t* manager);
+int bpt_find_range(prikey_t start,
+                   prikey_t end,
+                   struct record_vec_t* retval,
+                   struct file_manager_t* manager);
 
 
 // OUTPUT
@@ -267,10 +267,10 @@ int start_new_tree(struct record_t* pointer,
 /// \param value_size int, size of the value data.
 /// \param manager struct file_manager_t*, file manager.
 /// \return int, whether success to insert key or not.
-int insert(prikey_t key,
-           uint8_t* value,
-           int value_size,
-           struct file_manager_t* manager);
+int bpt_insert(prikey_t key,
+               uint8_t* value,
+               int value_size,
+               struct file_manager_t* manager);
 
 
 // DELETION
@@ -317,7 +317,7 @@ int delete_entry(prikey_t key,
 /// \param key prikey_t, target key.
 /// \param manager struct file_manager_t*, file manager.
 /// \return int, whether success to delete key or not.
-int delete(prikey_t key, struct file_manager_t* manager);
+int bpt_delete(prikey_t key, struct file_manager_t* manager);
 
 /// Free all tree pages to make empty tree.
 /// \param manager struct file_manager_t*, file manager.
