@@ -24,6 +24,10 @@ const struct release_policy_t RELEASE_LRU = { get_lru, next_lru };
 
 const struct release_policy_t RELEASE_MRU = { get_mru, next_mru };
 
+struct page_t* from_buffer(struct buffer_t* buffer) {
+    return &buffer->frame;
+}
+
 int buffer_init(struct buffer_t* buffer) {
     buffer->table_id = INVALID_TABLENUM;
     buffer->pagenum = INVALID_PAGENUM;

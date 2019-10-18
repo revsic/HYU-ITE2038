@@ -58,6 +58,8 @@ extern const struct release_policy_t RELEASE_LRU;
 
 extern const struct release_policy_t RELEASE_MRU;
 
+struct page_t* from_buffer(struct buffer_t* buffer);
+
 int buffer_init(struct buffer_t* buffer);
 
 int buffer_load(struct buffer_t* buffer,
