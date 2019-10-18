@@ -8,6 +8,7 @@ int main(int argc, char ** argv) {
     char instruction;
     char value[1024];
 
+    init_db(4);
     tid = open_table("datafile");
 
     usage_1();
@@ -19,7 +20,7 @@ int main(int argc, char ** argv) {
         case 'o':
             // close table
             if (tid != -1) {
-                close_table();
+                close_table(tid);
             }
             // open table
             scanf("%1023s", value);
@@ -31,18 +32,18 @@ int main(int argc, char ** argv) {
             break;
         case 'd':
             scanf("%d", &input);
-            db_delete(input);
-            print_tree(&GLOBAL_MANAGER);
+            delete(tid, input);
+            // print_tree(&GLOBAL_MANAGER);
             break;
         case 'i':
             scanf("%d", &input);
             snprintf(value, 100, "%d value", input);
-            db_insert(input, value);
-            print_tree(&GLOBAL_MANAGER);
+            insert(tid, input, value);
+            // print_tree(&GLOBAL_MANAGER);
             break;
         case 'f':
             scanf("%d", &input);
-            if (db_find(input, value) == SUCCESS) {
+            if (find(tid, input, value) == SUCCESS) {
                 printf("Key: %d  Value: %s\n", input, value);
             } else {
                 printf("not found\n");
@@ -56,22 +57,22 @@ int main(int argc, char ** argv) {
                 range2 = input;
                 input = tmp;
             }
-            find_and_print_range(input, range2, &GLOBAL_MANAGER);
+            // find_and_print_range(input, range2, &GLOBAL_MANAGER);
             break;
         case 'l':
-            print_leaves(&GLOBAL_MANAGER);
+            // print_leaves(&GLOBAL_MANAGER);
             break;
         case 'q':
             while (getchar() != (int)'\n');
-            close_table();
+            shutdown_db();
             return 0;
             break;
         case 't':
-            print_tree(&GLOBAL_MANAGER);
+            // print_tree(&GLOBAL_MANAGER);
             break;
         case 'x':
-            destroy_tree(&GLOBAL_MANAGER);
-            print_tree(&GLOBAL_MANAGER);
+            // destroy_tree(&GLOBAL_MANAGER);
+            // print_tree(&GLOBAL_MANAGER);
             break;
         default:
             usage_2();
