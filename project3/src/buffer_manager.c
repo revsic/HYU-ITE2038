@@ -141,6 +141,10 @@ int buffer_manager_load(struct buffer_manager_t* manager,
 
 int buffer_manager_release_lru(struct buffer_manager_t* manager) {
     int idx = manager->lru;
+    while (idx != -1 && manager->buffers[idx].is_pinned) {
+        idx = manager->buffers[idx].next_use;
+    }
+
     if (idx == -1) {
         return -1;
     }
@@ -162,6 +166,10 @@ int buffer_manager_release_lru(struct buffer_manager_t* manager) {
 
 int buffer_manager_release_mru(struct buffer_manager_t* manager) {
     int idx = manager->mru;
+    while (idx != -1 && &manager->buffers[idx].is_pinned) {
+        idx = manager->buffers[idx].prev_use;
+    }
+
     if (idx == -1) {
         return -1;
     }
