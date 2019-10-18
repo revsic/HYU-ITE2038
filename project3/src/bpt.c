@@ -130,8 +130,8 @@ int height(struct page_uri_t node, struct dbms_t* dbms) {
     for (h = 0, is_leaf = FALSE; !is_leaf; ++h) {
         EXIT_ON_NULL(buffer = dbms_buffering(dbms, &node));
         BUFFER_READ(buffer, {
-            is_leaf = page_header(&buffer->frame)->is_leaf;
-            node.pagenum = page_header(&buffer->frame)->special_page_number;
+            is_leaf = page_header(from_buffer(buffer))->is_leaf;
+            node.pagenum = page_header(from_buffer(buffer))->special_page_number;
         })
     }
 
@@ -146,13 +146,13 @@ int path_to_root(struct page_uri_t node, struct dbms_t* dbms) {
 
     EXIT_ON_NULL(buffer = dbms_buffering(dbms, &header_uri));
     BUFFER_READ(buffer, {
-        root = file_header(&buffer->frame)->root_page_number;
+        root = file_header(from_buffer(buffer))->root_page_number;
     })
 
     for (length = 0; root != node.pagenum; ++length) {
         EXIT_ON_NULL(buffer = dbms_buffering(dbms, &node));
         BUFFER_READ(buffer, {
-            node.pagenum = page_header(&buffer->frame)->parent_page_number;
+            node.pagenum = page_header(from_buffer(buffer))->parent_page_number;
         })
     }
 
