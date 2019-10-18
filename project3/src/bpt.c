@@ -87,6 +87,7 @@ int record_vec_init(struct record_vec_t* vec) {
     vec->capacity = DEFAULT_RECORD_VEC_CAP;
     vec->rec = malloc(sizeof(struct record_t) * DEFAULT_RECORD_VEC_CAP);
     if (vec->rec == NULL) {
+        vec->capacity = 0;
         return FAILURE;
     }
     return SUCCESS;
@@ -102,6 +103,7 @@ int record_vec_expand(struct record_vec_t* vec) {
     struct record_t* new_records =
         malloc(sizeof(struct record_t) * vec->capacity);
     if (new_records == NULL) {
+        vec->capacity /= 2;
         return FAILURE;
     }
     

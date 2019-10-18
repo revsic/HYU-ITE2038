@@ -255,9 +255,8 @@ int buffer_manager_read(struct buffer_manager_t* manager,
                         void* param)
 {
     struct buffer_t* buffer = buffer_manager_get(manager, tables, record_id);
-    if (buffer == NULL) {
-        return FAILURE;
-    }
+    CHECK_NULL(buffer);
+
     return buffer_read_api(buffer, reader, param);
 }
 
@@ -268,8 +267,7 @@ int buffer_manager_write(struct buffer_manager_t* manager,
                          void* param)
 {
     struct buffer_t* buffer = buffer_manager_get(manager, tables, record_id);
-    if (buffer == NULL) {
-        return FAILURE;
-    }
+    CHECK_NULL(buffer);
+
     return buffer_write_api(buffer, writer, param);
 }

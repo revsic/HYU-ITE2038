@@ -126,9 +126,7 @@ int table_vec_shrink(struct table_vec_t* table_vec) {
     }
 
     vec = malloc(sizeof(struct table_t) * table_vec->size);
-    if (vec == NULL) {
-        return FAILURE;
-    }
+    CHECK_NULL(vec);
 
     for (i = 0; i < table_vec->size; ++i) {
         vec[i] = table_vec->array[i];
