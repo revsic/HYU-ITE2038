@@ -15,7 +15,7 @@ TARGET_OBJ:=$(APPDIR)main.o
 SRCS_FOR_LIB:=$(wildcard $(SRCDIR)*.c)
 OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.c=.o)
 
-CFLAGS+= -g -fPIC -I $(INC)
+CFLAGS+= -g -fPIC -I $(INC) -Wno-format
 
 TARGET=main
 
