@@ -14,7 +14,7 @@ struct table_t {
 struct table_vec_t {
     int size;
     int capacity;
-    struct table_t* array;
+    struct table_t** array;
 };
 
 struct table_manager_t {

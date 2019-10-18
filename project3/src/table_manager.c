@@ -32,7 +32,7 @@ tablenum_t rehash_tablenum(tablenum_t tablenum) {
 int searching_policy(struct table_vec_t* table_vec, tablenum_t table_id) {
     int i;
     for (i = 0; i < table_vec->size; ++i) {
-        if (table_vec->array[i].table_id == table_id) {
+        if (table_vec->array[i]->table_id == table_id) {
             return i;
         }
     }
@@ -57,7 +57,7 @@ int table_release(struct table_t* table) {
 int table_vec_init(struct table_vec_t* table_vec) {
     table_vec->size = 0;
     table_vec->capacity = TABLE_VEC_DEFAULT_CAPACITY;
-    table_vec->array = malloc(sizeof(struct table_t) * table_vec->capacity);
+    table_vec->array = malloc(sizeof(struct table_t*) * table_vec->capacity);
     if (table_vec->array == NULL) {
         table_vec->capacity = 0;
         return FAILURE;
@@ -67,10 +67,10 @@ int table_vec_init(struct table_vec_t* table_vec) {
 
 int table_vec_extend(struct table_vec_t* table_vec) {
     int i;
-    struct table_t* vec;
-    
+    struct table_t** vec;
+
     table_vec->capacity *= 2;
-    vec = malloc(sizeof(struct table_t) * table_vec->capacity);
+    vec = malloc(sizeof(struct table_t*) * table_vec->capacity);
     if (vec == NULL) {
         table_vec->capacity /= 2;
         return FAILURE;
@@ -90,7 +90,10 @@ int table_vec_append(struct table_vec_t* table_vec, struct table_t* table) {
         CHECK_SUCCESS(table_vec_extend(table_vec));
     }
 
-    table_vec->array[table_vec->size++] = *table;
+    table_vec->array[table_vec->size] = malloc(sizeof(struct table_t));
+    CHECK_NULL(table_vec->array[table_vec->size]);
+
+    *table_vec->array[table_vec->size++] = *table;
     memset(table, 0, sizeof(struct table_t));
     return SUCCESS;
 }
@@ -102,7 +105,7 @@ struct table_t* table_vec_find(struct table_vec_t* table_vec,
     if (idx == -1) {
         return NULL;
     }
-    return &table_vec->array[idx];
+    return table_vec->array[idx];
 }
 
 int table_vec_remove(struct table_vec_t* table_vec, tablenum_t table_id) {
@@ -111,6 +114,7 @@ int table_vec_remove(struct table_vec_t* table_vec, tablenum_t table_id) {
         return FAILURE;
     }
 
+    free(table_vec->array[idx]);
     for (; idx < table_vec->size - 1; ++idx) {
         table_vec->array[idx] = table_vec->array[idx + 1];
     }
@@ -120,12 +124,12 @@ int table_vec_remove(struct table_vec_t* table_vec, tablenum_t table_id) {
 
 int table_vec_shrink(struct table_vec_t* table_vec) {
     int i;
-    struct table_t* vec;
+    struct table_t** vec;
     if (table_vec->size == table_vec->capacity) {
         return SUCCESS;
     }
 
-    vec = malloc(sizeof(struct table_t) * table_vec->size);
+    vec = malloc(sizeof(struct table_t*) * table_vec->size);
     CHECK_NULL(vec);
 
     for (i = 0; i < table_vec->size; ++i) {
