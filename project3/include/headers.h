@@ -36,6 +36,9 @@
 /// Return FAILURE if given is false or 0.
 #define CHECK_TRUE(x) if (!x) { return FAILURE; }
 
+/// Return FAILURE if given is NULL.
+#define CHECK_NULL(x) if (x == NULL) { return FAILURE; }
+
 /// Return FAILURE if given is not SUCCESS.
 #define CHECK_SUCCESS(x) if (x != SUCCESS) { return FAILURE; }
 
