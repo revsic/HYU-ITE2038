@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "bpt.h"
-#include "disk_manager.h"
+#include "dbms.h"
 #include "utility.h"
 
 int load_page(pagenum_t pagenum,
@@ -123,31 +123,39 @@ int record_vec_append(struct record_vec_t* vec, struct record_t* rec) {
     return SUCCESS;
 }
 
-int height(pagenum_t node, struct file_manager_t* manager) {
-    int h = 0;
-    struct page_t page;
-    EXIT_ON_FAILURE(load_page(node, &page, manager));
-
-    while (!page_header(&page)->is_leaf) {
-        node = page_header(&page)->special_page_number;
-        EXIT_ON_FAILURE(load_page(node, &page, manager));
-        h++;
+int height(struct page_uri_t node, struct dbms_t* dbms) {
+    int h, is_leaf;
+    struct buffer_t* buffer;
+    
+    for (h = 0, is_leaf = FALSE; !is_leaf; ++h) {
+        EXIT_ON_NULL(buffer = dbms_buffering(dbms, &node));
+        BUFFER_READ(buffer, {
+            is_leaf = page_header(&buffer->frame)->is_leaf;
+            node.pagenum = page_header(&buffer->frame)->special_page_number;
+        })
     }
+
     return h;
 }
 
-int path_to_root(pagenum_t node, struct file_manager_t* manager) {
-    int length = 0;
-    struct page_t page;
-    struct page_t fheader;
-    EXIT_ON_FAILURE(load_page(FILE_HEADER_PAGENUM, &fheader, manager));
+int path_to_root(struct page_uri_t node, struct dbms_t* dbms) {
+    int length;
+    pagenum_t root;
+    struct buffer_t* buffer;
+    struct page_uri_t header_uri = { node.table_id, FILE_HEADER_PAGENUM };
 
-    pagenum_t root = file_header(&fheader)->root_page_number;
-    while (node != root) {
-        EXIT_ON_FAILURE(load_page(node, &page, manager));
-        node = page_header(&page)->parent_page_number;
-        length++;
+    EXIT_ON_NULL(buffer = dbms_buffering(dbms, &header_uri));
+    BUFFER_READ(buffer, {
+        root = file_header(&buffer->frame)->root_page_number;
+    })
+
+    for (length = 0; root != node.pagenum; ++length) {
+        EXIT_ON_NULL(buffer = dbms_buffering(dbms, &node));
+        BUFFER_READ(buffer, {
+            node.pagenum = page_header(&buffer->frame)->parent_page_number;
+        })
     }
+
     return length;
 }
 

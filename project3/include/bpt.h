@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "disk_manager.h"
+#include "dbms.h"
 #include "headers.h"
 
 // GLOBAL CONSTANT
@@ -106,15 +106,15 @@ int record_vec_expand(struct record_vec_t* vec);
 int record_vec_append(struct record_vec_t* vec, struct record_t* rec);
 
 /// Height of the node.
-/// \param node pagenum_t, target node.
-/// \param manager struct file_manager_t*, file manager.
+/// \param node struct page_uri_t, target node.
+/// \param dbms struct dbms_t*, database manager.
 /// \return int, height of the node.
-int height(pagenum_t node, struct file_manager_t* manager);
+int height(struct page_uri_t node, struct dbms_t* dbms);
 /// Length of path to root.
-/// \param node pagenum_t, target node.
-/// \param manager struct file_manager_t*, file manager.
+/// \param node struct page_uri_t, target node.
+/// \param dbms struct dbms_t*, database manager.
 /// \return int, length of path to root.
-int path_to_root(pagenum_t node, struct file_manager_t* manager);
+int path_to_root(struct page_uri_t node, struct dbms_t* dbms);
 
 /// Return split position with given length.
 /// \param length length of the key array.
