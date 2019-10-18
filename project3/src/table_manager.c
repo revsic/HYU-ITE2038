@@ -8,7 +8,7 @@
 tablenum_t create_tablenum(const char* filename) {
     char c;
     unsigned long hash = 0;
-    while (c = *filename++) {
+    while ((c = *filename++)) {
         if (c == '/' || c == '\\') {
             hash = 0;
             continue;
