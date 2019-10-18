@@ -307,42 +307,55 @@ int bpt_find_range(prikey_t start,
 
 // Output.
 
-void print_leaves(struct file_manager_t* manager) {
-    int i;
-    struct page_t file_page;
-    EXIT_ON_FAILURE(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
-    pagenum_t root = file_header(&file_page)->root_page_number;
+void print_leaves(struct dbms_t* dbms, tablenum_t table_id) {
+    int i, is_leaf;
+    struct buffer_t* buffer;
+    struct page_uri_t uri = { table_id, FILE_HEADER_PAGENUM };
+    EXIT_ON_NULL(buffer = dbms_buffering(dbms, &uri));
+
+    pagenum_t root;
+    BUFFER_READ(buffer, {
+        root = file_header(from_buffer(buffer))->root_page_number;
+    })
 
     if (root == INVALID_PAGENUM) {
         printf("Empty tree.\n");
         return;
     }
 
-    struct page_t page;
-    EXIT_ON_FAILURE(load_page(root, &page, manager));    
-
-    while (!page_header(&page)->is_leaf) {
-        root = page_header(&page)->special_page_number;
-        EXIT_ON_FAILURE(load_page(root, &page, manager));
+    is_leaf = FALSE;
+    uri.pagenum = root;
+    while (!is_leaf) {
+        EXIT_ON_NULL(buffer = dbms_buffering(dbms, &uri));
+        BUFFER_READ(buffer, {
+            is_leaf = page_header(from_buffer(buffer))->is_leaf;
+            uri.pagenum = page_header(from_buffer(buffer))->special_page_number;
+        })
     }
 
-    struct page_header_t* pheader = page_header(&page);
-    struct record_t* rec = records(&page);
+    int num_key;
+    struct record_t* rec;
     while (1) {
-        for (i = 0; i < pheader->number_of_keys; ++i) {
-            printf("%ld ", rec[i].key);
-            if (VERBOSE_OUTPUT) {
-                printf("{v: %s} ", rec[i].value);
+        BUFFER_READ(buffer, {
+            rec = records(from_buffer(buffer));
+            num_key = page_header(from_buffer(buffer))->number_of_keys;
+            uri.pagenum = page_header(from_buffer(buffer))->special_page_number;
+
+            for (i = 0; i < num_key; ++i) {
+                printf("%ld ", rec[i].key);
+                if (VERBOSE_OUTPUT) {
+                    printf("{v: %s} ", rec[i].value);
+                }
             }
-        }
+        })
+
         if (VERBOSE_OUTPUT) {
-            printf("(next %lu) ", pheader->special_page_number);
+            printf("(next %lu) ", uri.pagenum);
         }
 
-        if (pheader->special_page_number != INVALID_PAGENUM) {
+        if (uri.pagenum != INVALID_PAGENUM) {
             printf(" | ");
-            root = pheader->special_page_number;
-            EXIT_ON_FAILURE(load_page(root, &page, manager));
+            EXIT_ON_NULL(buffer = dbms_buffering(dbms, &uri));
         } else {
             break;
         }
@@ -350,83 +363,96 @@ void print_leaves(struct file_manager_t* manager) {
     printf("\n");
 }
 
-void print_tree(struct file_manager_t* manager) {
-    int i = 0;
-    int rank = 0;
-    int new_rank = 0;
-    pagenum_t n = INVALID_PAGENUM;
+void print_tree(struct dbms_t* dbms, tablenum_t table_id) {
+    pagenum_t root, n;
+    int i, new_rank, rank = 0;
+    struct page_header_t* pheader;
 
-    struct page_t file_page;
-    EXIT_ON_FAILURE(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
-    pagenum_t root = file_header(&file_page)->root_page_number;
+    struct record_t* rec;
+    struct internal_t* ent;
+
+    struct buffer_t *buffer, *tmp;
+    struct page_uri_t uri = { table_id, FILE_HEADER_PAGENUM };
+    EXIT_ON_NULL(buffer = dbms_buffering(dbms, &uri));
+    BUFFER_READ(buffer, {
+        root = file_header(from_buffer(buffer))->root_page_number;
+    })
 
     if (root == INVALID_PAGENUM) {
         printf("Empty tree.\n");
         return;
     }
 
-    struct page_t page, tmp;
-    struct page_header_t* pheader = page_header(&page);
 
     struct queue_t* queue = NULL;
     queue = enqueue(queue, root);
     while (queue != NULL) {
         queue = dequeue(queue, &n);
-        EXIT_ON_FAILURE(load_page(n, &page, manager));
 
-        if (pheader->parent_page_number != INVALID_PAGENUM) {
-            EXIT_ON_FAILURE(load_page(pheader->parent_page_number, &tmp, manager));
-            if (n == page_header(&tmp)->special_page_number) {
-                new_rank = path_to_root(n, manager);
-                if (new_rank != rank) {
-                    rank = new_rank;
-                    printf("\n");
+        uri.pagenum = n;
+        EXIT_ON_NULL(buffer = dbms_buffering(dbms, &uri));
+        BUFFER_READ(buffer, {
+            pheader = page_header(from_buffer(buffer));
+            if (pheader->parent_page_number != INVALID_PAGENUM) {
+                uri.pagenum = pheader->parent_page_number;
+                EXIT_ON_NULL(tmp = dbms_buffering(dbms, &uri));
+                BUFFER_READ(tmp, {
+                    if (n == page_header(from_buffer(tmp))->special_page_number) {
+                        new_rank = path_to_root(uri, dbms);
+                        if (new_rank != rank) {
+                            rank = new_rank;
+                            printf("\n");
+                        }
+                    }
+                })
+            }
+
+            if (VERBOSE_OUTPUT) {
+                printf("(page %lu) ", n);
+                if (!pheader->is_leaf) {
+                    printf("{v: %lu} ", pheader->special_page_number);
                 }
             }
-        }
 
-        if (VERBOSE_OUTPUT) {
-            printf("(page %lu) ", n);
+            rec = records(from_buffer(buffer));
+            ent = entries(from_buffer(buffer));
+            for (i = 0; i < pheader->number_of_keys; i++) {
+                if (pheader->is_leaf) {
+                    printf("%ld ", rec[i].key);
+                    if (VERBOSE_OUTPUT) {
+                        printf("{v: %s} ", rec[i].value);
+                    }
+                } else {
+                    printf("%ld ", ent[i].key);
+                    if (VERBOSE_OUTPUT) {
+                        printf("{v: %ld} ", ent[i].pagenum);
+                    }
+                }
+            }
+
             if (!pheader->is_leaf) {
-                printf("{v: %lu} ", pheader->special_page_number);
-            }
-        }
-
-        for (i = 0; i < pheader->number_of_keys; i++) {
-            if (pheader->is_leaf) {
-                printf("%ld ", records(&page)[i].key);
-                if (VERBOSE_OUTPUT) {
-                    printf("{v: %s} ", records(&page)[i].value);
-                }
-            } else {
-                printf("%ld ", entries(&page)[i].key);
-                if (VERBOSE_OUTPUT) {
-                    printf("{v: %ld} ", entries(&page)[i].pagenum);
+                if (pheader->special_page_number != INVALID_PAGENUM) {
+                    queue = enqueue(queue, pheader->special_page_number);
+                    for (i = 0; i < pheader->number_of_keys; i++) {
+                        queue = enqueue(queue, ent[i].pagenum);
+                    }
                 }
             }
-        }
 
-        if (!pheader->is_leaf) {
-            if (pheader->special_page_number != INVALID_PAGENUM) {
-                queue = enqueue(queue, pheader->special_page_number);
-                for (i = 0; i < pheader->number_of_keys; i++) {
-                    queue = enqueue(queue, entries(&page)[i].pagenum);
-                }
+            
+            if (VERBOSE_OUTPUT && pheader->is_leaf) {
+                printf("(parent %lu, next %lu) ",
+                    pheader->parent_page_number, pheader->special_page_number);
             }
-        }
-
-        if (VERBOSE_OUTPUT && pheader->is_leaf) {
-            printf("(parent %lu, next %lu) ",
-                pheader->parent_page_number, pheader->special_page_number);
-        }
-        printf("| ");
+            printf("| ");
+        })
     }
     printf("\n");
 }
 
-void find_and_print(prikey_t key, struct file_manager_t* manager) {
+void find_and_print(prikey_t key, struct dbms_t* dbms, tablenum_t table_id) {
     struct record_t r;
-    int retval = bpt_find(key, &r, manager);
+    int retval = bpt_find(key, &r, &table_manager_find(&dbms->tables, table_id)->file_manager);
     if (retval == FAILURE) {
         printf("Record not found under key %ld.\n", key);
     } else {
@@ -434,12 +460,17 @@ void find_and_print(prikey_t key, struct file_manager_t* manager) {
     }
 }
 
-void find_and_print_range(prikey_t key_start, prikey_t key_end, struct file_manager_t* manager) {
+
+void find_and_print_range(prikey_t range1,
+                          prikey_t range2,
+                          struct dbms_t* dbms,
+                          tablenum_t table_id)
+{
     int i;
     struct record_vec_t retval;
     EXIT_ON_FAILURE(record_vec_init(&retval));
 
-    bpt_find_range(key_start, key_end, &retval, manager);
+    bpt_find_range(range1, range2, &retval, &table_manager_find(&dbms->tables, table_id)->file_manager);
     if (retval.size == 0) {
         printf("None found.\n");
     } else {

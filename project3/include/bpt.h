@@ -157,21 +157,28 @@ int bpt_find_range(prikey_t start,
 // OUTPUT
 
 /// Print leaves.
-/// \param manager struct manager_t*, file manager.
-void print_leaves(struct file_manager_t* manager);
+/// \param dbms struct dbms_t*, database manager.
+/// \param table_id tablenum_t, table id.
+void print_leaves(struct dbms_t* dbms, tablenum_t table_id);
 /// Print tree.
-/// \param manager struct manager_t*, file manager.
-void print_tree(struct file_manager_t* manager);
+/// \param dbms struct dbms_t*, database manager.
+/// \param table_id tablenum_t, table id.
+void print_tree(struct dbms_t* dbms, tablenum_t table_id);
 
 /// Find key and print result.
 /// \param key prikey_t, searching key.
-/// \param manager struct manager_t*, file manager.
-void find_and_print(prikey_t key, struct file_manager_t* manager); 
+/// \param dbms struct dbms_t*, database manager.
+/// \param table_id tablenum_t, table id;
+void find_and_print(prikey_t key, struct dbms_t* dbms, tablenum_t table_id); 
 /// Find key range and print result sequence.
 /// \param range1 prikey_t, start point.
 /// \param range2 prikey_t, end point.
-/// \param manager struct manager_t*, file manager.
-void find_and_print_range(prikey_t range1, prikey_t range2, struct file_manager_t* manager);
+/// \param dbms struct dbms_t*, database manager.
+/// \param table_id tablenum_t, table id;
+void find_and_print_range(prikey_t range1,
+                          prikey_t range2,
+                          struct dbms_t* dbms,
+                          tablenum_t table_id);
 
 
 // INSERTION
