@@ -4,6 +4,26 @@
 #include "buffer_manager.h"
 #include "disk_manager.h"
 
+int get_lru(struct buffer_manager_t* manager) {
+    return manager->lru;
+}
+
+int next_lru(struct buffer_t* buffer) {
+    return buffer->next_use;
+}
+
+int get_mru(struct buffer_manager_t* manager) {
+    return manager->mru;
+}
+
+int next_mru(struct buffer_t* buffer) {
+    return buffer->prev_use;
+}
+
+const struct release_policy_t RELEASE_LRU = { get_lru, next_lru };
+
+const struct release_policy_t RELEASE_MRU = { get_mru, next_mru };
+
 int buffer_init(struct buffer_t* buffer) {
     buffer->table_id = INVALID_TABLENUM;
     buffer->pagenum = INVALID_PAGENUM;
@@ -88,9 +108,8 @@ int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
 int buffer_manager_shutdown(struct buffer_manager_t* manager)
 {
     int i;
-    for (i = 0; i < manager->num_buffer; ++i) {
+    for (i = 0; i < manager->capacity; ++i) {
         if (manager->buffers[i].table_id == INVALID_TABLENUM) {
-            --i;
             continue;
         }
         buffer_release(&manager->buffers[i]);
@@ -113,12 +132,16 @@ int buffer_manager_load(struct buffer_manager_t* manager,
     }
 
     if (manager->num_buffer >= manager->capacity) {
-        idx = buffer_manager_release_lru(manager);
+        idx = buffer_manager_release(manager, &RELEASE_LRU);
         if (idx == -1) {
             return -1;
         }
     } else {
-        idx = manager->num_buffer;
+        for (idx = 0;
+             idx < manager->capacity
+                && manager->buffers[idx].table_id == INVALID_TABLENUM;
+             ++idx)
+            {}
     }
 
     buffer = &manager->buffers[idx];
@@ -139,10 +162,30 @@ int buffer_manager_load(struct buffer_manager_t* manager,
     return idx;
 }
 
-int buffer_manager_release_lru(struct buffer_manager_t* manager) {
-    int idx = manager->lru;
+int buffer_manager_release_table(struct buffer_manager_t* manager,
+                                 tablenum_t table_id)
+{
+    int i, j;
+    struct buffer_t* buffer;
+    for (i = 0; i < manager->capacity; ++i) {
+        buffer = &manager->buffers[i];
+        if (buffer->table_id == INVALID_TABLENUM) {
+            continue;
+        }
+        if (buffer->table_id == table_id) {
+            CHECK_SUCCESS(buffer_release(buffer));
+            --manager->num_buffer;
+        }
+    }
+    return SUCCESS;
+}
+
+int buffer_manager_release(struct buffer_manager_t* manager,
+                           const struct release_policy_t* policy)
+{
+    int idx = policy->initial_search(manager);
     while (idx != -1 && manager->buffers[idx].is_pinned) {
-        idx = manager->buffers[idx].next_use;
+        idx = policy->next_search(&manager->buffers[idx]);
     }
 
     if (idx == -1) {
@@ -151,38 +194,18 @@ int buffer_manager_release_lru(struct buffer_manager_t* manager) {
 
     struct buffer_t* buffer = &manager->buffers[idx];
     if (buffer->next_use == -1) {
-        manager->mru = -1;
+        manager->mru = buffer->prev_use;
     } else {
-        manager->buffers[buffer->next_use].prev_use = -1;
-    }
-    manager->lru = buffer->next_use;
-    manager->num_buffer -= 1;
-
-    if (buffer_release(buffer) == FAILURE) {
-        return -1;
-    }
-    return idx;
-}
-
-int buffer_manager_release_mru(struct buffer_manager_t* manager) {
-    int idx = manager->mru;
-    while (idx != -1 && manager->buffers[idx].is_pinned) {
-        idx = manager->buffers[idx].prev_use;
+        manager->buffers[buffer->next_use].prev_use = buffer->prev_use;
     }
 
-    if (idx == -1) {
-        return -1;
-    }
-
-    struct buffer_t* buffer = &manager->buffers[idx];
     if (buffer->prev_use == -1) {
-        manager->lru = -1;
+        manager->lru = buffer->next_use;
     } else {
-        manager->buffers[buffer->prev_use].next_use = -1;
+        manager->buffers[buffer->prev_use].next_use = buffer->next_use;
     }
-    manager->mru = buffer->prev_use;
-    manager->num_buffer -= 1;
 
+    manager->num_buffer -= 1;
     if (buffer_release(buffer) == FAILURE) {
         return -1;
     }

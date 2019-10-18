@@ -28,9 +28,18 @@ struct buffer_manager_t {
     struct buffer_t *buffers;
 };
 
+struct release_policy_t {
+    int(*initial_search)(struct buffer_manager_t* manager);
+    int(*next_search)(struct buffer_t* buffer);
+};
+
 typedef int(*reader_t)(const struct page_t* page, void* param);
 
 typedef int(*writer_t)(struct page_t* page, void* param);
+
+extern const struct release_policy_t RELEASE_LRU;
+
+extern const struct release_policy_t RELEASE_MRU;
 
 int buffer_init(struct buffer_t* buffer);
 
@@ -52,9 +61,11 @@ int buffer_manager_load(struct buffer_manager_t* manager,
                         struct table_manager_t* tables,
                         struct record_id_t* record_id);
 
-int buffer_manager_release_lru(struct buffer_manager_t* manager);
+int buffer_manager_release_table(struct buffer_manager_t* manager,
+                                 tablenum_t table_id);
 
-int buffer_manager_release_mru(struct buffer_manager_t* manager);
+int buffer_manager_release(struct buffer_manager_t* manager,
+                           const struct release_policy_t* policy);
 
 int buffer_manager_find(struct buffer_manager_t* manager,
                         struct record_id_t* record_id);
