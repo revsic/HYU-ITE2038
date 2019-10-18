@@ -1,45 +1,57 @@
 #ifndef DBAPI_H
 #define DBAPI_H
 
-#include "disk_manager.h"
+#include "buffer_manager.h"
+#include "table_manager.h"
 
 // GLOBAL VARIABLES
 
-/// Table id for operating db-prefix operations.
-extern int GLOBAL_TABLE_ID;
+extern struct buffer_manager_t GLOBAL_BUFFERS;
 
-/// Global file manager.
-extern struct file_manager_t GLOBAL_MANAGER;
+extern struct table_manager_t GLOBAL_TABLES;
 
 
 // PROCEDURES
 
-/// Open table and save file manager to global context.
-/// \param pathname const char*, path of the file.
-/// \return int, created table ID.
-int open_table(const char* pathname);
+/// Initialize database system with given buffer size.
+/// \param num_buf int, the number of the buffers in caching pool.
+/// \return int, whether success to initialize db or not.
+int init_db(int num_buf);
+
+/// Open table from given data file path.
+/// \param pathname const char*, data file path.
+/// \return tablenum_t, table id of the opened data file.
+tablenum_t open_table(const char* pathname);
 
 /// Close global table;
+/// \param table_id tablenum_t, target table id.
 /// \return int, whether success to close file or not.
-int close_table();
+int close_table(tablenum_t table_id);
+
+/// Close database system, destroy all buffers and close files.
+/// \return int, whether success to close file or not.
+int shutdown_db();
 
 /// Insert key and value to the most recent table.
+/// \param table_id tablenum_t, id of the table.
 /// \param key prikey_t, key.
 /// \param value char*, value data.
 /// \return int, whether success to insert data or not.
 /// if key is duplicated, return FAILURE and do not update value.
-int db_insert(int64_t key, char* value);
+int insert(tablenum_t table_id, int64_t key, char* value);
 
 /// Find key from most recent table and return value.
+/// \param table_id tablenum_t, id of the table.
 /// \param key prikey_t, key.
 /// \param value char*, value data, nullable.
 /// \return int, whether success to find data or not.
 /// if key is not found, return FAILURE.
-int db_find(int64_t key, char* ret_val);
+int find(tablenum_t table_id, int64_t key, char* ret_val);
 
 /// Delete key from table.
+/// \param table_id tablenum_t, id of the table.
 /// \param key prikey_t, key.
 /// \return int, whether success to find data or not.
-int db_delete(int64_t key);
+int delete(tablenum_t table_id, int64_t key);
 
 #endif
