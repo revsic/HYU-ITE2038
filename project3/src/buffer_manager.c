@@ -72,6 +72,7 @@ int buffer_start_read(struct buffer_t* buffer) {
     while (buffer->is_pinned < 0)
         {}
     ++buffer->is_pinned;
+    // TODO : mru update
     return SUCCESS;
 }
 
@@ -79,6 +80,7 @@ int buffer_start_write(struct buffer_t* buffer) {
     while (buffer->is_pinned != 0)
         {}
     --buffer->is_pinned;
+    // TODO : mru update
     return SUCCESS;
 }
 
