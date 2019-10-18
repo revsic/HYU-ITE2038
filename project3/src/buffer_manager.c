@@ -51,6 +51,9 @@ int buffer_load(struct buffer_t* buffer,
 }
 
 int buffer_release(struct buffer_t* buffer) {
+    while (buffer->is_pinned)
+        {}
+
     if (buffer->is_dirty) {
         CHECK_SUCCESS(
             page_write(
@@ -105,8 +108,7 @@ int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
     return SUCCESS;
 }
 
-int buffer_manager_shutdown(struct buffer_manager_t* manager)
-{
+int buffer_manager_shutdown(struct buffer_manager_t* manager) {
     int i;
     for (i = 0; i < manager->capacity; ++i) {
         if (manager->buffers[i].table_id == INVALID_TABLENUM) {
@@ -217,9 +219,8 @@ int buffer_manager_find(struct buffer_manager_t* manager,
 {
     int i;
     struct buffer_t* buffer;
-    for (i = 0; i < manager->num_buffer; ++i) {
+    for (i = 0; i < manager->capacity; ++i) {
         if (manager->buffers[i].table_id == INVALID_TABLENUM) {
-            --i;
             continue;
         }
 
