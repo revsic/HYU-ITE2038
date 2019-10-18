@@ -1,14 +1,11 @@
 #ifndef DBAPI_H
 #define DBAPI_H
 
-#include "buffer_manager.h"
-#include "table_manager.h"
+#include "dbms.h"
 
 // GLOBAL VARIABLES
 
-extern struct buffer_manager_t GLOBAL_BUFFERS;
-
-extern struct table_manager_t GLOBAL_TABLES;
+extern struct dbms_t GLOBAL_DBMS;
 
 
 // PROCEDURES
@@ -43,10 +40,10 @@ int insert(tablenum_t table_id, int64_t key, char* value);
 /// Find key from most recent table and return value.
 /// \param table_id tablenum_t, id of the table.
 /// \param key prikey_t, key.
-/// \param value char*, value data, nullable.
+/// \param retval char*, value data, nullable.
 /// \return int, whether success to find data or not.
 /// if key is not found, return FAILURE.
-int find(tablenum_t table_id, int64_t key, char* ret_val);
+int find(tablenum_t table_id, int64_t key, char* retval);
 
 /// Delete key from table.
 /// \param table_id tablenum_t, id of the table.
