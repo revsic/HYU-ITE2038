@@ -35,7 +35,7 @@ int buffer_release(struct buffer_t* buffer) {
         CHECK_SUCCESS(
             page_write(
                 buffer->pagenum,
-                &buffer->table,
+                &buffer->table->file_manager,
                 &buffer->frame));
     }
     return buffer_init(buffer);
@@ -166,7 +166,7 @@ int buffer_manager_release_lru(struct buffer_manager_t* manager) {
 
 int buffer_manager_release_mru(struct buffer_manager_t* manager) {
     int idx = manager->mru;
-    while (idx != -1 && &manager->buffers[idx].is_pinned) {
+    while (idx != -1 && manager->buffers[idx].is_pinned) {
         idx = manager->buffers[idx].prev_use;
     }
 
