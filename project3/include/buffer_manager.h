@@ -4,6 +4,18 @@
 #include "headers.h"
 #include "table_manager.h"
 
+#define BUFFER_READ(var, cont) {    \
+    buffer_start(var, READ_FLAG);   \
+    cont;                           \
+    buffer_end(var, READ_FLAG);   \
+}
+
+#define BUFFER_WRITE(var, cont) {   \
+    buffer_start(var, WRITE_FLAG);  \
+    cont;                           \
+    buffer_end(var, WRITE_FLAG);    \
+}
+
 struct page_uri_t {
     tablenum_t table_id;
     pagenum_t pagenum;
@@ -33,6 +45,11 @@ struct release_policy_t {
     int(*next_search)(struct buffer_t* buffer);
 };
 
+enum RW_FLAG {
+    READ_FLAG = 0,
+    WRITE_FLAG = 0
+};
+
 typedef int(*reader_t)(const struct page_t* page, void* param);
 
 typedef int(*writer_t)(struct page_t* page, void* param);
@@ -49,9 +66,9 @@ int buffer_load(struct buffer_t* buffer,
 
 int buffer_release(struct buffer_t* buffer);
 
-int buffer_read_api(struct buffer_t* buffer, reader_t reader, void* param);
+int buffer_start(struct buffer_t* buffer, enum RW_FLAG rw_flag);
 
-int buffer_write_api(struct buffer_t* buffer, writer_t writer, void* param);
+int buffer_end(struct buffer_t* buffer, enum RW_FLAG rw_flag);
 
 int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer);
 

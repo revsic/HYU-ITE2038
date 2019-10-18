@@ -64,29 +64,41 @@ int buffer_release(struct buffer_t* buffer) {
     return buffer_init(buffer);
 }
 
-int buffer_read_api(struct buffer_t* buffer, reader_t reader, void* param) {
-    int ret;
+int buffer_start_read(struct buffer_t* buffer) {
     while (buffer->is_pinned < 0)
         {}
-
     ++buffer->is_pinned;
-    ret = reader(&buffer->frame, param);
-    --buffer->is_pinned;
-
-    return ret;
+    return SUCCESS;
 }
 
-int buffer_write_api(struct buffer_t* buffer, writer_t writer, void* param) {
-    int ret;
+int buffer_start_write(struct buffer_t* buffer) {
     while (buffer->is_pinned != 0)
         {}
-    
     --buffer->is_pinned;
-    ret = writer(&buffer->frame, param);
+    return SUCCESS;
+}
+
+int buffer_start(struct buffer_t* buffer, enum RW_FLAG rw_flag) {
+    return rw_flag == READ_FLAG
+        ? buffer_start_read(buffer)
+        : buffer_start_write(buffer);
+}
+
+int buffer_end_read(struct buffer_t* buffer) {
+    --buffer->is_pinned;
+    return SUCCESS;
+}
+
+int buffer_end_write(struct buffer_t* buffer) {
     ++buffer->is_pinned;
     ++buffer->is_dirty;
+    return SUCCESS;
+}
 
-    return ret;
+int buffer_end(struct buffer_t* buffer, enum RW_FLAG rw_flag) {
+    return rw_flag == READ_FLAG
+        ? buffer_end_read(buffer)
+        : buffer_end_write(buffer);
 }
 
 int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
