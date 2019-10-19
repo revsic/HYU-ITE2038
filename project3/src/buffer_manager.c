@@ -54,9 +54,27 @@ int buffer_load(struct buffer_t* buffer,
     return SUCCESS;
 }
 
-int buffer_release(struct buffer_t* buffer) {
+int buffer_link_usage(struct buffer_t* buffer, struct buffer_manager_t* manager) {
+    if (buffer->next_use == -1) {
+        manager->mru = buffer->prev_use;
+    } else {
+        manager->buffers[buffer->next_use].prev_use = buffer->prev_use;
+    }
+
+    if (buffer->prev_use == -1) {
+        manager->lru = buffer->next_use;
+    } else {
+        manager->buffers[buffer->prev_use].next_use = buffer->next_use;
+    }
+    return SUCCESS;
+}
+
+int buffer_release(struct buffer_t* buffer, struct buffer_manager_t* manager) {
     while (buffer->is_pinned)
         {}
+
+    --buffer->is_pinned;
+    CHEK_SUCCESS(buffer_link_usage(buffer, manager));
 
     if (buffer->is_dirty) {
         CHECK_SUCCESS(
@@ -132,7 +150,7 @@ int buffer_manager_shutdown(struct buffer_manager_t* manager) {
         if (manager->buffers[i].table_id == INVALID_TABLENUM) {
             continue;
         }
-        buffer_release(&manager->buffers[i]);
+        buffer_release(&manager->buffers[i], manager);
     }
 
     free(manager->buffers);
@@ -193,7 +211,7 @@ int buffer_manager_release_table(struct buffer_manager_t* manager,
             continue;
         }
         if (buffer->table_id == table_id) {
-            CHECK_SUCCESS(buffer_release(buffer));
+            CHECK_SUCCESS(buffer_release(buffer, manager));
             --manager->num_buffer;
         }
     }
@@ -213,22 +231,11 @@ int buffer_manager_release(struct buffer_manager_t* manager,
     }
 
     struct buffer_t* buffer = &manager->buffers[idx];
-    if (buffer->next_use == -1) {
-        manager->mru = buffer->prev_use;
-    } else {
-        manager->buffers[buffer->next_use].prev_use = buffer->prev_use;
-    }
-
-    if (buffer->prev_use == -1) {
-        manager->lru = buffer->next_use;
-    } else {
-        manager->buffers[buffer->prev_use].next_use = buffer->next_use;
+    if (buffer_release(buffer, manager) == FAILURE) {
+        return -1;
     }
 
     manager->num_buffer -= 1;
-    if (buffer_release(buffer) == FAILURE) {
-        return -1;
-    }
     return idx;
 }
 

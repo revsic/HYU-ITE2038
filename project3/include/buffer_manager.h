@@ -84,7 +84,9 @@ int buffer_load(struct buffer_t* buffer,
                 struct table_t* table,
                 pagenum_t pagenum);
 
-int buffer_release(struct buffer_t* buffer);
+int buffer_link_usage(struct buffer_t* buffer, struct buffer_manager_t* manager);
+
+int buffer_release(struct buffer_t* buffer, struct buffer_manager_t* manager);
 
 int buffer_start(struct buffer_t* buffer, enum RW_FLAG rw_flag);
 
