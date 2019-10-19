@@ -5,7 +5,7 @@
 #include "table_manager.h"
 
 #define BUFFER_READ(var, cont) {                        \
-    EXIT_ON_FALSE(var->table_id != INVALID_TABLENUM);   \
+    EXIT_ON_FALSE((var)->table_id != INVALID_TABLENUM);   \
     buffer_start(var, READ_FLAG);                       \
     cont;                                               \
     buffer_end(var, READ_FLAG);                         \
@@ -20,7 +20,7 @@
 #define BUFFER_READ_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_READ(var, return FAILURE);
 
 #define BUFFER_WRITE(var, cont) {                       \
-    EXIT_ON_FALSE(var->table_id != INVALID_TABLENUM);   \
+    EXIT_ON_FALSE((var)->table_id != INVALID_TABLENUM);   \
     buffer_start(var, WRITE_FLAG);                      \
     cont;                                               \
     buffer_end(var, WRITE_FLAG);                        \
