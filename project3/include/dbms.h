@@ -28,6 +28,11 @@ struct buffer_t* dbms_buffering(struct dbms_t* dbms,
 struct buffer_t* dbms_buffering_from_table(struct dbms_table_t* table,
                                            pagenum_t pagenum);
 
+struct buffer_t* dbms_new_page(struct dbms_t* dbms,
+                               tablenum_t table_id);
+
+struct buffer_t* dbms_new_page_from_table(struct dbms_table_t* table);
+
 int dbms_find(struct dbms_t* dbms,
               tablenum_t table_id,
               struct record_t* record);

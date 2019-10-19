@@ -46,6 +46,16 @@ struct buffer_t* dbms_buffering_from_table(struct dbms_table_t* table,
     return dbms_buffering(table->dbms, &uri);
 }
 
+struct buffer_t* dbms_new_page(struct dbms_t* dbms,
+                               tablenum_t table_id)
+{
+    return buffer_manager_new_page(&dbms->buffers, &dbms->tables, table_id);
+}
+
+struct buffer_t* dbms_new_page_from_table(struct dbms_table_t* table) {
+    return dbms_new_page(table->dbms, table->table_id);
+}
+
 int dbms_insert(struct dbms_t* dbms,
                 tablenum_t table_id,
                 prikey_t key,
