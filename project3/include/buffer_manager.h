@@ -6,33 +6,33 @@
 
 #define BUFFER_READ(var, cont) {                        \
     EXIT_ON_FAILURE(check_ubuffer(&(var)));             \
-    buffer_start(var, READ_FLAG);                       \
+    buffer_start(var.buf, READ_FLAG);                   \
     cont;                                               \
-    buffer_end(var, READ_FLAG);                         \
+    buffer_end(var.buf, READ_FLAG);                     \
 }
 
-#define BUFFER_INTERCEPT_READ(var, cont) buffer_end(var, READ_FLAG); cont;
+#define BUFFER_INTERCEPT_READ(var, cont) buffer_end(var.buf, READ_FLAG); cont;
 
-#define BUFFER_READ_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_READ(var, return FAILURE);
+#define BUFFER_READ_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_READ(var.buf, return FAILURE);
 
-#define BUFFER_READ_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_READ(var, return FAILURE);
+#define BUFFER_READ_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_READ(var.buf, return FAILURE);
 
-#define BUFFER_READ_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_READ(var, return FAILURE);
+#define BUFFER_READ_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_READ(var.buf, return FAILURE);
 
 #define BUFFER_WRITE(var, cont) {                       \
     EXIT_ON_FAILURE(check_ubuffer(&(var)));             \
-    buffer_start(var, WRITE_FLAG);                      \
+    buffer_start(var.buf, WRITE_FLAG);                  \
     cont;                                               \
-    buffer_end(var, WRITE_FLAG);                        \
+    buffer_end(var.buf, WRITE_FLAG);                    \
 }
 
-#define BUFFER_INTERCEPT_WRITE(var, cont) buffer_end(var, WRITE_FLAG); cont;
+#define BUFFER_INTERCEPT_WRITE(var, cont) buffer_end(var.buf, WRITE_FLAG); cont;
 
-#define BUFFER_WRITE_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_WRITE(var, return FAILURE);
+#define BUFFER_WRITE_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_WRITE(var.buf, return FAILURE);
 
-#define BUFFER_WRITE_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_WRITE(var, return FAILURE);
+#define BUFFER_WRITE_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_WRITE(var.buf, return FAILURE);
 
-#define BUFFER_WRITE_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_WRITE(var, return FAILURE);
+#define BUFFER_WRITE_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_WRITE(var.buf, return FAILURE);
 
 struct page_uri_t {
     tablenum_t table_id;
@@ -50,6 +50,11 @@ struct buffer_t {
     int block_idx;
     struct table_t* table;
     struct buffer_manager_t* manager;
+};
+
+struct ubuffer_t {
+    struct buffer_t* buf;
+    uint64_t checksum;
 };
 
 struct buffer_manager_t {
@@ -78,7 +83,15 @@ extern const struct release_policy_t RELEASE_LRU;
 
 extern const struct release_policy_t RELEASE_MRU;
 
+uint64_t create_checksum(tablenum_t table_id, pagenum_t pagenum);
+
+uint64_t create_checksum_from_uri(struct page_uri_t uri);
+
+int check_ubuffer(struct ubuffer_t* buf);
+
 struct page_t* from_buffer(struct buffer_t* buffer);
+
+struct page_t* from_ubuffer(struct ubuffer_t* buffer);
 
 int buffer_init(struct buffer_t* buffer,
                 int block_idx,
@@ -119,11 +132,11 @@ int buffer_manager_release(struct buffer_manager_t* manager,
 int buffer_manager_find(struct buffer_manager_t* manager,
                         struct page_uri_t* page_uri);
 
-struct buffer_t* buffer_manager_buffering(struct buffer_manager_t* manager,
+struct ubuffer_t buffer_manager_buffering(struct buffer_manager_t* manager,
                                           struct table_manager_t* tables,
                                           struct page_uri_t* page_uri);
 
-struct buffer_t* buffer_manager_new_page(struct buffer_manager_t* manager,
+struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
                                          struct table_manager_t* tables,
                                          tablenum_t table_id);
 
