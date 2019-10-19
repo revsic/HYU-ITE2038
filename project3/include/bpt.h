@@ -65,9 +65,9 @@ int commit_page(pagenum_t pagenum,
                 struct file_manager_t* manager);
 
 /// Swap page pair.
-/// \param left struct page_pair_t*, left page.
-/// \param right struct page_pair_t*, right page.
-void swap_page_pair(struct page_pair_t* left, struct page_pair_t* right);
+/// \param left struct ubuffer_t*, left page.
+/// \param right struct ubuffer_t*, right page.
+void swap_ubuffer(struct ubuffer_t* left, struct ubuffer_t* right);
 
 
 // UTILITY
@@ -280,52 +280,52 @@ int bpt_insert(prikey_t key,
 // DELETION
 
 /// Shrink root page if it is blank.
-/// \param manager struct file_manager_t*, file mangaer.
+/// \param table struct dbms_table_t*, table accessor.
 /// \return int, whether success to shrink root or not.
-int shrink_root(struct file_manager_t* manager);
+int shrink_root(struct dbms_table_t* table);
 /// Merge two nodes into one node.
-/// \param left struct page_pair_t*, lett child.
+/// \param left struct ubuffer_t*, lett child.
 /// \param key_prime prikey_t, parent key for merging two nodes.
-/// \param right struct page_pair_t*, right child.
-/// \param parent struct page_pair_t*, parent page.
-/// \param manager struct file_manager_t*, file mangaer.
+/// \param right struct ubuffer_t*, right child.
+/// \param parent struct ubuffer_t*, parent page.
+/// \param table struct dbms_tale_t*, table accessor.
 /// \return int, whether success to merge nodes or not.
-int merge_nodes(struct page_pair_t* left,
+int merge_nodes(struct ubuffer_t* left,
                 prikey_t k_prime,
-                struct page_pair_t* right,
-                struct page_pair_t* parent,
-                struct file_manager_t* manager);
+                struct ubuffer_t* right,
+                struct ubuffer_t* parent,
+                struct dbms_table_t* table);
 /// Redistribute records or entries from one node to other node.
-/// \param left struct page_pair_t*, lett child.
+/// \param left struct ubuffer_t*, lett child.
 /// \param key_prime prikey_t, parent key for merging two nodes.
 /// \param key_prim_index int, index of the `key_prime` from parent node.
-/// \param right struct page_pair_t*, right child.
-/// \param parent struct page_pair_t*, parent page.
-/// \param manager struct file_manager_t*, file mangaer.
+/// \param right struct ubuffer_t*, right child.
+/// \param parent struct ubuffer_t*, parent page.
+/// \param table struct dbms_tale_t*, table accessor.
 /// \return int, whether success to redistribute key or not.
-int redistribute_nodes(struct page_pair_t* left,
+int redistribute_nodes(struct ubuffer_t* left,
                        prikey_t k_prime,
                        int k_prime_index,
-                       struct page_pair_t* right,
-                       struct page_pair_t* parent,
-                       struct file_manager_t* manager);
+                       struct ubuffer_t* right,
+                       struct ubuffer_t* parent,
+                       struct dbms_table_t* table);
 /// Delete key from given page with several rebalancing policy.
 /// \param key prikey_t, target key.
-/// \param page struct page_pair_t*, target page.
-/// \param manager struct file_manager_t*, file manager.
+/// \param page struct ubuffer_t*, target page.
+/// \param table struct dbms_tale_t*, table accessor.
 /// \return int, whether success to delete key or not.
 int delete_entry(prikey_t key,
-                 struct page_pair_t* page,
-                 struct file_manager_t* manager);
+                 struct ubuffer_t* page,
+                 struct dbms_table_t* table);
 /// Mother function, delete key from tree.
 /// \param key prikey_t, target key.
-/// \param manager struct file_manager_t*, file manager.
+/// \param table struct dbms_tale_t*, table accessor.
 /// \return int, whether success to delete key or not.
-int bpt_delete(prikey_t key, struct file_manager_t* manager);
+int bpt_delete(prikey_t key, struct dbms_table_t* table);
 
 /// Free all tree pages to make empty tree.
-/// \param manager struct file_manager_t*, file manager.
+/// \param table struct dbms_table_t*, table accessor.
 /// \return int, whether success to destroy tree or not.
-int destroy_tree(struct file_manager_t* manager);
+int destroy_tree(struct dbms_table_t* table);
 
 #endif /* __BPT_H__*/
