@@ -14,19 +14,6 @@ struct dbms_table_t {
     tablenum_t table_id;
 };
 
-struct ubuffer_t {
-    struct buffer_t* buf;
-    uint64_t checksum;
-};
-
-uint64_t create_checksum(tablenum_t table_id, pagenum_t pagenum);
-
-uint64_t create_checksum_from_uri(struct page_uri_t uri);
-
-int check_ubuffer(struct ubuffer_t* buf);
-
-struct page_t* from_ubuffer(struct ubuffer_t* buffer);
-
 int dbms_init(struct dbms_t* dbms, int num_buffer);
 
 int dbms_shutdown(struct dbms_t* dbms);

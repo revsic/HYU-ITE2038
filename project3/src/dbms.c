@@ -1,25 +1,6 @@
 #include "bpt.h"
 #include "dbms.h"
 
-uint64_t create_checksum(tablenum_t table_id, pagenum_t pagenum) {
-    return ((uint64_t)table_id << 32) + pagenum;
-}
-
-uint64_t create_checksum_from_uri(struct page_uri_t uri) {
-    return create_checksum(uri.table_id, uri.pagenum);
-}
-
-int check_ubuffer(struct ubuffer_t* buf) {
-    CHECK_NULL(buf);
-    uint64_t checksum = create_checksum(buf->buf->table_id, buf->buf->pagenum);
-    CHECK_TRUE(buf->checksum == checksum);
-    return SUCCESS;
-}
-
-struct page_t* from_ubuffer(struct ubuffer_t* buffer) {
-    return from_buffer(buffer->buf);
-}
-
 int dbms_init(struct dbms_t* dbms, int num_buffer) {
     buffer_manager_init(&dbms->buffers, num_buffer);
     table_manager_init(&dbms->tables);
@@ -45,9 +26,7 @@ int dbms_close_table(struct dbms_t* dbms, tablenum_t table_id) {
 struct ubuffer_t dbms_buffering(struct dbms_t* dbms,
                                 struct page_uri_t* page_uri)
 {
-    struct buffer_t* buf = buffer_manager_buffering(&dbms->buffers, &dbms->tables, page_uri);
-    struct ubuffer_t ret = { buf, create_checksum_from_uri(*page_uri) };
-    return ret;
+    return buffer_manager_buffering(&dbms->buffers, &dbms->tables, page_uri);
 }
 
 struct ubuffer_t dbms_buffering_from_table(struct dbms_table_t* table,
@@ -60,9 +39,7 @@ struct ubuffer_t dbms_buffering_from_table(struct dbms_table_t* table,
 struct ubuffer_t dbms_new_page(struct dbms_t* dbms,
                                tablenum_t table_id)
 {
-    struct buffer_t* buf = buffer_manager_new_page(&dbms->buffers, &dbms->tables, table_id);
-    struct ubuffer_t ret = { buf, create_checksum(table_id, buf->pagenum) };
-    return ret;
+    return buffer_manager_new_page(&dbms->buffers, &dbms->tables, table_id);
 }
 
 struct ubuffer_t dbms_new_page_from_table(struct dbms_table_t* table) {
