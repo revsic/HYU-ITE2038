@@ -42,6 +42,9 @@
 /// Return FAILURE if given is not SUCCESS.
 #define CHECK_SUCCESS(x) if ((x) != SUCCESS) { return FAILURE; }
 
+/// Exit process if given is FALSE.
+#define EXIT_ON_FALSE(x) if ((x) == FALSE) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(FAILURE); }
+
 /// Exit process if given is NULL.
 #define EXIT_ON_NULL(x) if ((x) == NULL) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(FAILURE); }
 
