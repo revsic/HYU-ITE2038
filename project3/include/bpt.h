@@ -126,19 +126,19 @@ int cut(int length);
 
 /// Find leaf page where given key can exist.
 /// \param key prikey_t, searching key.
-/// \param buffer struct buffer_t**, returned buffer pointer, nullable.
+/// \param buffer struct ubuffer_t*, returned buffer, nullable.
 /// \param table struct dbms_table_t*, table accessor.
 /// \return pagenum_t, page ID of leaf page.
 pagenum_t find_leaf(prikey_t key,
-                    struct buffer_t** buffer,
+                    struct ubuffer_t* buffer,
                     struct dbms_table_t* table);
 /// Find key from leaf page.
 /// \param key prikey_t, searching key.
-/// \param buffer struct buffer_t*, target leaf page.
+/// \param buffer struct ubuffer_t, target leaf page.
 /// \param record struct record_t*, returned record.
 /// \return int, whether key exists or not.
 int find_key_from_leaf(prikey_t key,
-                       struct buffer_t* buffer,
+                       struct ubuffer_t buffer,
                        struct record_t* record);
 /// Find key from tree.
 /// \param key prikey_t, searching key.
@@ -192,10 +192,10 @@ void find_and_print_range(prikey_t range1,
 /// \return int, whether success to write record or not.
 int make_record(struct record_t* record, prikey_t key, uint8_t* value, int value_size);
 /// Create new page.
-/// \param manager struct manager_t*, file manager.
+/// \param table struct dbms_table_t*, table accessor.
 /// \param leaf int, whether leaf page or not.
-/// \return pagenum_t, created page ID.
-pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf);
+/// \return struct buffer_t*, created page buffer.
+struct buffer_t* make_node(struct dbms_table_t* table, uint32_t leaf);
 
 /// Get index of given page ID from parent key array.
 /// \param parent struct page_t*, parent page.

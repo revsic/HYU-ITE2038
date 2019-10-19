@@ -125,13 +125,13 @@ int record_vec_append(struct record_vec_t* vec, struct record_t* rec) {
 
 int height(struct dbms_table_t* table, pagenum_t pagenum) {
     int h, is_leaf;
-    struct buffer_t* buffer;
+    struct ubuffer_t buffer;
 
     for (h = 0, is_leaf = FALSE; !is_leaf; ++h) {
-        EXIT_ON_NULL(buffer = dbms_buffering_from_table(table, pagenum));
+        buffer = dbms_buffering_from_table(table, pagenum);
         BUFFER_READ(buffer, {
-            is_leaf = page_header(from_buffer(buffer))->is_leaf;
-            pagenum = page_header(from_buffer(buffer))->special_page_number;
+            is_leaf = page_header(from_ubuffer(&buffer))->is_leaf;
+            pagenum = page_header(from_ubuffer(&buffer))->special_page_number;
         })
     }
 
@@ -141,16 +141,16 @@ int height(struct dbms_table_t* table, pagenum_t pagenum) {
 int path_to_root(struct dbms_table_t* table, pagenum_t pagenum) {
     int length;
     pagenum_t root;
-    struct buffer_t* buffer;
-    EXIT_ON_NULL(buffer = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM));
+    struct ubuffer_t buffer;
+    buffer = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM);
     BUFFER_READ(buffer, {
-        root = file_header(from_buffer(buffer))->root_page_number;
+        root = file_header(from_ubuffer(&buffer))->root_page_number;
     })
 
     for (length = 0; root != pagenum; ++length) {
-        EXIT_ON_NULL(buffer = dbms_buffering_from_table(table, pagenum));
+        buffer = dbms_buffering_from_table(table, pagenum);
         BUFFER_READ(buffer, {
-            pagenum = page_header(from_buffer(buffer))->parent_page_number;
+            pagenum = page_header(from_ubuffer(&buffer))->parent_page_number;
         })
     }
 
@@ -169,12 +169,12 @@ int cut(int length) {
 // Search.
 
 pagenum_t find_leaf(prikey_t key,
-                    struct buffer_t** buffer,
+                    struct ubuffer_t* buffer,
                     struct dbms_table_t* table)
 {
     int i = 0;
     pagenum_t root, c;
-    struct buffer_t* tmp;
+    struct ubuffer_t tmp;
     struct record_t* rec;
     struct internal_t* ent;
     struct page_header_t* header;
@@ -182,9 +182,9 @@ pagenum_t find_leaf(prikey_t key,
         buffer = &tmp;
     }
 
-    EXIT_ON_NULL(*buffer = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM));
+    *buffer = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM);
     BUFFER_READ(*buffer, {
-        root = file_header(from_buffer(*buffer))->root_page_number;
+        root = file_header(from_ubuffer(buffer))->root_page_number;
     })
 
     if (root == INVALID_PAGENUM) {
@@ -196,12 +196,11 @@ pagenum_t find_leaf(prikey_t key,
 
     c = root;
     while (TRUE) {
-        EXIT_ON_NULL(*buffer = dbms_buffering_from_table(table, c));
-
-        ent = entries(from_buffer(*buffer));
-        header = page_header(from_buffer(*buffer));
-
+        *buffer = dbms_buffering_from_table(table, c);
         BUFFER_READ(*buffer, {
+            ent = entries(from_ubuffer(buffer));
+            header = page_header(from_ubuffer(buffer));
+
             if (!header->is_leaf) {
                 BUFFER_INTERCEPT_READ(*buffer, break);
             }
@@ -232,7 +231,7 @@ pagenum_t find_leaf(prikey_t key,
 
     if (VERBOSE_OUTPUT) {
         BUFFER_READ(*buffer, {
-            header = page_header(from_buffer(*buffer));
+            header = page_header(from_ubuffer(buffer));
             rec = records(header);
 
             printf("Leaf [");
@@ -247,13 +246,13 @@ pagenum_t find_leaf(prikey_t key,
 }
 
 int find_key_from_leaf(prikey_t key,
-                       struct buffer_t* buffer,
+                       struct ubuffer_t buffer,
                        struct record_t* record)
 {
     int i, num_key, is_leaf;
     struct page_t* page;
     BUFFER_READ(buffer, {
-        page = from_buffer(buffer);
+        page = from_ubuffer(&buffer);
         if (!page_header(page)->is_leaf) {
             BUFFER_INTERCEPT_READ(buffer, return FAILURE);
         }
@@ -279,7 +278,7 @@ int bpt_find(prikey_t key,
              struct dbms_table_t* table)
 {
     int i = 0;
-    struct buffer_t* buffer;
+    struct ubuffer_t buffer;
     pagenum_t c = find_leaf(key, &buffer, table);
     if (c == INVALID_PAGENUM) {
         return FAILURE;
@@ -295,15 +294,15 @@ int bpt_find_range(prikey_t start,
 {
     int i, num_key;
     struct record_t* rec;
-    struct buffer_t *buffer, *tmp;
+    struct ubuffer_t buffer, tmp;
     pagenum_t n = find_leaf(start, &buffer, table);
     if (n == INVALID_PAGENUM) {
         return FAILURE;
     }
 
     BUFFER_READ(buffer, {
-        rec = records(from_buffer(buffer));
-        num_key = page_header(from_buffer(buffer))->number_of_keys;
+        rec = records(from_ubuffer(&buffer));
+        num_key = page_header(from_ubuffer(&buffer))->number_of_keys;
         for (i = 0; i < num_key && rec[i].key < start; ++i)
             {}
     })
@@ -314,19 +313,20 @@ int bpt_find_range(prikey_t start,
 
     while (TRUE) {
         BUFFER_READ(buffer, {
-            rec = records(from_buffer(buffer));
-            num_key = page_header(from_buffer(buffer))->number_of_keys;
+            rec = records(from_ubuffer(&buffer));
+            num_key = page_header(from_ubuffer(&buffer))->number_of_keys;
 
             for (; i < num_key && rec[i].key <= end; i++) {
                 BUFFER_READ_CHECK_SUCCESS(buffer, record_vec_append(retval, &rec[i]));
             }
 
-            n = page_header(from_buffer(buffer))->special_page_number;
+            n = page_header(from_ubuffer(&buffer))->special_page_number;
             if ((i < num_key && rec[i].key > end) || n == INVALID_PAGENUM) {
                 BUFFER_INTERCEPT_READ(buffer, break);
             }
 
-            BUFFER_READ_CHECK_NULL(buffer, tmp = dbms_buffering_from_table(table, n));
+            tmp = dbms_buffering_from_table(table, n);
+            BUFFER_READ_CHECK_NULL(buffer, tmp.buf);
         })
         i = 0;
         buffer = tmp;
@@ -340,13 +340,10 @@ int bpt_find_range(prikey_t start,
 
 void print_leaves(struct dbms_table_t* table) {
     int i, is_leaf;
-    pagenum_t pagenum;
-    struct buffer_t* buffer;
-    EXIT_ON_NULL(buffer = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM));
-
-    pagenum_t root;
+    pagenum_t pagenum, root;
+    struct ubuffer_t buffer = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM);
     BUFFER_READ(buffer, {
-        root = file_header(from_buffer(buffer))->root_page_number;
+        root = file_header(from_ubuffer(&buffer))->root_page_number;
     })
 
     if (root == INVALID_PAGENUM) {
@@ -357,10 +354,10 @@ void print_leaves(struct dbms_table_t* table) {
     is_leaf = FALSE;
     pagenum = root;
     while (!is_leaf) {
-        EXIT_ON_NULL(buffer = dbms_buffering_from_table(table, pagenum));
+        buffer = dbms_buffering_from_table(table, pagenum);
         BUFFER_READ(buffer, {
-            is_leaf = page_header(from_buffer(buffer))->is_leaf;
-            pagenum = page_header(from_buffer(buffer))->special_page_number;
+            is_leaf = page_header(from_ubuffer(&buffer))->is_leaf;
+            pagenum = page_header(from_ubuffer(&buffer))->special_page_number;
         })
     }
 
@@ -368,9 +365,9 @@ void print_leaves(struct dbms_table_t* table) {
     struct record_t* rec;
     while (1) {
         BUFFER_READ(buffer, {
-            rec = records(from_buffer(buffer));
-            num_key = page_header(from_buffer(buffer))->number_of_keys;
-            pagenum = page_header(from_buffer(buffer))->special_page_number;
+            rec = records(from_ubuffer(&buffer));
+            num_key = page_header(from_ubuffer(&buffer))->number_of_keys;
+            pagenum = page_header(from_ubuffer(&buffer))->special_page_number;
 
             for (i = 0; i < num_key; ++i) {
                 printf("%ld ", rec[i].key);
@@ -386,7 +383,7 @@ void print_leaves(struct dbms_table_t* table) {
 
         if (pagenum != INVALID_PAGENUM) {
             printf(" | ");
-            EXIT_ON_NULL(buffer = dbms_buffering_from_table(table, pagenum));
+            buffer = dbms_buffering_from_table(table, pagenum);
         } else {
             break;
         }
@@ -402,10 +399,10 @@ void print_tree(struct dbms_table_t* table) {
     struct record_t* rec;
     struct internal_t* ent;
 
-    struct buffer_t *buffer, *tmp;
-    EXIT_ON_NULL(buffer = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM));
+    struct ubuffer_t buffer, tmp;
+    buffer = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM);
     BUFFER_READ(buffer, {
-        root = file_header(from_buffer(buffer))->root_page_number;
+        root = file_header(from_ubuffer(&buffer))->root_page_number;
     })
 
     if (root == INVALID_PAGENUM) {
@@ -418,16 +415,15 @@ void print_tree(struct dbms_table_t* table) {
     while (queue != NULL) {
         queue = dequeue(queue, &n);
 
-        EXIT_ON_NULL(buffer = dbms_buffering_from_table(table, n));
+        buffer = dbms_buffering_from_table(table, n);
         BUFFER_READ(buffer, {
-            pheader = page_header(from_buffer(buffer));
+            pheader = page_header(from_ubuffer(&buffer));
             if (pheader->parent_page_number != INVALID_PAGENUM) {
-                EXIT_ON_NULL(
-                    tmp = dbms_buffering_from_table(
-                        table,
-                        pheader->parent_page_number));
+                tmp = dbms_buffering_from_table(
+                    table,
+                    pheader->parent_page_number));
                 BUFFER_READ(tmp, {
-                    if (n == page_header(from_buffer(tmp))->special_page_number) {
+                    if (n == page_header(from_ubuffer(&tmp))->special_page_number) {
                         new_rank = path_to_root(table, n);
                         if (new_rank != rank) {
                             rank = new_rank;
@@ -444,8 +440,8 @@ void print_tree(struct dbms_table_t* table) {
                 }
             }
 
-            rec = records(from_buffer(buffer));
-            ent = entries(from_buffer(buffer));
+            rec = records(from_ubuffer(&buffer));
+            ent = entries(from_ubuffer(&buffer));
             for (i = 0; i < pheader->number_of_keys; i++) {
                 if (pheader->is_leaf) {
                     printf("%ld ", rec[i].key);
@@ -469,7 +465,6 @@ void print_tree(struct dbms_table_t* table) {
                 }
             }
 
-            
             if (VERBOSE_OUTPUT && pheader->is_leaf) {
                 printf("(parent %lu, next %lu) ",
                     pheader->parent_page_number, pheader->special_page_number);
@@ -489,7 +484,6 @@ void find_and_print(prikey_t key, struct dbms_table_t* table) {
         printf("Record -- key %ld, value %s.\n", key, r.value);
     }
 }
-
 
 void find_and_print_range(prikey_t range1,
                           prikey_t range2,
@@ -521,17 +515,18 @@ int make_record(struct record_t* record, prikey_t key, uint8_t* value, int value
     return SUCCESS;
 }
 
-pagenum_t make_node(struct file_manager_t* manager, uint32_t leaf) {
-    pagenum_t new_node = page_create(manager);
-    if (new_node == INVALID_PAGENUM) {
-        perror("Node creation.");
-        exit(FAILURE);
+struct buffer_t* make_node(struct dbms_table_t* table, uint32_t leaf) {
+    struct buffer_t* buffer = dbms_new_page_from_table(table);
+    if (buffer == NULL) {
+        return NULL;
     }
 
-    struct page_t page;
-    EXIT_ON_FAILURE(page_init(&page, leaf));
-    EXIT_ON_FAILURE(commit_page(new_node, &page, manager));
-    return new_node;
+    struct page_t* page = from_ubuffer(&buffer);
+    BUFFER_WRITE(buffer, {
+        EXIT_ON_FAILURE(page_init(page, leaf));
+    })
+
+    return buffer;
 }
 
 int get_index(struct page_t* parent, pagenum_t pagenum) {
