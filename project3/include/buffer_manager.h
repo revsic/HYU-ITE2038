@@ -47,7 +47,9 @@ struct buffer_t {
     uint32_t is_pinned;
     int prev_use;
     int next_use;
+    int block_idx;
     struct table_t* table;
+    struct buffer_manager_t* manager;
 };
 
 struct buffer_manager_t {
@@ -78,15 +80,19 @@ extern const struct release_policy_t RELEASE_MRU;
 
 struct page_t* from_buffer(struct buffer_t* buffer);
 
-int buffer_init(struct buffer_t* buffer);
+int buffer_init(struct buffer_t* buffer,
+                int block_idx,
+                struct block_manager_t* manager);
 
 int buffer_load(struct buffer_t* buffer,
                 struct table_t* table,
                 pagenum_t pagenum);
 
-int buffer_link_usage(struct buffer_t* buffer, struct buffer_manager_t* manager);
+int buffer_link_neighbor(struct buffer_t* buffer);
 
-int buffer_release(struct buffer_t* buffer, struct buffer_manager_t* manager);
+int buffer_append_mru(struct buffer_t* buffer);
+
+int buffer_release(struct buffer_t* buffer);
 
 int buffer_start(struct buffer_t* buffer, enum RW_FLAG rw_flag);
 

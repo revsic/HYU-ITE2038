@@ -28,14 +28,19 @@ struct page_t* from_buffer(struct buffer_t* buffer) {
     return &buffer->frame;
 }
 
-int buffer_init(struct buffer_t* buffer) {
+int buffer_init(struct buffer_t* buffer,
+                int block_idx,
+                struct block_manager_t* manager)
+{
     buffer->table_id = INVALID_TABLENUM;
     buffer->pagenum = INVALID_PAGENUM;
     buffer->is_dirty = FALSE;
     buffer->is_pinned = FALSE;
     buffer->prev_use = -1;
     buffer->next_use = -1;
+    buffer->block_idx = block_idx;
     buffer->table = NULL;
+    buffer->manager = manager;
     return SUCCESS;
 }
 
@@ -43,18 +48,18 @@ int buffer_load(struct buffer_t* buffer,
                 struct table_t* table,
                 pagenum_t pagenum)
 {
+    // buffer must be initialized by buffer_init
     CHECK_SUCCESS(page_read(pagenum, &table->file_manager, &buffer->frame));
     buffer->table_id = table->table_id;
     buffer->pagenum = pagenum;
-    buffer->is_dirty = FALSE;
-    buffer->is_pinned = FALSE;
-    buffer->prev_use = -1;
-    buffer->next_use = -1;
     buffer->table = table;
     return SUCCESS;
 }
 
-int buffer_link_usage(struct buffer_t* buffer, struct buffer_manager_t* manager) {
+int buffer_link_neighbor(struct buffer_t* buffer) {
+    struct buffer_manager_t* manager;
+    CHECK_NULL(manager = buffer->manager);
+
     if (buffer->next_use == -1) {
         manager->mru = buffer->prev_use;
     } else {
@@ -69,12 +74,26 @@ int buffer_link_usage(struct buffer_t* buffer, struct buffer_manager_t* manager)
     return SUCCESS;
 }
 
-int buffer_release(struct buffer_t* buffer, struct buffer_manager_t* manager) {
+int buffer_append_mru(struct buffer_t* buffer) {
+    int mru;
+    struct buffer_manager_t* manager;
+    CHECK_NULL(manager = buffer->manager);
+    CHECK_SUCCESS(buffer_link_neighbor(buffer));
+
+    if (manager->mru != -1) {
+        manager->buffers[manager->mru].next_use = buffer->block_idx;
+    }
+    buffer->prev_use = manager->mru;
+    manager->mru = buffer->block_idx;
+    return SUCCESS;
+}
+
+int buffer_release(struct buffer_t* buffer) {
     while (buffer->is_pinned)
         {}
 
     --buffer->is_pinned;
-    CHEK_SUCCESS(buffer_link_usage(buffer, manager));
+    CHEK_SUCCESS(buffer_link_neighbor(buffer));
 
     if (buffer->is_dirty) {
         CHECK_SUCCESS(
@@ -83,14 +102,14 @@ int buffer_release(struct buffer_t* buffer, struct buffer_manager_t* manager) {
                 &buffer->table->file_manager,
                 &buffer->frame));
     }
-    return buffer_init(buffer);
+    return buffer_init(buffer, buffer->block_idx, buffer->manager);
 }
 
 int buffer_start_read(struct buffer_t* buffer) {
     while (buffer->is_pinned < 0)
         {}
     ++buffer->is_pinned;
-    // TODO : mru update
+    CHECK_SUCCESS(buffer_append_mru(buffer));
     return SUCCESS;
 }
 
@@ -98,7 +117,7 @@ int buffer_start_write(struct buffer_t* buffer) {
     while (buffer->is_pinned != 0)
         {}
     --buffer->is_pinned;
-    // TODO : mru update
+    CHECK_SUCCESS(buffer_append_mru(buffer));
     return SUCCESS;
 }
 
@@ -139,7 +158,7 @@ int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
     }
     
     for (i = 0; i < manager->capacity; ++i) {
-        CHECK_SUCCESS(buffer_init(&manager->buffers[i]));
+        CHECK_SUCCESS(buffer_init(&manager->buffers[i], i, manager));
     }
     return SUCCESS;
 }
@@ -150,7 +169,7 @@ int buffer_manager_shutdown(struct buffer_manager_t* manager) {
         if (manager->buffers[i].table_id == INVALID_TABLENUM) {
             continue;
         }
-        buffer_release(&manager->buffers[i], manager);
+        buffer_release(&manager->buffers[i]);
     }
 
     free(manager->buffers);
@@ -187,7 +206,6 @@ int buffer_manager_load(struct buffer_manager_t* manager,
         return -1;
     }
 
-    buffer->next_use = -1;
     buffer->prev_use = manager->mru;
     if (manager->mru == -1) {
         manager->lru = idx;
@@ -211,7 +229,7 @@ int buffer_manager_release_table(struct buffer_manager_t* manager,
             continue;
         }
         if (buffer->table_id == table_id) {
-            CHECK_SUCCESS(buffer_release(buffer, manager));
+            CHECK_SUCCESS(buffer_release(buffer));
             --manager->num_buffer;
         }
     }
@@ -231,7 +249,7 @@ int buffer_manager_release(struct buffer_manager_t* manager,
     }
 
     struct buffer_t* buffer = &manager->buffers[idx];
-    if (buffer_release(buffer, manager) == FAILURE) {
+    if (buffer_release(buffer) == FAILURE) {
         return -1;
     }
 
