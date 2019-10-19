@@ -11,11 +11,21 @@
     buffer_end(var, READ_FLAG);                         \
 }
 
+#define BUFFER_INTERCEPT_READ(var, retval) {            \
+    buffer_end(var, READ_FLAG);                         \
+    return retval;                                      \
+}
+
 #define BUFFER_WRITE(var, cont) {                       \
     EXIT_ON_FALSE(var->table_id != INVALID_TABLENUM);   \
     buffer_start(var, WRITE_FLAG);                      \
     cont;                                               \
     buffer_end(var, WRITE_FLAG);                        \
+}
+
+#define BUFFER_INTERCEPT_WRITE(var, retval) {           \
+    buffer_end(var, WRITE_FLAG);                        \
+    return retval;                                      \
 }
 
 struct page_uri_t {
