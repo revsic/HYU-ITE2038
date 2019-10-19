@@ -28,8 +28,8 @@ uint64_t create_checksum(tablenum_t table_id, pagenum_t pagenum) {
     return ((uint64_t)table_id << 32) + pagenum;
 }
 
-uint64_t create_checksum_from_uri(struct page_uri_t uri) {
-    return create_checksum(uri.table_id, uri.pagenum);
+uint64_t create_checksum_from_uri(struct page_uri_t* uri) {
+    return create_checksum(uri->table_id, uri->pagenum);
 }
 
 int check_ubuffer(struct ubuffer_t* buf) {
@@ -320,7 +320,7 @@ struct ubuffer_t buffer_manager_buffering(struct buffer_manager_t* manager,
                                           struct table_manager_t* tables,
                                           struct page_uri_t* page_uri)
 {
-    struct ubuffer_t ubuf = { NULL, create_checksum_from_uri(*page_uri) };
+    struct ubuffer_t ubuf = { NULL, create_checksum_from_uri(page_uri) };
     int idx = buffer_manager_find(manager, page_uri);
     if (idx == -1) {
         idx = buffer_manager_load(manager, tables, page_uri);
