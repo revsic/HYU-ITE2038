@@ -16,6 +16,12 @@
     return retval;                                      \
 }
 
+#define BUFFER_READ_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_READ(var, FAILURE);
+
+#define BUFFER_READ_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_READ(var, FAILURE);
+
+#define BUFFER_READ_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_READ(var, FAILURE);
+
 #define BUFFER_WRITE(var, cont) {                       \
     EXIT_ON_FALSE(var->table_id != INVALID_TABLENUM);   \
     buffer_start(var, WRITE_FLAG);                      \
@@ -27,6 +33,12 @@
     buffer_end(var, WRITE_FLAG);                        \
     return retval;                                      \
 }
+
+#define BUFFER_WRITE_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_WRITE(var, FAILURE);
+
+#define BUFFER_WRITE_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_WRITE(var, FAILURE);
+
+#define BUFFER_WRITE_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_WRITE(var, FAILURE);
 
 struct page_uri_t {
     tablenum_t table_id;
