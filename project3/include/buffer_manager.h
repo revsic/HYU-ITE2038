@@ -88,6 +88,8 @@ int buffer_load(struct buffer_t* buffer,
                 struct table_t* table,
                 pagenum_t pagenum);
 
+int buffer_new_page(struct buffer_t* buffer, struct table_t* table);
+
 int buffer_link_neighbor(struct buffer_t* buffer);
 
 int buffer_append_mru(struct buffer_t* buffer);
@@ -101,6 +103,8 @@ int buffer_end(struct buffer_t* buffer, enum RW_FLAG rw_flag);
 int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer);
 
 int buffer_manager_shutdown(struct buffer_manager_t* manager);
+
+int buffer_manager_alloc(struct buffer_manager_t* manager);
 
 int buffer_manager_load(struct buffer_manager_t* manager,
                         struct table_manager_t* tables,
@@ -118,5 +122,9 @@ int buffer_manager_find(struct buffer_manager_t* manager,
 struct buffer_t* buffer_manager_buffering(struct buffer_manager_t* manager,
                                           struct table_manager_t* tables,
                                           struct page_uri_t* page_uri);
+
+struct buffer_t* buffer_manager_new_page(struct buffer_manager_t* manager,
+                                         struct table_manager_t* tables,
+                                         tablenum_t table_id);
 
 #endif

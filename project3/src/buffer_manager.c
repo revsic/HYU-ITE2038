@@ -56,6 +56,14 @@ int buffer_load(struct buffer_t* buffer,
     return SUCCESS;
 }
 
+int buffer_new_page(struct buffer_t* buffer, struct table_t* table) {
+    pagenum_t res = page_create(&table->file_manager);
+    if (res == INVALID_PAGENUM) {
+        return FAILURE;
+    }
+    return buffer_load(buffer, table, res);
+}
+
 int buffer_link_neighbor(struct buffer_t* buffer) {
     struct buffer_manager_t* manager;
     CHECK_NULL(manager = buffer->manager);
@@ -177,6 +185,24 @@ int buffer_manager_shutdown(struct buffer_manager_t* manager) {
     return SUCCESS;
 }
 
+int buffer_manager_alloc(struct buffer_manager_t* manager) {
+    int idx;
+    if (manager->num_buffer < manager->capacity) {
+        for (idx = 0;
+             idx < manager->capacity
+                && manager->buffers[idx].table_id == INVALID_TABLENUM;
+             ++idx)
+            {}
+    } else {
+        idx = buffer_manager_release(manager, &RELEASE_LRU);
+        if (idx == -1) {
+            return -1;
+        }
+    }
+    manager->num_buffer += 1;
+    return idx;
+}
+
 int buffer_manager_load(struct buffer_manager_t* manager,
                         struct table_manager_t* tables,
                         struct page_uri_t* page_uri)
@@ -188,21 +214,15 @@ int buffer_manager_load(struct buffer_manager_t* manager,
         return -1;
     }
 
-    if (manager->num_buffer >= manager->capacity) {
-        idx = buffer_manager_release(manager, &RELEASE_LRU);
-        if (idx == -1) {
-            return -1;
-        }
-    } else {
-        for (idx = 0;
-             idx < manager->capacity
-                && manager->buffers[idx].table_id == INVALID_TABLENUM;
-             ++idx)
-            {}
+    idx = buffer_manager_alloc(manager);
+    if (idx == -1) {
+        return -1;
     }
 
     buffer = &manager->buffers[idx];
     if (buffer_load(buffer, table, page_uri->pagenum) == FAILURE) {
+        --manager->num_buffer;
+        buffer_init(buffer, idx, manager);    
         return -1;
     }
 
@@ -214,7 +234,6 @@ int buffer_manager_load(struct buffer_manager_t* manager,
     }
 
     manager->mru = idx;
-    manager->num_buffer += 1;
     return idx;
 }
 
@@ -290,4 +309,28 @@ struct buffer_t* buffer_manager_buffering(struct buffer_manager_t* manager,
         }
     }
     return &manager->buffers[idx];
+}
+
+struct buffer_t* buffer_manager_new_page(struct buffer_manager_t* manager,
+                                         struct table_manager_t* tables,
+                                         tablenum_t table_id)
+{
+    struct table_t* table = table_manager_find(tables, table_id);
+    if (table == NULL) {
+        return NULL;
+    }
+
+    int idx = buffer_manager_alloc(manager);
+    if (idx == -1) {
+        return NULL;
+    }
+
+    struct buffer_t* buffer = &manager->buffers[idx];
+    if (buffer_new_page(buffer, table) == FAILURE) {
+        --manager->num_buffer;
+        buffer_init(buffer, idx, manager);
+        return NULL;
+    }
+
+    return buffer;
 }
