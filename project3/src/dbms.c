@@ -39,6 +39,13 @@ int dbms_find(struct dbms_t* dbms,
     return bpt_find(record->key, record, &table->file_manager);
 }
 
+struct buffer_t* dbms_buffering_from_table(struct dbms_table_t* table,
+                                           pagenum_t pagenum)
+{
+    struct page_uri_t uri = { table->table_id, pagenum };
+    return dbms_buffering(table->dbms, &uri);
+}
+
 int dbms_insert(struct dbms_t* dbms,
                 tablenum_t table_id,
                 prikey_t key,
