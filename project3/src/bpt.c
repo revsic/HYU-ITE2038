@@ -515,10 +515,10 @@ int make_record(struct record_t* record, prikey_t key, uint8_t* value, int value
     return SUCCESS;
 }
 
-struct buffer_t* make_node(struct dbms_table_t* table, uint32_t leaf) {
-    struct buffer_t* buffer = dbms_new_page_from_table(table);
-    if (buffer == NULL) {
-        return NULL;
+struct ubuffer_t make_node(struct dbms_table_t* table, uint32_t leaf) {
+    struct ubuffer_t buffer = dbms_new_page_from_table(table);
+    if (buffer.buf == NULL) {
+        return buffer;
     }
 
     struct page_t* page = from_ubuffer(&buffer);
@@ -529,188 +529,226 @@ struct buffer_t* make_node(struct dbms_table_t* table, uint32_t leaf) {
     return buffer;
 }
 
-int get_index(struct page_t* parent, pagenum_t pagenum) {
+int get_index(struct ubuffer_t* parent, pagenum_t pagenum) {
     int index, num_key;
-    if (page_header(parent)->special_page_number == pagenum) {
-        return -1;
-    }
+    struct page* page;
+    BUFFER_READ(*parent, {
+        page = from_ubuffer(parent);
+        if (page_header(page)->special_page_number == pagenum) {
+            return -1;
+        }
 
-    num_key = page_header(parent)->number_of_keys;
-    for (index = 0;
-         index < num_key && entries(parent)[index].pagenum != pagenum;
-         ++index)
-        {}
+        num_key = page_header(page)->number_of_keys;
+        for (index = 0;
+             index < num_key && entries(page)[index].pagenum != pagenum;
+             ++index)
+            {}
+    })
     return index;
 }
 
-int insert_into_leaf(struct page_pair_t* leaf,
-                     struct record_t* pointer,
-                     struct file_manager_t* manager)
+int insert_into_leaf(struct ubuffer_t* leaf,
+                     struct record_t* pointer)
 {
     int i, insertion_point;
-    int num_key = page_header(leaf->page)->number_of_keys;
-    struct record_t* rec = records(leaf->page);
-    for (insertion_point = 0;
-         insertion_point < num_key && rec[insertion_point].key < pointer->key;
-         ++insertion_point)
-         {}
+    int num_key; 
+    struct record_t* rec; 
+    BUFFER_WRITE(*leaf, {
+        num_key = page_header(from_ubuffer(leaf))->number_of_keys;
+        rec = records(from_ubuffer(leaf));
 
-    for (i = num_key; i > insertion_point; --i) {
-        memcpy(&rec[i], &rec[i - 1], sizeof(struct record_t));
-    }
+        for (insertion_point = 0;
+            insertion_point < num_key && rec[insertion_point].key < pointer->key;
+            ++insertion_point)
+            {}
 
-    page_header(leaf->page)->number_of_keys += 1;
-    memcpy(&rec[insertion_point], pointer, sizeof(struct record_t));
+        for (i = num_key; i > insertion_point; --i) {
+            memcpy(&rec[i], &rec[i - 1], sizeof(struct record_t));
+        }
 
-    CHECK_SUCCESS(commit_page(leaf->pagenum, leaf->page, manager));
+        page_header(from_ubuffer(leaf))->number_of_keys += 1;
+        memcpy(&rec[insertion_point], pointer, sizeof(struct record_t));
+    })
     return SUCCESS;
 }
 
-int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
+int insert_into_leaf_after_splitting(struct ubuffer_t* leaf,
                                      struct record_t* record,
-                                     struct file_manager_t* manager)
+                                     struct dbms_table_t* table)
 {
+    prikey_t key;
     int insertion_index, split_index, i, j;
-    pagenum_t new_leaf = make_node(manager, TRUE);
-
-    struct page_t new_page;
-    CHECK_SUCCESS(page_init(&new_page, TRUE));
-
+    struct record_t *leaf_rec, *new_rec;
     struct record_t temp_record[LEAF_ORDER];
+    struct page_header_t *leaf_header, *new_header;
+    struct ubuffer_t new_page = make_node(table, TRUE);
+    BUFFER_READ(*leaf, {
+        leaf_rec = records(from_ubuffer(leaf));
+        leaf_header = page_header(from_ubuffer(leaf));
 
-    struct record_t* leaf_rec = records(leaf->page);
-    struct page_header_t* leaf_header = page_header(leaf->page);
-    for (insertion_index = 0;
-         insertion_index < leaf_header->number_of_keys
-            && leaf_rec[insertion_index].key < record->key;
-         ++insertion_index)
-        {}
-
-    for (i = 0, j = 0; i < leaf_header->number_of_keys; i++, j++) {
-        if (j == insertion_index) {
-            ++j;
+        for (insertion_index = 0;
+             insertion_index < leaf_header->number_of_keys
+                && leaf_rec[insertion_index].key < record->key;
+             ++insertion_index)
+            {}
+        
+        for (i = 0, j = 0; i < leaf_header->number_of_keys; i++, j++) {
+            if (j == insertion_index) {
+                ++j;
+            }
+            memcpy(&temp_record[j], &leaf_rec[i], sizeof(struct record_t));
         }
-        memcpy(&temp_record[j], &leaf_rec[i], sizeof(struct record_t));
-    }
 
-    memcpy(&temp_record[insertion_index], record, sizeof(struct record_t));
+        memcpy(&temp_record[insertion_index], record, sizeof(struct record_t));
+    })
+ 
+    BUFFER_WRITE(*leaf, {
+        leaf_rec = records(from_ubuffer(leaf));
+        leaf_header = page_header(from_ubuffer(leaf));
 
-    leaf_header->number_of_keys = 0;
-    split_index = cut(LEAF_ORDER - 1);
+        leaf_header->number_of_keys = 0;
+        split_index = cut(LEAF_ORDER - 1);
 
-    for (i = 0; i < split_index; i++) {
-        memcpy(&leaf_rec[i], &temp_record[i], sizeof(struct record_t));
-        leaf_header->number_of_keys++;
-    }
+        for (i = 0; i < split_index; i++) {
+            memcpy(&leaf_rec[i], &temp_record[i], sizeof(struct record_t));
+            leaf_header->number_of_keys++;
+        }
 
-    struct record_t* new_rec = records(&new_page);
-    struct page_header_t* new_header = page_header(&new_page);
-    for (i = split_index, j = 0; i < LEAF_ORDER; i++, j++) {
-        memcpy(&new_rec[j], &temp_record[i], sizeof(struct record_t));
-        new_header->number_of_keys++;
-    }
+        leaf_header->special_page_number = new_page.buf->pagenum;
+    })
 
-    new_header->special_page_number = leaf_header->special_page_number;
-    leaf_header->special_page_number = new_leaf;
+    BUFFER_WRITE(new_page, {
+        new_rec = records(from_ubuffer(&new_page));
+        new_header = page_header(from_ubuffer(&new_page));
 
-    new_header->parent_page_number = leaf_header->parent_page_number;
+        for (i = split_index, j = 0; i < LEAF_ORDER; i++, j++) {
+            memcpy(&new_rec[j], &temp_record[i], sizeof(struct record_t));
+            new_header->number_of_keys++;
+        }
 
-    CHECK_SUCCESS(commit_page(leaf->pagenum, leaf->page, manager));
-    CHECK_SUCCESS(commit_page(new_leaf, &new_page, manager));
+        BUFFER_READ(*leaf, {
+            leaf_header = page_header(from_ubuffer(leaf));
+            new_header->special_page_number = leaf_header->special_page_number;
+            new_header->parent_page_number = leaf_header->parent_page_number;
+        })
+        key = new_rec[0].key;
+    })
 
-    struct page_pair_t right = { new_leaf, &new_page };
-    return insert_into_parent(leaf, new_rec[0].key, &right, manager);
+    return insert_into_parent(leaf, key, &new_page, table);
 }
 
-int insert_into_node(struct page_pair_t* node,
+int insert_into_node(struct ubuffer_t* node,
                      int index,
-                     struct internal_t* entry,
-                     struct file_manager_t* manager)
+                     struct internal_t* entry)
 {
     int i;
-    struct internal_t* ent = entries(node->page);
-    struct page_header_t* header = page_header(node->page);
-    for (i = header->number_of_keys; i > index; --i) {
-        ent[i] = ent[i - 1];
-    }
-    ent[index] = *entry;
-    header->number_of_keys++;
-    CHECK_SUCCESS(commit_page(node->pagenum, node->page, manager));
+    struct internal_t* ent;
+    struct page_header_t* header;
+    BUFFER_WRITE(*node, {
+        ent = entries(from_ubuffer(node));
+        header = page_header(from_ubuffer(node));
+        for (i = header->number_of_keys; i > index; --i) {
+            ent[i] = ent[i - 1];
+        }
+        ent[index] = *entry;
+        header->number_of_keys++;
+    })
     return SUCCESS;
 }
 
-int insert_into_node_after_splitting(struct page_pair_t* old_node,
-                                     int index, 
+int insert_into_node_after_splitting(struct ubuffer_t* old_node,
+                                     int index,
                                      struct internal_t* entry,
-                                     struct file_manager_t* manager)
+                                     struct dbms_table_t* table)
 {
     int i, j, split_index, k_prime;
+    pagenum_t temp_pagenum;
+    struct internal_t *ent, *new_entries;
     struct internal_t temp[INTERNAL_ORDER];
+    struct page_header_t *header, *new_header;
+    struct ubuffer_t temp_page, new_node = make_node(table, FALSE);
 
-    struct internal_t* ent = entries(old_node->page);
-    struct page_header_t* header = page_header(old_node->page);
+    BUFFER_READ(*old_node, {
+        ent = entries(from_ubuffer(old_node));
+        header = page_header(from_ubuffer(old_node));
 
-    for (i = 0, j = 0; j < header->number_of_keys; ++i, ++j) {
-        if (i == index) {
-            i++;
+        for (i = 0, j = 0; j < header->number_of_keys; ++i, ++j) {
+            if (i == index) {
+                i++;
+            }
+            temp[i] = ent[j];
         }
-        temp[i] = ent[j];
-    }
-    temp[index] = *entry;
+        temp[index] = *entry;
+    })
 
     split_index = cut(INTERNAL_ORDER);
-    pagenum_t new_node = make_node(manager, FALSE);
+    BUFFER_WRITE(*old_node, {
+        ent = entries(from_ubuffer(old_node));
+        header = page_header(from_ubuffer(old_node));
 
-    struct page_t new_page;
-    CHECK_SUCCESS(page_init(&new_page, FALSE));
-
-    struct internal_t* new_entries = entries(&new_page);
-    struct page_header_t* new_header = page_header(&new_page);
-
-    header->number_of_keys = 0;
-    for (i = 0; i < split_index - 1; ++i) {
-        ent[i] = temp[i];
-        header->number_of_keys++;
-    }
-
-    k_prime = temp[split_index - 1].key;
-    new_header->special_page_number = temp[split_index - 1].pagenum;
-    for (++i, j = 0; i < INTERNAL_ORDER; ++i, ++j) {
-        new_entries[j] = temp[i];
-        new_header->number_of_keys++;
-    }
-
-    pagenum_t temp_pagenum;
-    struct page_t temp_page;
-    new_header->parent_page_number = header->parent_page_number;
-    for (i = -1; i < (int)new_header->number_of_keys; ++i) {
-        if (i == -1) {
-            temp_pagenum = new_header->special_page_number;
-        } else {
-            temp_pagenum = new_entries[i].pagenum;
+        header->number_of_keys = 0;
+        for (i = 0; i < split_index - 1; ++i) {
+            ent[i] = temp[i];
+            header->number_of_keys++;
         }
-        CHECK_SUCCESS(load_page(temp_pagenum, &temp_page, manager));
-        page_header(&temp_page)->parent_page_number = new_node;
-        CHECK_SUCCESS(commit_page(temp_pagenum, &temp_page, manager));
-    }
+    })
 
-    CHECK_SUCCESS(commit_page(old_node->pagenum, old_node->page, manager));
-    CHECK_SUCCESS(commit_page(new_node, &new_page, manager));
+    BUFFER_WRITE(new_node, {
+        new_entries = entries(from_ubuffer(&new_node));
+        new_header = page_header(from_ubuffer(&new_node));
 
-    struct page_pair_t right = { new_node, &new_page };
-    return insert_into_parent(old_node, k_prime, &right, manager);
+        k_prime = temp[split_index - 1].key;
+        new_header->special_page_number = temp[split_index - 1].pagenum;
+        for (++i, j = 0; i < INTERNAL_ORDER; ++i, ++j) {
+            new_entries[j] = temp[i];
+            new_header->number_of_keys++;
+        }
+
+        BUFFER_READ(*old_node, {
+            header = page_header(from_ubuffer(old_node));
+            new_header->parent_page_number = header->parent_page_number;
+        })
+    })
+
+    BUFFER_READ(new_node, {
+        new_entries = entries(from_ubuffer(&new_node));
+        new_header = page_header(from_ubuffer(&new_node));
+
+        for (i = -1; i < (int)new_header->number_of_keys; ++i) {
+            if (i == -1) {
+                temp_pagenum = new_header->special_page_number;
+            } else {
+                temp_pagenum = new_entries[i].pagenum;
+            }
+
+            temp_page = dbms_buffering_from_table(table, temp_pagenum);
+            BUFFER_WRITE(temp_page, {
+                page_header(from_ubuffer(&temp_page))->parent_page_number = new_node.buf->pagenum;
+            })
+
+            page_header(&temp_page)->parent_page_number = new_node.buf->pagenum;
+        }
+    })
+
+    return insert_into_parent(old_node, k_prime, &new_node, table);
 }
 
-int insert_into_parent(struct page_pair_t* left,
+int insert_into_parent(struct ubuffer_t* left,
                        prikey_t key,
-                       struct page_pair_t* right,
-                       struct file_manager_t* manager)
+                       struct ubuffer_t* right,
+                       struct dbms_table_t* table)
 {
-    pagenum_t parent = page_header(left->page)->parent_page_number;
-
+    int index, num_key;
+    struct ubuffer_t parent_page;
+    pagenum_t parent, left_pagenum, right_pagenum;
+    BUFFER_READ(*left, {
+        left_pagenum = left->buf->pagenum;
+        parent = page_header(from_ubuffer(left))->parent_page_number;
+    })
+ 
     /* Case: new root. */
     if (parent == INVALID_PAGENUM) {
-        return insert_into_new_root(left, key, right, manager);
+        return insert_into_new_root(left, key, right, table);
     }
 
     /* Case: leaf or node. (Remainder of
@@ -720,79 +758,92 @@ int insert_into_parent(struct page_pair_t* left,
     /* Find the parent's pointer to the left 
      * node.
      */
-    struct page_t parent_page;
-    load_page(parent, &parent_page, manager);
-    int index = get_index(&parent_page, left->pagenum) + 1;
+    parent_page = dbms_buffering_from_table(table, parent);
+    index = get_index(&parent_page, left_pagenum) + 1;
 
     /* Simple case: the new key fits into the node. 
      */
-    struct internal_t entry = { key, right->pagenum };
-    struct page_pair_t parent_pair = { parent, &parent_page };
-    if (page_header(&parent_page)->number_of_keys < INTERNAL_ORDER - 1) {
-        return insert_into_node(&parent_pair, index, &entry, manager);
+    BUFFER_READ(*right, {
+        right_pagenum = right->buf->pagenum;
+        num_key = page_header(from_ubuffer(&parent_page))->number_of_keys;
+    })
+
+    struct internal_t entry = { key, right_pagenum };
+    if (num_key < INTERNAL_ORDER - 1) {
+        return insert_into_node(&parent_page, index, &entry);
     }
 
     /* Harder case:  split a node in order 
      * to preserve the B+ tree properties.
      */
-    return insert_into_node_after_splitting(&parent_pair, index, &entry, manager);
+    return insert_into_node_after_splitting(&parent_page, index, &entry, table);
 }
 
-int insert_into_new_root(struct page_pair_t* left,
+int insert_into_new_root(struct ubuffer_t* left,
                          prikey_t key,
-                         struct page_pair_t* right,
-                         struct file_manager_t* manager)
+                         struct ubuffer_t* right,
+                         struct dbms_table_t* table)
 {
-    pagenum_t root = make_node(manager, FALSE);
+    pagenum_t root_pagenum;
+    struct internal_t* ent;
+    struct page_header_t* header;
+    struct ubuffer_t fileheader, root = make_node(table, FALSE);
 
-    struct page_t root_page;
-    page_init(&root_page, FALSE);
+    BUFFER_WRITE(root, {
+        root_pagenum = root.buf->pagenum;
 
-    struct page_header_t* header = page_header(&root_page);
-    header->number_of_keys++;
-    header->special_page_number = left->pagenum;
+        header = page_header(from_ubuffer(&root));
+        header->number_of_keys++;
 
-    page_header(left->page)->parent_page_number = root;
-    page_header(right->page)->parent_page_number = root;
+        BUFFER_READ(*left, {
+            header->special_page_number = left->buf->pagenum;
+        })
 
-    struct internal_t* ent = entries(&root_page);
-    ent[0].key = key;
-    ent[0].pagenum = right->pagenum;
+        ent = entries(from_ubuffer(&root));
+        ent[0].key = key;
+        BUFFER_READ(*right, {
+            ent[0].pagenum = right->buf->pagenum;
+        })
+    })
 
-    CHECK_SUCCESS(commit_page(root, &root_page, manager));
-    CHECK_SUCCESS(commit_page(left->pagenum, left->page, manager));
-    CHECK_SUCCESS(commit_page(right->pagenum, right->page, manager));
+    BUFFER_WRITE(*left, {
+        page_header(from_ubuffer(left))->parent_page_number = root_pagenum;
+    })
 
-    struct page_t file_page;
-    CHECK_SUCCESS(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
+    BUFFER_WRITE(*right, {
+        page_header(from_ubuffer(right))->parent_page_number = root_pagenum;
+    })
 
-    file_header(&file_page)->root_page_number = root;
-    CHECK_SUCCESS(commit_page(FILE_HEADER_PAGENUM, &file_page, manager));
+    fileheader = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM);
+    BUFFER_WRITE(fileheader, {
+        file_header(from_ubuffer(&fileheader))->root_page_number = root_pagenum;
+    })
 
     return SUCCESS;
 }
 
 int start_new_tree(struct record_t* pointer,
-                   struct file_manager_t* manager)
+                   struct dbms_table_t* table)
 {
-    pagenum_t root = make_node(manager, TRUE);
+    pagenum_t root_pagenum;
+    struct record_t* rec;
+    struct page_header_t* header;
+    struct ubuffer_t fileheader, root = make_node(table, TRUE);
 
-    struct page_t root_page;
-    CHECK_SUCCESS(page_init(&root_page, TRUE));
+    BUFFER_WRITE(root, {
+        root_pagenum = root.buf->pagenum;
 
-    struct page_header_t* header = page_header(&root_page);
-    header->number_of_keys++;
+        header = page_header(from_ubuffer(&root));
+        header->number_of_keys++;
 
-    struct record_t* rec = &records(&root_page)[0];
-    memcpy(rec, pointer, sizeof(struct record_t));
+        rec = &records(from_ubuffer(&root))[0];
+        memcpy(rec, pointer, sizeof(struct record_t));
+    })
 
-    CHECK_SUCCESS(commit_page(root, &root_page, manager));
-
-    struct page_t file_page;
-    CHECK_SUCCESS(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
-
-    file_header(&file_page)->root_page_number = root;
-    CHECK_SUCCESS(commit_page(FILE_HEADER_PAGENUM, &file_page, manager));
+    fileheader = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM);
+    BUFFER_WRITE(fileheader, {
+        file_header(from_ubuffer(&fileheader))->root_page_number = root_pagenum;
+    })
 
     return SUCCESS;
 }
@@ -800,16 +851,16 @@ int start_new_tree(struct record_t* pointer,
 int bpt_insert(prikey_t key,
                uint8_t* value,
                int value_size,
-               struct file_manager_t* manager)
+               struct dbms_table_t* table)
 {
-    struct page_t leaf_page;
-    pagenum_t leaf = find_leaf(key, &leaf_page, manager);
+    struct ubuffer_t leaf_page;
+    pagenum_t leaf = find_leaf(key, &leaf_page, table);
 
     /* The current implementation ignores
      * duplicates.
      */
     if (leaf != INVALID_PAGENUM
-        && find_key_from_leaf(key, &leaf_page, NULL) == SUCCESS)
+        && find_key_from_leaf(key, leaf_page, NULL) == SUCCESS)
     {
         return FAILURE;
     }
@@ -823,11 +874,15 @@ int bpt_insert(prikey_t key,
     /* Case: the tree does not exist yet.
      * Start a new tree.
      */
-    struct page_t file_page;
-    CHECK_SUCCESS(load_page(FILE_HEADER_PAGENUM, &file_page, manager));
-    pagenum_t root = file_header(&file_page)->root_page_number;
+    struct ubuffer_t file_page = dbms_buffering_from_table(table, FILE_HEADER_PAGENUM);
+    
+    pagenum_t root;
+    BUFFER_READ(file_page, {
+        root = file_header(from_ubuffer(&file_page))->root_page_number;
+    })
+
     if (root == INVALID_PAGENUM) {
-        return start_new_tree(&record, manager);
+        return start_new_tree(&record, table);
     }
 
     /* Case: the tree already exists.
@@ -836,14 +891,19 @@ int bpt_insert(prikey_t key,
 
     /* Case: leaf has room for key and pointer.
      */
+    int num_key;
+    BUFFER_READ(leaf_page, {
+        num_key = page_header(from_ubuffer(&leaf_page))->number_of_keys;
+    })
+
     struct page_pair_t pair = { leaf, &leaf_page };
-    if (page_header(&leaf_page)->number_of_keys < LEAF_ORDER - 1) {
-        return insert_into_leaf(&pair, &record, manager);
+    if (num_key < LEAF_ORDER - 1) {
+        return insert_into_leaf(&leaf_page, &record);
     }
 
     /* Case:  leaf must be split.
      */
-    return insert_into_leaf_after_splitting(&pair, &record, manager);
+    return insert_into_leaf_after_splitting(&leaf_page, &record, table);
 }
 
 

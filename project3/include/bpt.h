@@ -194,91 +194,87 @@ int make_record(struct record_t* record, prikey_t key, uint8_t* value, int value
 /// Create new page.
 /// \param table struct dbms_table_t*, table accessor.
 /// \param leaf int, whether leaf page or not.
-/// \return struct buffer_t*, created page buffer.
-struct buffer_t* make_node(struct dbms_table_t* table, uint32_t leaf);
+/// \return struct ubuffer_t, created page buffer.
+struct ubuffer_t make_node(struct dbms_table_t* table, uint32_t leaf);
 
 /// Get index of given page ID from parent key array.
-/// \param parent struct page_t*, parent page.
+/// \param parent struct ubuffer_t*, parent page.
 /// \param pagenum pagenum_t, target page ID.
 /// \return int, index of the page ID, if failed, return -1.
-int get_index(struct page_t* parent, pagenum_t pagenum);
+int get_index(struct ubuffer_t* parent, pagenum_t pagenum);
 
 /// Insert record into the leaf page without any balancing policy.
-/// \param leaf struct page_pair_t*, leaf page.
+/// \param leaf struct ubuffer_t*, leaf page.
 /// \param pointer struct record_t*, target record.
-/// \param manager struct manager_t*, file manager.
 /// \return int, whether success to insert record or not.
-int insert_into_leaf(struct page_pair_t* leaf,
-                     struct record_t* pointer,
-                     struct file_manager_t* manager);
+int insert_into_leaf(struct ubuffer_t* leaf,
+                     struct record_t* pointer);
 /// Insert record into the leaf page with splitting given leaf node.
-/// \param leaf struct page_pair_t*, leaf page.
+/// \param leaf struct ubuffer_t*, leaf page.
 /// \param pointer struct record_t*, target record.
-/// \param manager struct manager_t*, file manager.
+/// \param table struct dbms_table_t*, table accessor
 /// \return int, whether success to insert record or not.
-int insert_into_leaf_after_splitting(struct page_pair_t* leaf,
+int insert_into_leaf_after_splitting(struct ubuffer_t* leaf,
                                      struct record_t* record,
-                                     struct file_manager_t* manager);
+                                     struct dbms_table_t* table);
 
 /// Insert entry into the internal page without any balancing policy.
-/// \param node struct page_pair_t*, target internal node.
+/// \param node struct ubuffer_t*, target internal node.
 /// \param index int, insertion point.
 /// \param entry struct internal_t*, target entry.
-/// \param manager struct manager_t*, file manager.
 /// \return int whether success to insert entry or not.
-int insert_into_node(struct page_pair_t* node,
+int insert_into_node(struct ubuffer_t* node,
                      int index,
-                     struct internal_t* entry,
-                     struct file_manager_t* manager);
+                     struct internal_t* entry);
 
 /// Insert entry into the internal page with splitting given internal node.
-/// \param node struct page_pair_t*, target internal node.
+/// \param old_node struct ubuffer_t*, target internal node.
 /// \param index int, insertion point.
 /// \param entry struct internal_t*, target entry.
-/// \param manager struct manager_t*, file manager.
+/// \param table struct dbms_table_t*, table accessor
 /// \return int whether success to insert entry or not.
-int insert_into_node_after_splitting(struct page_pair_t* old_node,
+int insert_into_node_after_splitting(struct ubuffer_t* old_node,
                                      int index,
                                      struct internal_t* entry,
-                                     struct file_manager_t* manager);
+                                     struct dbms_table_t* table);
 
 /// Insert key into the parent page with given left, right child.
-/// \param left struct page_pair_t*, lett child.
+/// \param left struct ubuffer_t*, lett child.
 /// \param key prikey_t, target key.
-/// \param right struct page_pair_t*, right child.
-/// \param manager struct manager_t*, file manager.
+/// \param right struct ubuffer_t*, right child.
+/// \param table struct dbms_table_t*, table accessor.
 /// \return int whether success to insert key or not.
-int insert_into_parent(struct page_pair_t* left,
+int insert_into_parent(struct ubuffer_t* left,
                        prikey_t key,
-                       struct page_pair_t* right,
-                       struct file_manager_t* manager);
+                       struct ubuffer_t* right,
+                       struct dbms_table_t* table);
 /// Create new root to insert key and left, right child pages.
-/// \param left struct page_pair_t*, lett child.
+/// \param left struct ubuffer_t*, lett child.
 /// \param key prikey_t, target key.
-/// \param right struct page_pair_t*, right child.
-/// \param manager struct manager_t*, file manager.
+/// \param right struct ubuffer_t*, right child.
+/// \param table struct dbms_table_t*, table accessor.
 /// \return int whether success to insert key or not.
-int insert_into_new_root(struct page_pair_t* left,
+int insert_into_new_root(struct ubuffer_t* left,
                          prikey_t key,
-                         struct page_pair_t* right,
-                         struct file_manager_t* manager);
+                         struct ubuffer_t* right,
+                         struct dbms_table_t* table);
 
 /// Create new tree.
 /// \param pointer struct record_t*, first record of the new root.
-/// \param manager struct file_manager_t*, file manager.
+/// \param table struct dbms_table_t*, table accessor.
 /// \return int, whether success to create new tree or not.
 int start_new_tree(struct record_t* pointer,
-                   struct file_manager_t* manager);
+                   struct dbms_table_t* table);
 /// Mother method, insert key and value to the tree.
 /// \param key prikey_t, target key.
 /// \param value uint8_t*, target value.
 /// \param value_size int, size of the value data.
-/// \param manager struct file_manager_t*, file manager.
+/// \param table struct dbms_table_t*, table accessor.
 /// \return int, whether success to insert key or not.
 int bpt_insert(prikey_t key,
                uint8_t* value,
                int value_size,
-               struct file_manager_t* manager);
+               struct dbms_table_t* table);
 
 
 // DELETION
