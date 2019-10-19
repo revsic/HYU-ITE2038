@@ -124,6 +124,8 @@ int buffer_manager_load(struct buffer_manager_t* manager,
                         struct table_manager_t* tables,
                         struct page_uri_t* page_uri);
 
+int buffer_manager_release_block(struct buffer_manager_t* manager, int idx);
+
 int buffer_manager_release_table(struct buffer_manager_t* manager,
                                  tablenum_t table_id);
 
@@ -140,5 +142,9 @@ struct ubuffer_t buffer_manager_buffering(struct buffer_manager_t* manager,
 struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
                                          struct table_manager_t* tables,
                                          tablenum_t table_id);
+
+int buffer_manager_free_page(struct buffer_manager_t* manager,
+                             struct table_manager_t* tables,
+                             struct page_uri_t* page_uri);
 
 #endif

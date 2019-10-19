@@ -193,10 +193,7 @@ int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
 int buffer_manager_shutdown(struct buffer_manager_t* manager) {
     int i;
     for (i = 0; i < manager->capacity; ++i) {
-        if (manager->buffers[i].table_id == INVALID_TABLENUM) {
-            continue;
-        }
-        buffer_release(&manager->buffers[i]);
+        buffer_manager_release_block(manager, i);
     }
 
     free(manager->buffers);
@@ -256,19 +253,25 @@ int buffer_manager_load(struct buffer_manager_t* manager,
     return idx;
 }
 
+int buffer_manager_release_block(struct buffer_manager_t* manager, int idx) {
+    CHECK_TRUE(0 <= idx && idx < manager->capacity);
+
+    struct buffer_t* buffer = &manager->buffers[idx];
+    CHECK_TRUE(buffer->table_id != INVALID_TABLENUM);
+    CHECK_SUCCESS(buffer_release(buffer));
+
+    --manager->num_buffer;
+    return SUCCESS;
+}
+
 int buffer_manager_release_table(struct buffer_manager_t* manager,
                                  tablenum_t table_id)
 {
-    int i, j;
-    struct buffer_t* buffer;
+    int i;
+    CHECK_TRUE(table_id != INVALID_TABLENUM);
     for (i = 0; i < manager->capacity; ++i) {
-        buffer = &manager->buffers[i];
-        if (buffer->table_id == INVALID_TABLENUM) {
-            continue;
-        }
-        if (buffer->table_id == table_id) {
-            CHECK_SUCCESS(buffer_release(buffer));
-            --manager->num_buffer;
+        if (manager->buffers[i].table_id == table_id) {
+            CHECK_SUCCESS(buffer_manager_release_block(manager, i));
         }
     }
     return SUCCESS;
@@ -281,17 +284,12 @@ int buffer_manager_release(struct buffer_manager_t* manager,
     while (idx != -1 && manager->buffers[idx].is_pinned) {
         idx = policy->next_search(&manager->buffers[idx]);
     }
-
     if (idx == -1) {
         return -1;
     }
-
-    struct buffer_t* buffer = &manager->buffers[idx];
-    if (buffer_release(buffer) == FAILURE) {
+    if (buffer_manager_release_block(manager, idx) == FAILURE) {
         return -1;
     }
-
-    manager->num_buffer -= 1;
     return idx;
 }
 
@@ -357,4 +355,19 @@ struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
     ubuf.buf = buffer;
     ubuf.checksum = create_checksum(table_id, buffer->pagenum);
     return ubuf;
+}
+
+int buffer_manager_free_page(struct buffer_manager_t* manager,
+                             struct table_manager_t* tables,
+                             struct page_uri_t* page_uri)
+{
+    struct table_t* table;
+    CHECK_NULL(table = table_manager_find(tables, page_uri->table_id));
+
+    int idx = buffer_manager_find(manager, page_uri);
+    if (idx != -1) {
+        CHECK_SUCCESS(buffer_manager_release_block(manager, idx));
+    }
+
+    return page_free(page_uri->pagenum, &table->file_manager);
 }
