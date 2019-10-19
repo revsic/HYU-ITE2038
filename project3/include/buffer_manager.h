@@ -96,7 +96,7 @@ struct page_t* from_ubuffer(struct ubuffer_t* buffer);
 
 int buffer_init(struct buffer_t* buffer,
                 int block_idx,
-                struct block_manager_t* manager);
+                struct buffer_manager_t* manager);
 
 int buffer_load(struct buffer_t* buffer,
                 struct table_t* table,

@@ -49,7 +49,7 @@ struct page_t* from_ubuffer(struct ubuffer_t* buffer) {
 
 int buffer_init(struct buffer_t* buffer,
                 int block_idx,
-                struct block_manager_t* manager)
+                struct buffer_manager_t* manager)
 {
     buffer->table_id = INVALID_TABLENUM;
     buffer->pagenum = INVALID_PAGENUM;
@@ -120,7 +120,7 @@ int buffer_release(struct buffer_t* buffer) {
         {}
 
     --buffer->is_pinned;
-    CHEK_SUCCESS(buffer_link_neighbor(buffer));
+    CHECK_SUCCESS(buffer_link_neighbor(buffer));
 
     if (buffer->is_dirty) {
         CHECK_SUCCESS(
