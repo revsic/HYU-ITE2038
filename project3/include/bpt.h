@@ -106,15 +106,15 @@ int record_vec_expand(struct record_vec_t* vec);
 int record_vec_append(struct record_vec_t* vec, struct record_t* rec);
 
 /// Height of the node.
-/// \param node struct page_uri_t, target node.
-/// \param dbms struct dbms_t*, database manager.
+/// \param table struct dbms_table_t*, table accessor.
+/// \param pagenum pagenum_t, page ID.
 /// \return int, height of the node.
-int height(struct page_uri_t node, struct dbms_t* dbms);
+int height(struct dbms_table_t* table, pagenum_t pagenum);
 /// Length of path to root.
-/// \param node struct page_uri_t, target node.
-/// \param dbms struct dbms_t*, database manager.
+/// \param table struct dbms_table_t*, table accessor.
+/// \param pagenum pagenum_t, page ID.
 /// \return int, length of path to root.
-int path_to_root(struct page_uri_t node, struct dbms_t* dbms);
+int path_to_root(struct dbms_table_t* table, pagenum_t pagenum);
 
 /// Return split position with given length.
 /// \param length length of the key array.
@@ -126,59 +126,60 @@ int cut(int length);
 
 /// Find leaf page where given key can exist.
 /// \param key prikey_t, searching key.
-/// \param page struct page_t*, returned page, nullable.
-/// \param manager struct manager_t*, file manager.
+/// \param buffer struct buffer_t**, returned buffer pointer, nullable.
+/// \param table struct dbms_table_t*, table accessor.
 /// \return pagenum_t, page ID of leaf page.
-pagenum_t find_leaf(prikey_t key, struct page_t* page, struct file_manager_t* manager);
+pagenum_t find_leaf(prikey_t key,
+                    struct buffer_t** buffer,
+                    struct dbms_table_t* table);
 /// Find key from leaf page.
 /// \param key prikey_t, searching key.
-/// \param page struct page_t*, target leaf page.
+/// \param buffer struct buffer_t*, target leaf page.
 /// \param record struct record_t*, returned record.
 /// \return int, whether key exists or not.
-int find_key_from_leaf(prikey_t key, struct page_t* page, struct record_t* record);
+int find_key_from_leaf(prikey_t key,
+                       struct buffer_t* buffer,
+                       struct record_t* record);
 /// Find key from tree.
 /// \param key prikey_t, searching key.
 /// \param record struct record_t*, returned record.
-/// \param manager struct manager_t*, file manager.
+/// \param table struct dbms_table_t*, table accessor.
 /// \return int, whether key exists or not.
-int bpt_find(prikey_t key, struct record_t* record, struct file_manager_t* manager);
+int bpt_find(prikey_t key,
+             struct record_t* record,
+             struct dbms_table_t* table);
 /// Range based searching from tree.
 /// \param start prikey_t, start point.
 /// \param end prikey_t, end point.
-/// \param record struct record_t*, record vector for returning sequence.
-/// \param manager struct manager_t*, file manager.
+/// \param retval struct record_t*, record vector for returning sequence.
+/// \param table struct dbms_table_t*, table accessor.
 /// \return int, size of the return sequence.
 int bpt_find_range(prikey_t start,
                    prikey_t end,
                    struct record_vec_t* retval,
-                   struct file_manager_t* manager);
+                   struct dbms_table_t* table);
 
 
 // OUTPUT
 
 /// Print leaves.
-/// \param dbms struct dbms_t*, database manager.
-/// \param table_id tablenum_t, table id.
-void print_leaves(struct dbms_t* dbms, tablenum_t table_id);
+/// \param table struct dbms_table_t*, table accessor.
+void print_leaves(struct dbms_table_t* table);
 /// Print tree.
-/// \param dbms struct dbms_t*, database manager.
-/// \param table_id tablenum_t, table id.
-void print_tree(struct dbms_t* dbms, tablenum_t table_id);
+/// \param table struct dbms_table_t*, table accessor.
+void print_tree(struct dbms_table_t* table);
 
 /// Find key and print result.
 /// \param key prikey_t, searching key.
-/// \param dbms struct dbms_t*, database manager.
-/// \param table_id tablenum_t, table id;
-void find_and_print(prikey_t key, struct dbms_t* dbms, tablenum_t table_id); 
+/// \param table struct dbms_table_t*, table accessor.
+void find_and_print(prikey_t key, struct dbms_table_t* table); 
 /// Find key range and print result sequence.
 /// \param range1 prikey_t, start point.
 /// \param range2 prikey_t, end point.
-/// \param dbms struct dbms_t*, database manager.
-/// \param table_id tablenum_t, table id;
+/// \param table struct dbms_table_t*, table accessor.
 void find_and_print_range(prikey_t range1,
                           prikey_t range2,
-                          struct dbms_t* dbms,
-                          tablenum_t table_id);
+                          struct dbms_table_t* table);
 
 
 // INSERTION
