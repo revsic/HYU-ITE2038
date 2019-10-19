@@ -14,6 +14,17 @@ struct dbms_table_t {
     tablenum_t table_id;
 };
 
+struct ubuffer_t {
+    struct buffer_t* buf;
+    uint64_t checksum;
+};
+
+uint64_t create_checksum(tablenum_t table_id, pagenum_t pagenum);
+
+uint64_t create_checksum_from_uri(struct page_uri_t uri);
+
+int check_ubuffer(struct ubuffer_t* buf);
+
 int dbms_init(struct dbms_t* dbms, int num_buffer);
 
 int dbms_shutdown(struct dbms_t* dbms);
@@ -22,16 +33,16 @@ tablenum_t dbms_open_table(struct dbms_t* dbms, const char* filename);
 
 int dbms_close_table(struct dbms_t* dbms, tablenum_t table_id);
 
-struct buffer_t* dbms_buffering(struct dbms_t* dbms,
+struct ubuffer_t dbms_buffering(struct dbms_t* dbms,
                                 struct page_uri_t* page_uri);
 
-struct buffer_t* dbms_buffering_from_table(struct dbms_table_t* table,
+struct ubuffer_t dbms_buffering_from_table(struct dbms_table_t* table,
                                            pagenum_t pagenum);
 
-struct buffer_t* dbms_new_page(struct dbms_t* dbms,
+struct ubuffer_t dbms_new_page(struct dbms_t* dbms,
                                tablenum_t table_id);
 
-struct buffer_t* dbms_new_page_from_table(struct dbms_table_t* table);
+struct ubuffer_t dbms_new_page_from_table(struct dbms_table_t* table);
 
 int dbms_find(struct dbms_t* dbms,
               tablenum_t table_id,
