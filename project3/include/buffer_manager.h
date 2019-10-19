@@ -13,11 +13,11 @@
 
 #define BUFFER_INTERCEPT_READ(var, cont) buffer_end((var).buf, READ_FLAG); cont;
 
-#define BUFFER_READ_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_READ((var).buf, return FAILURE);
+#define BUFFER_READ_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_READ((var), return FAILURE);
 
-#define BUFFER_READ_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_READ((var).buf, return FAILURE);
+#define BUFFER_READ_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_READ((var), return FAILURE);
 
-#define BUFFER_READ_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_READ((var).buf, return FAILURE);
+#define BUFFER_READ_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_READ((var), return FAILURE);
 
 #define BUFFER_WRITE(var, cont) {                       \
     EXIT_ON_FAILURE(check_ubuffer(&(var)));             \
@@ -28,11 +28,11 @@
 
 #define BUFFER_INTERCEPT_WRITE(var, cont) buffer_end((var).buf, WRITE_FLAG); cont;
 
-#define BUFFER_WRITE_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_WRITE((var).buf, return FAILURE);
+#define BUFFER_WRITE_CHECK_TRUE(var, x) if (!(x)) BUFFER_INTERCEPT_WRITE((var), return FAILURE);
 
-#define BUFFER_WRITE_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_WRITE((var).buf, return FAILURE);
+#define BUFFER_WRITE_CHECK_NULL(var, x) if ((x) == NULL) BUFFER_INTERCEPT_WRITE((var), return FAILURE);
 
-#define BUFFER_WRITE_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_WRITE((var).buf, return FAILURE);
+#define BUFFER_WRITE_CHECK_SUCCESS(var, x) if ((x) != SUCCESS) BUFFER_INTERCEPT_WRITE((var), return FAILURE);
 
 struct page_uri_t {
     tablenum_t table_id;
