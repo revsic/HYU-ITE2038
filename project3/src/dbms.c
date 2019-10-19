@@ -63,7 +63,5 @@ int dbms_insert(struct dbms_table_t* table,
 }
 
 int dbms_delete(struct dbms_table_t* table, prikey_t key) {
-    struct table_t* t;
-    CHECK_NULL(t = table_manager_find(&table->dbms->tables, table->table_id));
-    return bpt_delete(key, &t->file_manager);
+    return bpt_delete(key, table);
 }

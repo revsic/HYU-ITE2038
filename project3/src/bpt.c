@@ -910,8 +910,8 @@ int remove_record_from_leaf(prikey_t key, struct ubuffer_t* node) {
     int i, num_key;
     struct record_t* rec;
     BUFFER_WRITE(*node, {
-        rec = records(node);
-        num_key = page_header(node)->number_of_keys;
+        rec = records(from_ubuffer(node));
+        num_key = page_header(from_ubuffer(node))->number_of_keys;
         for (i = 0; i < num_key && rec[i].key != key; ++i)
             {}
 
@@ -932,8 +932,8 @@ int remove_entry_from_internal(prikey_t key, struct ubuffer_t* node) {
     int i, num_key;
     struct internal_t* ent;
     BUFFER_WRITE(*node, {
-        ent = entries(node);
-        num_key = page_header(node)->number_of_keys;
+        ent = entries(from_ubuffer(node));
+        num_key = page_header(from_ubuffer(node))->number_of_keys;
         for (i = 0; i < num_key && ent[i].key != key; ++i)
             {}
         
@@ -1093,7 +1093,7 @@ int rotate_to_right(struct ubuffer_t* left,
                 right_record[i] = right_record[i - 1];
             }
             BUFFER_READ(*left, {
-                left_record = recrods(from_ubuffer(left));
+                left_record = records(from_ubuffer(left));
                 num_key = page_header(from_ubuffer(left))->number_of_keys;
                 right_record[0] = left_record[num_key - 1];
             })
@@ -1144,7 +1144,7 @@ int rotate_to_left(struct ubuffer_t* left,
                    int k_prime_index,
                    struct ubuffer_t* right,
                    struct ubuffer_t* parent,
-                   struct dbms_tale_t* table)
+                   struct dbms_table_t* table)
 {
     int i, num_key, is_leaf;
     struct ubuffer_t tmp;
@@ -1264,7 +1264,6 @@ int delete_entry(prikey_t key,
 
     /* Case:  deletion from the root. 
      */
-    pagenum_t root_num;
     struct ubuffer_t file_page = dbms_buffering(table, FILE_HEADER_PAGENUM);
     BUFFER_READ(file_page, {
         root_num = file_header(from_ubuffer(&file_page))->root_page_number;
@@ -1306,7 +1305,7 @@ int delete_entry(prikey_t key,
 
     prikey_t k_prime;
     BUFFER_READ(parent, {
-        k_prime = entries(&parent)[k_prime_index].key;
+        k_prime = entries(from_ubuffer(&parent))[k_prime_index].key;
     })
 
     pagenum_t left_num;
@@ -1314,9 +1313,9 @@ int delete_entry(prikey_t key,
 
     right = *page;
     left_num = index == -1
-        ? entries(&parent)[0].pagenum
-        : index ==  0 ? page_header(&parent)->special_page_number
-                      : entries(&parent)[index - 1].pagenum;
+        ? entries(from_ubuffer(&parent))[0].pagenum
+        : index ==  0 ? page_header(from_ubuffer(&parent))->special_page_number
+                      : entries(from_ubuffer(&parent))[index - 1].pagenum;
     left = dbms_buffering(table, left_num);
 
     if (index == -1) {
