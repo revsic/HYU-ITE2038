@@ -24,8 +24,27 @@ const struct release_policy_t RELEASE_LRU = { get_lru, next_lru };
 
 const struct release_policy_t RELEASE_MRU = { get_mru, next_mru };
 
+uint64_t create_checksum(tablenum_t table_id, pagenum_t pagenum) {
+    return ((uint64_t)table_id << 32) + pagenum;
+}
+
+uint64_t create_checksum_from_uri(struct page_uri_t uri) {
+    return create_checksum(uri.table_id, uri.pagenum);
+}
+
+int check_ubuffer(struct ubuffer_t* buf) {
+    CHECK_NULL(buf);
+    uint64_t checksum = create_checksum(buf->buf->table_id, buf->buf->pagenum);
+    CHECK_TRUE(buf->checksum == checksum);
+    return SUCCESS;
+}
+
 struct page_t* from_buffer(struct buffer_t* buffer) {
     return &buffer->frame;
+}
+
+struct page_t* from_ubuffer(struct ubuffer_t* buffer) {
+    return from_buffer(buffer->buf);
 }
 
 int buffer_init(struct buffer_t* buffer,
@@ -297,40 +316,45 @@ int buffer_manager_find(struct buffer_manager_t* manager,
     return -1;
 }
 
-struct buffer_t* buffer_manager_buffering(struct buffer_manager_t* manager,
+struct ubuffer_t buffer_manager_buffering(struct buffer_manager_t* manager,
                                           struct table_manager_t* tables,
                                           struct page_uri_t* page_uri)
 {
+    struct ubuffer_t ubuf = { NULL, create_checksum_from_uri(*page_uri) };
     int idx = buffer_manager_find(manager, page_uri);
     if (idx == -1) {
         idx = buffer_manager_load(manager, tables, page_uri);
         if (idx == -1) {
-            return NULL;
+            return ubuf;
         }
     }
-    return &manager->buffers[idx];
+    ubuf.buf = &manager->buffers[idx];
+    return ubuf;
 }
 
-struct buffer_t* buffer_manager_new_page(struct buffer_manager_t* manager,
+struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
                                          struct table_manager_t* tables,
                                          tablenum_t table_id)
 {
+    struct ubuffer_t ubuf = { NULL, 0 };
     struct table_t* table = table_manager_find(tables, table_id);
     if (table == NULL) {
-        return NULL;
+        return ubuf;
     }
 
     int idx = buffer_manager_alloc(manager);
     if (idx == -1) {
-        return NULL;
+        return ubuf;
     }
 
     struct buffer_t* buffer = &manager->buffers[idx];
     if (buffer_new_page(buffer, table) == FAILURE) {
         --manager->num_buffer;
         buffer_init(buffer, idx, manager);
-        return NULL;
+        return ubuf;
     }
 
-    return buffer;
+    ubuf.buf = buffer;
+    ubuf.checksum = create_checksum(table_id, buffer->pagenum);
+    return ubuf;
 }
