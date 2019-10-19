@@ -85,7 +85,7 @@ extern const struct release_policy_t RELEASE_MRU;
 
 uint64_t create_checksum(tablenum_t table_id, pagenum_t pagenum);
 
-uint64_t create_checksum_from_uri(struct page_uri_t uri);
+uint64_t create_checksum_from_uri(struct page_uri_t* uri);
 
 int check_ubuffer(struct ubuffer_t* buf);
 
