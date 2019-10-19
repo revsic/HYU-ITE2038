@@ -25,6 +25,8 @@ uint64_t create_checksum_from_uri(struct page_uri_t uri);
 
 int check_ubuffer(struct ubuffer_t* buf);
 
+struct page_t* from_ubuffer(struct ubuffer_t* buffer);
+
 int dbms_init(struct dbms_t* dbms, int num_buffer);
 
 int dbms_shutdown(struct dbms_t* dbms);

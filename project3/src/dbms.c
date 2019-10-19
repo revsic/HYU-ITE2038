@@ -16,6 +16,10 @@ int check_ubuffer(struct ubuffer_t* buf) {
     return SUCCESS;
 }
 
+struct page_t* from_ubuffer(struct ubuffer_t* buffer) {
+    return from_buffer(buffer->buf);
+}
+
 int dbms_init(struct dbms_t* dbms, int num_buffer) {
     buffer_manager_init(&dbms->buffers, num_buffer);
     table_manager_init(&dbms->tables);
