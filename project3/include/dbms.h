@@ -27,6 +27,8 @@ struct ubuffer_t dbms_buffering(struct dbms_table_t* table,
 
 struct ubuffer_t dbms_new_page(struct dbms_table_t* table);
 
+int dbms_free_page(struct dbms_table_t* table, pagenum_t pagenum);
+
 int dbms_find(struct dbms_table_t* table, struct record_t* record);
 
 int dbms_insert(struct dbms_table_t* table,

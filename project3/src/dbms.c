@@ -39,6 +39,13 @@ struct ubuffer_t dbms_new_page(struct dbms_table_t* table)
                                    table->table_id);
 }
 
+int dbms_free_page(struct dbms_table_t* table, pagenum_t pagenum) {
+    struct page_uri_t uri = { table->table_id, pagenum };
+    return buffer_manager_free_page(&table->dbms->buffers,
+                                    &table->dbms->tables,
+                                    &uri);
+}
+
 int dbms_find(struct dbms_table_t* table, struct record_t* record)
 {
     return bpt_find(record->key, record, table);
