@@ -4,7 +4,6 @@
 #include "headers.h"
 #include "table_manager.h"
 
-// TODO: reload system
 #define BUFFER_READ(var, cont) {                        \
     EXIT_ON_FAILURE(check_ubuffer(&(var)));             \
     buffer_start(var, READ_FLAG);                       \
