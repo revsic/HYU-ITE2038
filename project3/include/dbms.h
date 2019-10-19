@@ -22,29 +22,18 @@ tablenum_t dbms_open_table(struct dbms_t* dbms, const char* filename);
 
 int dbms_close_table(struct dbms_t* dbms, tablenum_t table_id);
 
-struct ubuffer_t dbms_buffering(struct dbms_t* dbms,
-                                struct page_uri_t* page_uri);
+struct ubuffer_t dbms_buffering(struct dbms_table_t* table,
+                                pagenum_t pagenum);
 
-struct ubuffer_t dbms_buffering_from_table(struct dbms_table_t* table,
-                                           pagenum_t pagenum);
+struct ubuffer_t dbms_new_page(struct dbms_table_t* table);
 
-struct ubuffer_t dbms_new_page(struct dbms_t* dbms,
-                               tablenum_t table_id);
+int dbms_find(struct dbms_table_t* table, struct record_t* record);
 
-struct ubuffer_t dbms_new_page_from_table(struct dbms_table_t* table);
-
-int dbms_find(struct dbms_t* dbms,
-              tablenum_t table_id,
-              struct record_t* record);
-
-int dbms_insert(struct dbms_t* dbms,
-                tablenum_t table_id,
+int dbms_insert(struct dbms_table_t* table,
                 prikey_t key,
                 uint8_t* value,
                 int value_size);
 
-int dbms_delete(struct dbms_t* dbms,
-                tablenum_t table_id,
-                prikey_t key);
+int dbms_delete(struct dbms_table_t* table, prikey_t key);
 
 #endif
