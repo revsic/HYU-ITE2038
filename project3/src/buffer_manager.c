@@ -161,7 +161,7 @@ int buffer_end_read(struct buffer_t* buffer) {
 
 int buffer_end_write(struct buffer_t* buffer) {
     ++buffer->is_pinned;
-    ++buffer->is_dirty;
+    buffer->is_dirty = TRUE;
     return SUCCESS;
 }
 
