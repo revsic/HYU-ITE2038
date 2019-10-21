@@ -5,6 +5,7 @@ CC=gcc
 
 SRCDIR=src/
 APPDIR=app/
+TESTSRC=testsrc/
 INC=include/
 LIBS=lib/
 
@@ -12,14 +13,18 @@ LIBS=lib/
 TARGET_SRC:=$(APPDIR)main.c
 TARGET_OBJ:=$(APPDIR)main.o
 
+# test source file
+TARGET_TEST_SRC:=$(TESTSRC)*.c
+
 SRCS_FOR_LIB:=$(wildcard $(SRCDIR)*.c)
 OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.c=.o)
 
 CFLAGS+= -g -fPIC -I $(INC) -Wno-format
 
 TARGET=main
+TARGET_TEST=test
 
-all: $(TARGET)
+all: $(TARGET) $(TARGET_TEST)
 
 $(SRCDIR)bpt.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
@@ -46,8 +51,12 @@ $(TARGET): $(TARGET_OBJ)
 	make static_library
 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
+$(TARGET_TEST): $(TARGET_TEST_SRC)
+	make static_library
+	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
+
 clean:
-	rm $(TARGET) $(TARGET_OBJ) $(OBJS_FOR_LIB) $(LIBS)*
+	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(OBJS_FOR_LIB) $(LIBS)*
 
 library: $(OBJS_FOR_LIB)
 	gcc -shared -Wl,-soname,libbpt.so -o $(LIBS)libbpt.so $(OBJS_FOR_LIB)
