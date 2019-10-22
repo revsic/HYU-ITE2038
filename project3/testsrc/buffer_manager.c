@@ -107,6 +107,7 @@ int buffer_manager_test() {
         && buffer_manager_load_test()
         && buffer_manager_release_block_test()
         && buffer_manager_release_table_test()
+        && buffer_manager_release_test()
         && buffer_manager_find_test()
         && buffer_manager_buffering_test()
         && buffer_manager_new_page_test()
