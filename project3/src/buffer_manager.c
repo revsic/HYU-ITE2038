@@ -103,10 +103,11 @@ int buffer_append_mru(struct buffer_t* buffer, int link) {
         CHECK_SUCCESS(buffer_link_neighbor(buffer));
     }
 
+    buffer->prev_use = manager->mru;
+    buffer->next_use = -1;
     if (manager->mru != -1) {
         manager->buffers[manager->mru].next_use = buffer->block_idx;
     }
-    buffer->prev_use = manager->mru;
     manager->mru = buffer->block_idx;
     if (manager->lru == -1) {
         manager->lru = buffer->block_idx;
