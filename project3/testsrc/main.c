@@ -7,5 +7,6 @@ TEST_SUITE(unit, {
 })
 
 int main() {
+    remove("testfile");
     unit_test();
 }
