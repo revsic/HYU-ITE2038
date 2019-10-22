@@ -224,23 +224,87 @@ TEST_SUITE(table_vec_release, {
 })
 
 TEST_SUITE(table_manager_init, {
+    struct table_manager_t manager;
+    TEST_SUCCESS(table_manager_init(&manager));
 
+    TEST(manager.vec.size == 0);
+    TEST(manager.vec.capacity == TABLE_VEC_DEFAULT_CAPACITY);
+    TEST(manager.vec.array != NULL);
+
+    TEST_SUCCESS(table_vec_release(&manager.vec));
 })
 
 TEST_SUITE(table_manager_load, {
+    struct table_manager_t manager;
+    TEST_SUCCESS(table_manager_init(&manager));
 
+    tablenum_t res = table_manager_load(&manager, "testfile");
+    TEST(res != INVALID_TABLENUM);
+
+    struct table_t* table = table_vec_find(&manager.vec, res);
+    TEST(table != NULL);
+    TEST(table->table_id == res);
+
+    TEST_SUCCESS(table_vec_release(&manager.vec));
+    remove("testfile");
 })
 
 TEST_SUITE(table_manager_find, {
+    struct table_manager_t manager;
+    TEST_SUCCESS(table_manager_init(&manager));
 
+    int i;
+    char str[] = "testfile0";
+    tablenum_t arr[10];
+    for (i = 0; i < 10; ++i) {
+        str[8] = i + 0x30;
+        arr[i] = table_manager_load(&manager, str);
+        TEST(arr[i] != INVALID_TABLENUM);
+    }
+
+    for (i = 0; i < 10; ++i) {
+        TEST(table_manager_find(&manager, arr[i]) != NULL);
+    }
+
+    TEST_SUCCESS(table_vec_release(&manager.vec));
+    for (i = 0; i < 10; ++i) {
+        str[8] = i + 0x30;
+        remove(str);
+    }
 })
 
 TEST_SUITE(table_manager_remove, {
+    struct table_manager_t manager;
+    TEST_SUCCESS(table_manager_init(&manager));
 
+    int i;
+    char str[] = "testfile0";
+    tablenum_t arr[10];
+    for (i = 0; i < 10; ++i) {
+        str[8] = i + 0x30;
+        arr[i] = table_manager_load(&manager, str);
+        TEST(arr[i] != INVALID_TABLENUM);
+    }
+
+    for (i = 0; i < 10; ++i) {
+        TEST_SUCCESS(table_manager_remove(&manager, arr[i]));
+        TEST(table_manager_find(&manager, arr[i]) == NULL);
+    }
+
+    TEST_SUCCESS(table_vec_release(&manager.vec));
+    for (i = 0; i < 10; ++i) {
+        str[8] = i + 0x30;
+        remove(str);
+    }
 })
 
 TEST_SUITE(table_manager_release, {
-
+    struct table_manager_t manager;
+    TEST_SUCCESS(table_manager_init(&manager));
+    TEST_SUCCESS(table_manager_release(&manager));
+    TEST(manager.vec.size == 0);
+    TEST(manager.vec.capacity == 0);
+    TEST(manager.vec.array == NULL);
 })
 
 int table_manager_test() {
