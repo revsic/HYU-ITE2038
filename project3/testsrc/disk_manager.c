@@ -79,7 +79,24 @@ TEST_SUITE(file_close, {
 })
 
 TEST_SUITE(file_rw_header, {
+    struct file_manager_t manager;
+    TEST_SUCCESS(file_open("testfile", &manager));
 
+    struct file_header_t header;
+    header.free_page_number = 100;
+    header.root_page_number = 200;
+    header.number_of_pages = 300;
+
+    TEST_SUCCESS(file_write_header(&manager, &header));
+    memset(&header, 0, sizeof(struct file_header_t));
+
+    TEST_SUCCESS(file_read_header(&manager, &header));
+    TEST(header.free_page_number == 100);
+    TEST(header.root_page_number == 200);
+    TEST(header.number_of_pages == 300);
+
+    TEST_SUCCESS(file_close(&manager));
+    remove("testfile");
 })
 
 TEST_SUITE(last_pagenum, {
