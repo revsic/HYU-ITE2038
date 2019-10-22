@@ -619,19 +619,126 @@ TEST_SUITE(buffer_manager_release, {
 })
 
 TEST_SUITE(buffer_manager_find, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
+    struct table_manager_t tables;
+    TEST_SUCCESS(table_manager_init(&tables));
+
+    tablenum_t tid = table_manager_load(&tables, "testfile");
+    TEST(tid != INVALID_TABLENUM);
+
+    struct table_t* table = table_manager_find(&tables, tid);
+    TEST(table != NULL);
+
+    struct page_uri_t uri;
+    uri.table_id = tid;
+
+    int i;
+    pagenum_t pagenum[3];
+    for (i = 0; i < 3; ++i) {
+        pagenum[i] = page_create(&table->file_manager);
+        TEST(pagenum != INVALID_PAGENUM);
+
+        uri.pagenum = pagenum[i];
+        TEST(i == buffer_manager_load(&manager, &tables, &uri));
+    }
+
+    for (i = 0; i < 3; ++i) {
+        uri.pagenum = pagenum[i];
+        TEST(i == buffer_manager_find(&manager, &uri));
+    }
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(table_manager_release(&tables));
+    remove("testfile");
 })
 
 TEST_SUITE(buffer_manager_buffering, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
+    struct table_manager_t tables;
+    TEST_SUCCESS(table_manager_init(&tables));
+
+    tablenum_t tid = table_manager_load(&tables, "testfile");
+    TEST(tid != INVALID_TABLENUM);
+
+    struct table_t* table = table_manager_find(&tables, tid);
+    TEST(table != NULL);
+
+    struct page_uri_t uri;
+    uri.table_id = tid;
+
+    int i;
+    pagenum_t pagenum[10];
+    struct ubuffer_t ubuf;
+    for (i = 0; i < 10; ++i) {
+        pagenum[i] = page_create(&table->file_manager);
+        TEST(pagenum != INVALID_PAGENUM);
+
+        uri.pagenum = pagenum[i];
+        ubuf = buffer_manager_buffering(&manager, &tables, &uri);
+        TEST(tid == ubuf.uri.table_id);
+        TEST(pagenum[i] == ubuf.uri.pagenum);
+        TEST(&manager.buffers[i % 5] == ubuf.buf);
+    }
+
+    for (i = 9; i >= 5; --i) {
+        uri.pagenum = pagenum[i];
+        ubuf = buffer_manager_buffering(&manager, &tables, &uri);
+        TEST(tid == ubuf.uri.table_id);
+        TEST(pagenum[i] == ubuf.uri.pagenum);
+        TEST(&manager.buffers[i % 5] == ubuf.buf);
+    }
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(table_manager_release(&tables));
+    remove("testfile");
 })
 
 TEST_SUITE(buffer_manager_new_page, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
+    struct table_manager_t tables;
+    TEST_SUCCESS(table_manager_init(&tables));
+
+    tablenum_t tid = table_manager_load(&tables, "testfile");
+    TEST(tid != INVALID_TABLENUM);
+
+    int i;
+    struct ubuffer_t ubuf;
+    for (i = 0; i < 13; ++i) {
+        ubuf = buffer_manager_new_page(&manager, &tables, tid);
+        TEST(&manager.buffers[i % 5] == ubuf.buf);
+    }
+    
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(table_manager_release(&tables));
+    remove("testfile");
 })
 
 TEST_SUITE(buffer_manager_free_page, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
+    struct table_manager_t tables;
+    TEST_SUCCESS(table_manager_init(&tables));
+
+    tablenum_t tid = table_manager_load(&tables, "testfile");
+    TEST(tid != INVALID_TABLENUM);
+
+    struct ubuffer_t ubuf = buffer_manager_new_page(&manager, &tables, tid);
+
+    struct page_uri_t uri;
+    uri.table_id = tid;
+    uri.pagenum = ubuf.uri.pagenum;
+    TEST_SUCCESS(buffer_manager_free_page(&manager, &tables, &uri));
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(table_manager_release(&tables));
+    remove("testfile");
 })
 
 int buffer_manager_test() {
