@@ -73,7 +73,7 @@ struct release_policy_t {
 
 enum RW_FLAG {
     READ_FLAG = 0,
-    WRITE_FLAG = 0
+    WRITE_FLAG = 1
 };
 
 extern const struct release_policy_t RELEASE_LRU;
