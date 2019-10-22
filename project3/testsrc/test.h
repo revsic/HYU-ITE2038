@@ -6,6 +6,8 @@ if(!(expr)) {                                           \
     return 0;                                           \
 }
 
+#define TEST_SUCCESS(val) TEST(val == SUCCESS)
+
 #define TEST_SUITE(name, content)                           \
 int name##_test() {                                         \
     content;                                                \
