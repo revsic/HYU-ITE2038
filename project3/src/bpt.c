@@ -1013,10 +1013,10 @@ int merge_nodes(struct ubuffer_t* left,
     if (!is_leaf) {
         BUFFER_WRITE(*left, {
             left_entries = entries(from_ubuffer(left));
-            left_num_key = &page_header(from_ubuffer(left))->number_of_keys;
+            left_num_key = (int*)&page_header(from_ubuffer(left))->number_of_keys;
             BUFFER_READ(*right, {
                 right_entries = entries(from_ubuffer(right));
-                right_num_key = &page_header(from_ubuffer(right))->number_of_keys;
+                right_num_key = (int*)&page_header(from_ubuffer(right))->number_of_keys;
 
                 for (i = -1; *right_num_key >= 0; ++i, ++insertion_index) {
                     if (i == -1) {
@@ -1042,10 +1042,10 @@ int merge_nodes(struct ubuffer_t* left,
     } else {
         BUFFER_WRITE(*left, {
             left_records = records(from_ubuffer(left));
-            left_num_key = &page_header(from_ubuffer(left))->number_of_keys;
+            left_num_key = (int*)&page_header(from_ubuffer(left))->number_of_keys;
             BUFFER_READ(*right, {
                 right_records = records(from_ubuffer(right));
-                right_num_key = &page_header(from_ubuffer(right))->number_of_keys;
+                right_num_key = (int*)&page_header(from_ubuffer(right))->number_of_keys;
                 for (i = 0; *right_num_key > 0; ++i, ++insertion_index) {
                     left_records[insertion_index] = right_records[i];
                     *right_num_key -= 1;
