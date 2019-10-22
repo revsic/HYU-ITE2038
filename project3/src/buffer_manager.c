@@ -77,6 +77,7 @@ int buffer_new_page(struct buffer_t* buffer, struct table_t* table) {
 }
 
 int buffer_link_neighbor(struct buffer_t* buffer) {
+    // don't use unconnected node from lru to mru.
     struct buffer_manager_t* manager;
     CHECK_NULL(manager = buffer->manager);
 
