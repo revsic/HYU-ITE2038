@@ -50,7 +50,7 @@ int table_load(struct table_t* table, const char* filename) {
 }
 
 int table_release(struct table_t* table) {
-    table->table_id = INVALID_PAGENUM;
+    table->table_id = INVALID_TABLENUM;
     return file_close(&table->file_manager);
 }
 
