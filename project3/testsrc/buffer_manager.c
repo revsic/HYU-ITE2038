@@ -181,6 +181,8 @@ TEST_SUITE(buffer_append_mru, {
     TEST(manager.buffers[1].next_use == 2);
     TEST(manager.buffers[2].prev_use == 1);
     TEST(manager.buffers[2].next_use == -1);
+
+    free(manager.buffers);
 })
 
 TEST_SUITE(buffer_release, {
@@ -270,14 +272,108 @@ TEST_SUITE(buffer_release, {
     TEST(file_header(from_buffer(target))->number_of_pages == 20);
 
     remove("testfile");
+    free(manager.buffers);
 })
 
-TEST_SUITE(buffer_start, {
+TEST_SUITE(buffer_start_end, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
+    manager.num_buffer = 3;
+    manager.lru = 0;
+    manager.mru = 2;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = 2;
+    manager.buffers[2].prev_use = 1;
+    manager.buffers[2].next_use = -1;
+
+    struct buffer_t* target = &manager.buffers[1];
+
+    TEST_SUCCESS(buffer_start(target, READ_FLAG));
+    TEST(target->pin == 1);
+    TEST(target->next_use == -1);
+    TEST(target->prev_use == 2);
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 1);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 0);
+    TEST(manager.buffers[2].next_use == 1);
+
+    TEST_SUCCESS(buffer_end(target, READ_FLAG));
+    TEST(target->pin == 0);
+
+    target = &manager.buffers[2];
+    TEST_SUCCESS(buffer_start(target, WRITE_FLAG));
+    TEST(target->pin == -1);
+    TEST(target->next_use == -1);
+    TEST(target->prev_use == 1);
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 2);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 1);
+    TEST(manager.buffers[1].prev_use == 0);
+    TEST(manager.buffers[1].next_use == 2);
+
+    TEST_SUCCESS(buffer_end(target, WRITE_FLAG));
+    TEST(target->pin == 0);
+    free(manager.buffers);
 })
 
-TEST_SUITE(buffer_end, {
+TEST_SUITE(buffer_macro, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
+    manager.num_buffer = 3;
+    manager.lru = 0;
+    manager.mru = 2;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = 2;
+    manager.buffers[2].prev_use = 1;
+    manager.buffers[2].next_use = -1;
+
+    struct buffer_t* target = &manager.buffers[0];
+    struct page_uri_t uri;
+    uri.table_id = INVALID_TABLENUM;
+    uri.pagenum = INVALID_PAGENUM;
+
+    struct ubuffer_t ubuf;
+    ubuf.buf = target;
+    ubuf.uri = uri;
+
+    BUFFER_READ(ubuf, {
+        ;
+    })
+
+    TEST(target->pin == 0);
+    TEST(target->next_use == -1);
+    TEST(target->prev_use == 2);
+    TEST(target->is_dirty == FALSE);
+    TEST(manager.lru == 1);
+    TEST(manager.mru == 0);
+    TEST(manager.buffers[1].prev_use == -1);
+    TEST(manager.buffers[1].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 1);
+    TEST(manager.buffers[2].next_use == 0);
+
+    BUFFER_WRITE(ubuf, {
+        ;
+    })
+
+    TEST(target->pin == 0);
+    TEST(target->next_use == -1);
+    TEST(target->prev_use == 2);
+    TEST(target->is_dirty == TRUE);
+    TEST(manager.lru == 1);
+    TEST(manager.mru == 0);
+    TEST(manager.buffers[1].prev_use == -1);
+    TEST(manager.buffers[1].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 1);
+    TEST(manager.buffers[2].next_use == 0);
 })
 
 TEST_SUITE(buffer_manager_init, {
@@ -348,8 +444,8 @@ int buffer_manager_test() {
         && buffer_link_neighbor_test()
         && buffer_append_mru_test()
         && buffer_release_test()
-        && buffer_start_test()
-        && buffer_end_test()
+        && buffer_start_end_test()
+        && buffer_macro_test()
         && buffer_manager_init_test()
         && buffer_manager_shutdown_test()
         && buffer_manager_alloc_test()
