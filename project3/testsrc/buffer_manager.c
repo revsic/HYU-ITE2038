@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "buffer_manager.h"
 #include "test.h"
 
@@ -80,11 +82,104 @@ TEST_SUITE(buffer_new_page, {
 })
 
 TEST_SUITE(buffer_link_neighbor, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
+    // case 0. only node
+    manager.lru = 0;
+    manager.mru = 0;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = -1;
+
+    TEST_SUCCESS(buffer_link_neighbor(&manager.buffers[0]));
+    TEST(manager.lru == -1);
+    TEST(manager.mru == -1);
+
+    // case 1. least recentrly used node
+    manager.lru = 0;
+    manager.mru = 2;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = 2;
+
+    TEST_SUCCESS(buffer_link_neighbor(&manager.buffers[0]));
+    TEST(manager.lru == 1);
+    TEST(manager.mru == 2);
+    TEST(manager.buffers[1].prev_use == -1);
+    TEST(manager.buffers[1].next_use == 2);
+
+    // case 2. most recently used node
+    manager.lru = 2;
+    manager.mru = 0;
+    manager.buffers[0].prev_use = 1;
+    manager.buffers[0].next_use = -1;
+    manager.buffers[1].prev_use = 2;
+    manager.buffers[1].next_use = 0;
+
+    TEST_SUCCESS(buffer_link_neighbor(&manager.buffers[0]));
+    TEST(manager.mru == 1);
+    TEST(manager.lru == 2);
+    TEST(manager.buffers[1].next_use == -1);
+    TEST(manager.buffers[1].prev_use == 2);
+
+    // case 3. middle node
+    manager.lru = 0;
+    manager.mru = 2;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = 2;
+    manager.buffers[2].prev_use = 1;
+    manager.buffers[2].next_use = -1;
+
+    TEST_SUCCESS(buffer_link_neighbor(&manager.buffers[1]));
+    TEST(manager.mru == 2);
+    TEST(manager.lru == 0);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 0);
+    TEST(manager.buffers[2].next_use == -1);
+
+    // case 4. unconnected node
+    // undefined behaviour
+
+    free(manager.buffers);
 })
 
 TEST_SUITE(buffer_append_mru, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
+    // case 1. first node
+    manager.lru = -1;
+    manager.mru = -1;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[1].next_use = -1;
+    TEST_SUCCESS(buffer_append_mru(&manager.buffers[0], FALSE));
+
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 0);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == -1);
+
+    // case 2. append
+    manager.lru = 0;
+    manager.mru = 1;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = -1;
+    TEST_SUCCESS(buffer_append_mru(&manager.buffers[2], FALSE));
+
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 2);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 1);
+    TEST(manager.buffers[1].prev_use == 0);
+    TEST(manager.buffers[1].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 1);
+    TEST(manager.buffers[2].next_use == -1);
 })
 
 TEST_SUITE(buffer_release, {
@@ -100,7 +195,21 @@ TEST_SUITE(buffer_end, {
 })
 
 TEST_SUITE(buffer_manager_init, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
+    TEST(manager.capacity == 5);
+    TEST(manager.num_buffer == 0);
+    TEST(manager.lru == -1);
+    TEST(manager.mru == -1);
+    TEST(manager.buffers != NULL);
+
+    int i;
+    for (i = 0; i < 5; ++i) {
+        TEST(manager.buffers[i].table_id == INVALID_TABLENUM);
+    }
+
+    free(manager.buffers);
 })
 
 TEST_SUITE(buffer_manager_shutdown, {
