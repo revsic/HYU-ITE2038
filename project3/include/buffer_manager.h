@@ -55,7 +55,7 @@ struct buffer_t {
 
 struct ubuffer_t {
     struct buffer_t* buf;
-    uint64_t checksum;
+    struct page_uri_t uri;
 };
 
 struct buffer_manager_t {
@@ -76,17 +76,9 @@ enum RW_FLAG {
     WRITE_FLAG = 0
 };
 
-typedef int(*reader_t)(const struct page_t* page, void* param);
-
-typedef int(*writer_t)(struct page_t* page, void* param);
-
 extern const struct release_policy_t RELEASE_LRU;
 
 extern const struct release_policy_t RELEASE_MRU;
-
-uint64_t create_checksum(tablenum_t table_id, pagenum_t pagenum);
-
-uint64_t create_checksum_from_uri(struct page_uri_t* uri);
 
 int check_ubuffer(struct ubuffer_t* buf);
 
