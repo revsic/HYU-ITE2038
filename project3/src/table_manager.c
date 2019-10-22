@@ -160,7 +160,7 @@ tablenum_t table_manager_load(struct table_manager_t* manager,
     tablenum_t id;
     struct table_t table;
     if (table_load(&table, filename) == FAILURE) {
-        return INVALID_PAGENUM;
+        return INVALID_TABLENUM;
     }
 
     while (table_vec_find(&manager->vec, table.table_id) != NULL) {
@@ -169,7 +169,7 @@ tablenum_t table_manager_load(struct table_manager_t* manager,
 
     id = table.table_id;
     if (table_vec_append(&manager->vec, &table) == FAILURE) {
-        return INVALID_PAGENUM;
+        return INVALID_TABLENUM;
     }
     return id;
 }
