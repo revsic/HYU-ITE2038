@@ -578,6 +578,7 @@ int insert_into_leaf_after_splitting(struct ubuffer_t* leaf,
 {
     prikey_t key;
     int insertion_index, split_index, i, j;
+    pagenum_t next_node, parent_node;
     struct record_t *leaf_rec, *new_rec;
     struct record_t temp_record[LEAF_ORDER];
     struct page_header_t *leaf_header, *new_header;
@@ -585,6 +586,9 @@ int insert_into_leaf_after_splitting(struct ubuffer_t* leaf,
     BUFFER_READ(*leaf, {
         leaf_rec = records(from_ubuffer(leaf));
         leaf_header = page_header(from_ubuffer(leaf));
+
+        next_node = leaf_header->special_page_number;
+        parent_node = leaf_header->parent_page_number;
 
         for (insertion_index = 0;
              insertion_index < leaf_header->number_of_keys
@@ -626,11 +630,9 @@ int insert_into_leaf_after_splitting(struct ubuffer_t* leaf,
             new_header->number_of_keys++;
         }
 
-        BUFFER_READ(*leaf, {
-            leaf_header = page_header(from_ubuffer(leaf));
-            new_header->special_page_number = leaf_header->special_page_number;
-            new_header->parent_page_number = leaf_header->parent_page_number;
-        })
+        new_header->special_page_number = next_node;
+        new_header->parent_page_number = parent_node;
+
         key = new_rec[0].key;
     })
 
