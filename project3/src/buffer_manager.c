@@ -95,17 +95,23 @@ int buffer_link_neighbor(struct buffer_t* buffer) {
     return SUCCESS;
 }
 
-int buffer_append_mru(struct buffer_t* buffer) {
+int buffer_append_mru(struct buffer_t* buffer, int link) {
     int mru;
     struct buffer_manager_t* manager;
     CHECK_NULL(manager = buffer->manager);
-    CHECK_SUCCESS(buffer_link_neighbor(buffer));
+    if (link) {
+        CHECK_SUCCESS(buffer_link_neighbor(buffer));
+    }
 
     if (manager->mru != -1) {
         manager->buffers[manager->mru].next_use = buffer->block_idx;
     }
     buffer->prev_use = manager->mru;
     manager->mru = buffer->block_idx;
+    if (manager->lru == -1) {
+        manager->lru = buffer->block_idx;
+    }
+
     return SUCCESS;
 }
 
@@ -130,7 +136,7 @@ int buffer_start_read(struct buffer_t* buffer) {
     while (buffer->pin < 0)
         {}
     ++buffer->pin;
-    CHECK_SUCCESS(buffer_append_mru(buffer));
+    CHECK_SUCCESS(buffer_append_mru(buffer, TRUE));
     return SUCCESS;
 }
 
@@ -138,7 +144,7 @@ int buffer_start_write(struct buffer_t* buffer) {
     while (buffer->pin != 0)
         {}
     --buffer->pin;
-    CHECK_SUCCESS(buffer_append_mru(buffer));
+    CHECK_SUCCESS(buffer_append_mru(buffer, TRUE));
     return SUCCESS;
 }
 
@@ -236,14 +242,7 @@ int buffer_manager_load(struct buffer_manager_t* manager,
         return -1;
     }
 
-    buffer->prev_use = manager->mru;
-    if (manager->mru == -1) {
-        manager->lru = idx;
-    } else {
-        manager->buffers[buffer->prev_use].next_use = idx;
-    }
-
-    manager->mru = idx;
+    buffer_append_mru(buffer, FALSE);
     return idx;
 }
 

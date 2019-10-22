@@ -98,7 +98,7 @@ int buffer_new_page(struct buffer_t* buffer, struct table_t* table);
 
 int buffer_link_neighbor(struct buffer_t* buffer);
 
-int buffer_append_mru(struct buffer_t* buffer);
+int buffer_append_mru(struct buffer_t* buffer, int link);
 
 int buffer_release(struct buffer_t* buffer);
 
