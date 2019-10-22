@@ -346,6 +346,10 @@ struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
         return ubuf;
     }
 
+    if (buffer_append_mru(buffer, FALSE) == FAILURE) {
+        return ubuf;
+    }
+
     struct page_uri_t uri = { table_id, buffer->pagenum };
     ubuf.buf = buffer;
     ubuf.uri = uri;
