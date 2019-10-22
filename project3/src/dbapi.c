@@ -7,7 +7,7 @@
 struct dbms_t GLOBAL_DBMS;
 
 int init_db(int num_buf) {
-    return dbms_init(&GLOBAL_DBMS, num_buf);
+    return dbms_init(&GLOBAL_DBMS, num_buf, 10);
 }
 
 tablenum_t open_table(const char* pathname) {

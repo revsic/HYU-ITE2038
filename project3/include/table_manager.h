@@ -4,8 +4,6 @@
 #include "disk_manager.h"
 #include "headers.h"
 
-#define TABLE_VEC_DEFAULT_CAPACITY 4
-
 struct table_t {
     tablenum_t table_id;
     struct file_manager_t file_manager;
@@ -33,7 +31,7 @@ int table_load(struct table_t* table, const char* filename);
 
 int table_release(struct table_t* table);
 
-int table_vec_init(struct table_vec_t* table_vec);
+int table_vec_init(struct table_vec_t* table_vec, int capacity);
 
 int table_vec_extend(struct table_vec_t* table_vec);
 
@@ -48,7 +46,7 @@ int table_vec_shrink(struct table_vec_t* table_vec);
 
 int table_vec_release(struct table_vec_t* table_vec);
 
-int table_manager_init(struct table_manager_t* manager);
+int table_manager_init(struct table_manager_t* manager, int capacity);
 
 tablenum_t table_manager_load(struct table_manager_t* manager,
                               const char* filename);

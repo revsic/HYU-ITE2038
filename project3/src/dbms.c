@@ -1,9 +1,9 @@
 #include "bpt.h"
 #include "dbms.h"
 
-int dbms_init(struct dbms_t* dbms, int num_buffer) {
+int dbms_init(struct dbms_t* dbms, int num_buffer, int table_capacity) {
     buffer_manager_init(&dbms->buffers, num_buffer);
-    table_manager_init(&dbms->tables);
+    table_manager_init(&dbms->tables, table_capacity);
     return SUCCESS;
 }
 

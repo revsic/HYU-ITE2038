@@ -401,7 +401,7 @@ TEST_SUITE(buffer_manager_shutdown, {
     TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
     struct table_manager_t tables;
-    TEST_SUCCESS(table_manager_init(&tables));
+    TEST_SUCCESS(table_manager_init(&tables, 5));
     
     tablenum_t tid = table_manager_load(&tables, "testfile");
     TEST(tid != INVALID_TABLENUM);
@@ -444,7 +444,7 @@ TEST_SUITE(buffer_manager_load, {
     TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
     struct table_manager_t tables;
-    TEST_SUCCESS(table_manager_init(&tables));
+    TEST_SUCCESS(table_manager_init(&tables, 5));
     
     tablenum_t tid = table_manager_load(&tables, "testfile");
     TEST(tid != INVALID_TABLENUM);
@@ -489,7 +489,7 @@ TEST_SUITE(buffer_manager_release_block, {
     TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
     struct table_manager_t tables;
-    TEST_SUCCESS(table_manager_init(&tables));
+    TEST_SUCCESS(table_manager_init(&tables, 5));
     
     tablenum_t tid = table_manager_load(&tables, "testfile");
     TEST(tid != INVALID_TABLENUM);
@@ -521,7 +521,7 @@ TEST_SUITE(buffer_manager_release_table, {
     TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
     struct table_manager_t tables;
-    TEST_SUCCESS(table_manager_init(&tables));
+    TEST_SUCCESS(table_manager_init(&tables, 5));
     
     tablenum_t tid1 = table_manager_load(&tables, "testfile");
     tablenum_t tid2 = table_manager_load(&tables, "testfile2");
@@ -555,7 +555,7 @@ TEST_SUITE(buffer_manager_release, {
     TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
     struct table_manager_t tables;
-    TEST_SUCCESS(table_manager_init(&tables));
+    TEST_SUCCESS(table_manager_init(&tables, 5));
 
     tablenum_t tid = table_manager_load(&tables, "testfile");
     TEST(tid != INVALID_TABLENUM);
@@ -623,7 +623,7 @@ TEST_SUITE(buffer_manager_find, {
     TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
     struct table_manager_t tables;
-    TEST_SUCCESS(table_manager_init(&tables));
+    TEST_SUCCESS(table_manager_init(&tables, 5));
 
     tablenum_t tid = table_manager_load(&tables, "testfile");
     TEST(tid != INVALID_TABLENUM);
@@ -659,7 +659,7 @@ TEST_SUITE(buffer_manager_buffering, {
     TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
     struct table_manager_t tables;
-    TEST_SUCCESS(table_manager_init(&tables));
+    TEST_SUCCESS(table_manager_init(&tables, 5));
 
     tablenum_t tid = table_manager_load(&tables, "testfile");
     TEST(tid != INVALID_TABLENUM);
@@ -702,7 +702,7 @@ TEST_SUITE(buffer_manager_new_page, {
     TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
     struct table_manager_t tables;
-    TEST_SUCCESS(table_manager_init(&tables));
+    TEST_SUCCESS(table_manager_init(&tables, 5));
 
     tablenum_t tid = table_manager_load(&tables, "testfile");
     TEST(tid != INVALID_TABLENUM);
@@ -724,7 +724,7 @@ TEST_SUITE(buffer_manager_free_page, {
     TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
     struct table_manager_t tables;
-    TEST_SUCCESS(table_manager_init(&tables));
+    TEST_SUCCESS(table_manager_init(&tables, 5));
 
     tablenum_t tid = table_manager_load(&tables, "testfile");
     TEST(tid != INVALID_TABLENUM);

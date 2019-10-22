@@ -14,7 +14,7 @@ struct dbms_table_t {
     tablenum_t table_id;
 };
 
-int dbms_init(struct dbms_t* dbms, int num_buffer);
+int dbms_init(struct dbms_t* dbms, int num_buffer, int table_capacity);
 
 int dbms_shutdown(struct dbms_t* dbms);
 

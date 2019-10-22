@@ -54,9 +54,9 @@ int table_release(struct table_t* table) {
     return file_close(&table->file_manager);
 }
 
-int table_vec_init(struct table_vec_t* table_vec) {
+int table_vec_init(struct table_vec_t* table_vec, int capacity) {
     table_vec->size = 0;
-    table_vec->capacity = TABLE_VEC_DEFAULT_CAPACITY;
+    table_vec->capacity = capacity;
     table_vec->array = malloc(sizeof(struct table_t*) * table_vec->capacity);
     if (table_vec->array == NULL) {
         table_vec->capacity = 0;
@@ -150,8 +150,8 @@ int table_vec_release(struct table_vec_t* table_vec) {
     return SUCCESS;
 }
 
-int table_manager_init(struct table_manager_t* manager) {
-    return table_vec_init(&manager->vec);
+int table_manager_init(struct table_manager_t* manager, int capacity) {
+    return table_vec_init(&manager->vec, capacity);
 }
 
 tablenum_t table_manager_load(struct table_manager_t* manager,
