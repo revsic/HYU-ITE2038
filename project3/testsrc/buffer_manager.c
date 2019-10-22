@@ -32,15 +32,51 @@ TEST_SUITE(from_ubuffer, {
 })
 
 TEST_SUITE(buffer_init, {
+    struct buffer_t buf;
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_init(&buf, 10, &manager));
 
+    TEST(buf.table_id == INVALID_TABLENUM);
+    TEST(buf.pagenum == INVALID_PAGENUM);
+    TEST(buf.is_dirty == FALSE);
+    TEST(buf.pin == 0);
+    TEST(buf.prev_use == -1);
+    TEST(buf.next_use == -1);
+    TEST(buf.block_idx == 10);
+    TEST(buf.table == NULL);
+    TEST(buf.manager == &manager);
 })
 
 TEST_SUITE(buffer_load, {
+    struct buffer_t buf;
+    struct table_t table;
+    TEST_SUCCESS(table_load(&table, "testfile"));
+    TEST_SUCCESS(buffer_init(&buf, 10, NULL));
+    
+    pagenum_t pagenum = page_create(&table.file_manager);
+    TEST_SUCCESS(buffer_load(&buf, &table, pagenum));
 
+    TEST(buf.table_id == table.table_id);
+    TEST(buf.pagenum == pagenum);
+    TEST(buf.table == &table);
+
+    TEST_SUCCESS(table_release(&table));
+    remove("testfile");
 })
 
 TEST_SUITE(buffer_new_page, {
+    struct buffer_t buf;
+    struct table_t table;
+    TEST_SUCCESS(table_load(&table, "testfile"));
+    TEST_SUCCESS(buffer_init(&buf, 10, NULL));
+    TEST_SUCCESS(buffer_new_page(&buf, &table));
 
+    TEST(buf.table_id == table.table_id);
+    TEST(buf.pagenum != INVALID_PAGENUM);
+    TEST(buf.table == &table);
+
+    TEST_SUCCESS(table_release(&table));
+    remove("testfile");
 })
 
 TEST_SUITE(buffer_link_neighbor, {
