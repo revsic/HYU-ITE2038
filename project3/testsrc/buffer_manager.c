@@ -374,6 +374,8 @@ TEST_SUITE(buffer_macro, {
     TEST(manager.buffers[1].next_use == 2);
     TEST(manager.buffers[2].prev_use == 1);
     TEST(manager.buffers[2].next_use == 0);
+
+    free(manager.buffers);
 })
 
 TEST_SUITE(buffer_manager_init, {
