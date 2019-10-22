@@ -47,7 +47,7 @@ int buffer_init(struct buffer_t* buffer,
     buffer->table_id = INVALID_TABLENUM;
     buffer->pagenum = INVALID_PAGENUM;
     buffer->is_dirty = FALSE;
-    buffer->is_pinned = FALSE;
+    buffer->pin = 0;
     buffer->prev_use = -1;
     buffer->next_use = -1;
     buffer->block_idx = block_idx;
@@ -109,10 +109,10 @@ int buffer_append_mru(struct buffer_t* buffer) {
 }
 
 int buffer_release(struct buffer_t* buffer) {
-    while (buffer->is_pinned)
+    while (buffer->pin)
         {}
 
-    --buffer->is_pinned;
+    --buffer->pin;
     CHECK_SUCCESS(buffer_link_neighbor(buffer));
 
     if (buffer->is_dirty) {
@@ -126,17 +126,17 @@ int buffer_release(struct buffer_t* buffer) {
 }
 
 int buffer_start_read(struct buffer_t* buffer) {
-    while (buffer->is_pinned < 0)
+    while (buffer->pin < 0)
         {}
-    ++buffer->is_pinned;
+    ++buffer->pin;
     CHECK_SUCCESS(buffer_append_mru(buffer));
     return SUCCESS;
 }
 
 int buffer_start_write(struct buffer_t* buffer) {
-    while (buffer->is_pinned != 0)
+    while (buffer->pin != 0)
         {}
-    --buffer->is_pinned;
+    --buffer->pin;
     CHECK_SUCCESS(buffer_append_mru(buffer));
     return SUCCESS;
 }
@@ -148,12 +148,12 @@ int buffer_start(struct buffer_t* buffer, enum RW_FLAG rw_flag) {
 }
 
 int buffer_end_read(struct buffer_t* buffer) {
-    --buffer->is_pinned;
+    --buffer->pin;
     return SUCCESS;
 }
 
 int buffer_end_write(struct buffer_t* buffer) {
-    ++buffer->is_pinned;
+    ++buffer->pin;
     buffer->is_dirty = TRUE;
     return SUCCESS;
 }
@@ -274,7 +274,7 @@ int buffer_manager_release(struct buffer_manager_t* manager,
                            const struct release_policy_t* policy)
 {
     int idx = policy->initial_search(manager);
-    while (idx != -1 && manager->buffers[idx].is_pinned) {
+    while (idx != -1 && manager->buffers[idx].pin) {
         idx = policy->next_search(&manager->buffers[idx]);
     }
     if (idx == -1) {

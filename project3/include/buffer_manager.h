@@ -45,7 +45,7 @@ struct buffer_t {
     tablenum_t table_id;
     pagenum_t pagenum;
     uint32_t is_dirty;
-    uint32_t is_pinned;
+    uint32_t pin;
     int prev_use;
     int next_use;
     int block_idx;
