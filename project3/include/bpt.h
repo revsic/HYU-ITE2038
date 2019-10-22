@@ -47,23 +47,6 @@ struct page_pair_t {
 
 // PAGE RELATIVE
 
-/// Load page with page ID.
-/// \param pagenum pagenum_t, page ID.
-/// \param page struct page_t*, memory for writing read page.
-/// \param manager struct file_manager_t*, file manager.
-/// \return int, whether success to load page or not.
-int load_page(pagenum_t pagenum,
-              struct page_t* page,
-              struct file_manager_t* manager);
-/// Commit page with page ID.
-/// \param pagenum pagenum_t, page ID.
-/// \param page struct page_t*, page structure.
-/// \param manager struct file_manager_t*, file manager.
-/// \return int, whether success to commit page or not.
-int commit_page(pagenum_t pagenum,
-                struct page_t* page,
-                struct file_manager_t* manager);
-
 /// Swap page pair.
 /// \param left struct ubuffer_t*, left page.
 /// \param right struct ubuffer_t*, right page.
