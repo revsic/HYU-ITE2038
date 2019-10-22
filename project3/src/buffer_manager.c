@@ -207,7 +207,7 @@ int buffer_manager_alloc(struct buffer_manager_t* manager) {
     if (manager->num_buffer < manager->capacity) {
         for (idx = 0;
              idx < manager->capacity
-                && manager->buffers[idx].table_id == INVALID_TABLENUM;
+                && manager->buffers[idx].table_id != INVALID_TABLENUM;
              ++idx)
             {}
     } else {
@@ -243,7 +243,7 @@ int buffer_manager_load(struct buffer_manager_t* manager,
         return -1;
     }
 
-    buffer_append_mru(buffer, FALSE);
+    CHECK_SUCCESS(buffer_append_mru(buffer, FALSE));
     return idx;
 }
 
