@@ -201,7 +201,7 @@ pagenum_t find_leaf(prikey_t key,
             ent = entries(from_ubuffer(buffer));
             header = page_header(from_ubuffer(buffer));
 
-            if (!header->is_leaf) {
+            if (header->is_leaf) {
                 BUFFER_INTERCEPT_READ(*buffer, break);
             }
 
