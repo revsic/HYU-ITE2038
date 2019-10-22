@@ -4,12 +4,14 @@
 // MAIN
 
 int main(int argc, char ** argv) {
-    int tid, input, range2;
+    int input, range2;
     char instruction;
     char value[1024];
 
+    struct dbms_table_t table = { &GLOBAL_DBMS, INVALID_TABLENUM };
+
     init_db(4);
-    tid = open_table("datafile");
+    table.table_id = open_table("datafile");
 
     usage_1();
     usage_2();
@@ -18,37 +20,36 @@ int main(int argc, char ** argv) {
     while (scanf("%c", &instruction) != EOF) {
         switch (instruction) {
         case 'o':
-            // close table
-            if (tid != -1) {
-                close_table(tid);
-            }
             // open table
             scanf("%1023s", value);
-            tid = open_table(value);
+            input = open_table(value);
             // table id validation
-            if (tid == -1) {
+            if (input == -1) {
                 printf("cannot open file %s\n", value);
+            } else {
+                close_table(table.table_id);
+                table.table_id = input;
             }
             break;
         case 'd':
             scanf("%d", &input);
-            delete(tid, input);
-            // print_tree(&GLOBAL_MANAGER);
+            delete(table.table_id, input);
+            print_tree(&table);
             break;
         case 'i':
             scanf("%d", &input);
             snprintf(value, 100, "%d value", input);
-            insert(tid, input, value);
-            // print_tree(&GLOBAL_MANAGER);
+            insert(table.table_id, input, value);
+            print_tree(&table);
             break;
         case 'f':
             scanf("%d", &input);
-            if (find(tid, input, value) == SUCCESS) {
+            if (find(table.table_id, input, value) == SUCCESS) {
                 printf("Key: %d  Value: %s\n", input, value);
             } else {
                 printf("not found\n");
             }
-            //find_and_print(input, manager);
+            find_and_print(input, &table);
             break;
         case 'r':
             scanf("%d %d", &input, &range2);
@@ -57,10 +58,10 @@ int main(int argc, char ** argv) {
                 range2 = input;
                 input = tmp;
             }
-            // find_and_print_range(input, range2, &GLOBAL_MANAGER);
+            find_and_print_range(input, range2, &table);
             break;
         case 'l':
-            // print_leaves(&GLOBAL_MANAGER);
+            print_leaves(&table);
             break;
         case 'q':
             while (getchar() != (int)'\n');
@@ -68,11 +69,11 @@ int main(int argc, char ** argv) {
             return 0;
             break;
         case 't':
-            // print_tree(&GLOBAL_MANAGER);
+            print_tree(&table);
             break;
         case 'x':
-            // destroy_tree(&GLOBAL_MANAGER);
-            // print_tree(&GLOBAL_MANAGER);
+            destroy_tree(&table);
+            print_tree(&table);
             break;
         default:
             usage_2();
