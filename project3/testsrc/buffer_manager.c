@@ -239,8 +239,6 @@ TEST_SUITE(buffer_release, {
         file_header(from_ubuffer(&ubuffer))->number_of_pages = 20;
     })
 
-DBG(file_header(from_ubuffer(&ubuffer))->root_page_number)
-
     manager.num_buffer = 3;
     manager.lru = 0;
     manager.mru = 2;
@@ -268,7 +266,6 @@ DBG(file_header(from_ubuffer(&ubuffer))->root_page_number)
     // file check
     TEST_SUCCESS(buffer_load(target, &table, FILE_HEADER_PAGENUM));
     TEST(file_header(from_buffer(target))->free_page_number == 0);
-DBG(file_header(from_buffer(target))->root_page_number)
     TEST(file_header(from_buffer(target))->root_page_number == 1);
     TEST(file_header(from_buffer(target))->number_of_pages == 20);
 
