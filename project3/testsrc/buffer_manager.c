@@ -2,15 +2,33 @@
 #include "test.h"
 
 TEST_SUITE(check_ubuffer, {
+    struct buffer_t buf;
+    struct page_uri_t uri;
+    struct ubuffer_t ubuf;
+    ubuf.buf = &buf;
+    buf.table_id = 10;
+    buf.pagenum = 30;
 
+    uri.table_id = 10;
+    uri.pagenum = 30;
+    ubuf.uri = uri;
+    TEST_SUCCESS(check_ubuffer(&ubuf));
+
+    uri.table_id = 20;
+    ubuf.uri = uri;
+    TEST(check_ubuffer(&ubuf) == FAILURE);
 })
 
 TEST_SUITE(from_buffer, {
-
+    struct buffer_t buf;
+    TEST(from_buffer(&buf) == &buf.frame);
 })
 
 TEST_SUITE(from_ubuffer, {
-
+    struct buffer_t buf;
+    struct ubuffer_t ubuf;
+    ubuf.buf = &buf;
+    TEST(from_ubuffer(&ubuf) == from_buffer(&buf));
 })
 
 TEST_SUITE(buffer_init, {
