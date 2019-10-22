@@ -9,18 +9,13 @@ TEST_SUITE(file_init, {
     struct file_manager_t manager;
     manager.fp = fopen("testfile", "w+");
 
-    file_init(&manager);
+    TEST(file_init(&manager) == SUCCESS);
     TEST(fsize(manager.fp) == PAGE_SIZE);
-
-    struct file_header_t* file_header = &manager.file_header;
-    TEST(file_header->free_page_number == 0);
-    TEST(file_header->root_page_number == 0);
-    TEST(file_header->number_of_pages == 0);
 
     struct padded_file_header_t real_fheader;
     fpread(&real_fheader, PAGE_SIZE, 0, manager.fp);
     
-    file_header = &real_fheader.header;
+    struct file_header_t* file_header = &real_fheader.header;
     TEST(file_header->free_page_number == 0);
     TEST(file_header->root_page_number == 0);
     TEST(file_header->number_of_pages == 0);
@@ -29,23 +24,42 @@ TEST_SUITE(file_init, {
     remove("testfile");
 })
 
+TEST_SUITE(file_create, {
+    struct file_manager_t manager;
+
+    TEST(file_create("testfile", &manager) == SUCCESS);
+    fclose(manager.fp);
+
+    FILE* fp = fopen("testfile", "rb");
+    struct padded_file_header_t padded;
+    fpread(&padded, PAGE_SIZE, 0, fp);
+
+    struct file_header_t* file_header = &padded.header;
+    TEST(file_header->free_page_number == 0);
+    TEST(file_header->root_page_number == 0);
+    TEST(file_header->number_of_pages == 0);
+
+    fclose(fp);
+    remove("testfile");
+})
+
 TEST_SUITE(file_open, {
     struct file_manager_t manager;
-    file_open("testfile", &manager);
+    struct padded_file_header_t padded;
 
-    TEST(manager.updated == 0);
+    TEST_SUCCESS(file_open("testfile", &manager));
+    fpread(&padded, PAGE_SIZE, 0, manager.fp);
+
+    struct file_header_t* file_header = &padded.header;
+    TEST(file_header->free_page_number == 0);
+    TEST(file_header->root_page_number == 0);
+    TEST(file_header->number_of_pages == 0);
 
     fclose(manager.fp);
-    memset(&manager, 0, sizeof(struct file_manager_t));
 
-    file_open("testfile", &manager);
+    TEST_SUCCESS(file_open("testfile", &manager));
+    fpread(&padded, PAGE_SIZE, 0, manager.fp);
 
-    TEST(manager.updated == 0);
-
-    struct padded_file_header_t real_fheader;
-    fpread(&real_fheader, PAGE_SIZE, 0, manager.fp);
-
-    struct file_header_t* file_header = &real_fheader.header;
     TEST(file_header->free_page_number == 0);
     TEST(file_header->root_page_number == 0);
     TEST(file_header->number_of_pages == 0);
@@ -56,41 +70,28 @@ TEST_SUITE(file_open, {
 
 TEST_SUITE(file_close, {
     struct file_manager_t manager;
-    file_open("testfile", &manager);
+    TEST_SUCCESS(file_open("testfile", &manager));
 
-    file_close(&manager);
-    TEST(manager.file_header.root_page_number == 0);
+    TEST_SUCCESS(file_close(&manager));
+    TEST(manager.fp == NULL);
 
-    file_open("testfile", &manager);
-    manager.file_header.number_of_pages = 100;
-    manager.updated += 1;
-
-    file_close(&manager);
-
-    file_open("testfile", &manager);
-    TEST(manager.updated == 0);
-    TEST(manager.file_header.number_of_pages = 100);
-
-    struct padded_file_header_t real_fheader;
-    fpread(&real_fheader, PAGE_SIZE, 0, manager.fp);
-
-    struct file_header_t* file_header = &real_fheader.header;
-    TEST(file_header->number_of_pages == 100);
-
-    file_close(&manager);
     remove("testfile");
+})
+
+TEST_SUITE(file_rw_header, {
+
 })
 
 TEST_SUITE(last_pagenum, {
     struct file_manager_t manager;
-    file_open("testfile", &manager);
+    TEST_SUCCESS(file_open("testfile", &manager));
 
     TEST(last_pagenum(&manager) == 0);
 
     fresize(manager.fp, PAGE_SIZE * (10 + 1));
     TEST(last_pagenum(&manager) == 10);
 
-    file_close(&manager);
+    TEST_SUCCESS(file_close(&manager));
     remove("testfile");
 })
 
@@ -101,34 +102,39 @@ TEST_SUITE(last_pagenum_from_size, {
 
 TEST_SUITE(page_create, {
     struct file_manager_t manager;
-    file_open("testfile", &manager);
+    TEST_SUCCESS(file_open("testfile", &manager));
 
     pagenum_t pagenum = page_create(&manager);
     TEST(pagenum == 1);
-    TEST(manager.file_header.free_page_number == 0);
+
+    struct padded_file_header_t padded;
+    fpread(&padded, PAGE_SIZE, 0, manager.fp);
+    TEST(padded.header.free_page_number == 0);
+    TEST(padded.header.number_of_pages == 1);
 
     TEST(fsize(manager.fp) == PAGE_SIZE * 2);
 
-    struct page_t page;
-    page_read(pagenum, &manager, &page);
-    TEST(free_page(&page)->next_page_number == 0);
+    pagenum = page_create(&manager);
+    fpread(&padded, PAGE_SIZE, 0, manager.fp);
+    TEST(pagenum == 2);
+    TEST(padded.header.free_page_number == 0);
+    TEST(padded.header.number_of_pages == 2);
+
+    TEST(fsize(manager.fp) == PAGE_SIZE * 3);
 
     pagenum = page_create(&manager);
-    TEST(pagenum == 3);
-    TEST(manager.file_header.free_page_number == 2);
+    fpread(&padded, PAGE_SIZE, 0, manager.fp);
+    TEST(pagenum == 4);
+    TEST(padded.header.free_page_number == 3);
+    TEST(padded.header.number_of_pages == 4);
 
-    TEST(fsize(manager.fp) == PAGE_SIZE * 4);
-
-    page_read(pagenum, &manager, &page);
-    TEST(free_page(&page)->next_page_number == 2);
-
-    file_close(&manager);
+    TEST_SUCCESS(file_close(&manager));
     remove("testfile");
 })
 
 TEST_SUITE(page_init, {
     struct page_t page;
-    page_init(&page, 1);
+    TEST_SUCCESS(page_init(&page, 1));
 
     struct page_header_t* header = page_header(&page);
     TEST(header->is_leaf == 1);
@@ -139,63 +145,69 @@ TEST_SUITE(page_init, {
 
 TEST_SUITE(page_extend_free, {
     struct file_manager_t manager;
-    file_open("testfile", &manager);
+    TEST_SUCCESS(file_open("testfile", &manager));
 
-    page_extend_free(&manager, 3);
+    TEST_SUCCESS(page_extend_free(&manager, 3));
     TEST(fsize(manager.fp) == 4 * PAGE_SIZE);
 
-    TEST(manager.file_header.free_page_number == 3);
+    struct padded_file_header_t padded;
+    fpread(&padded, PAGE_SIZE, 0, manager.fp);
+    TEST(padded.header.free_page_number == 3);
 
     struct page_t page;
 
     int i;
     for (i = 2; i >= 0; --i) {
-        page_read(i + 1, &manager, &page);
+        TEST_SUCCESS(page_read(i + 1, &manager, &page));
         TEST(free_page(&page)->next_page_number == i);
     }
 
-    file_close(&manager);
+    TEST_SUCCESS(file_close(&manager));
     remove("testfile");
 })
 
 TEST_SUITE(page_free, {
     struct file_manager_t manager;
-    file_open("testfile", &manager);
+    TEST_SUCCESS(file_open("testfile", &manager));
 
     pagenum_t pagenum = page_create(&manager);
     TEST(pagenum == 1);
-    TEST(manager.file_header.free_page_number == 0);
 
-    page_create(&manager);
+    struct padded_file_header_t padded;
+    fpread(&padded, PAGE_SIZE, 0, manager.fp);
+    TEST(padded.header.free_page_number == 0);
 
-    page_free(pagenum, &manager);
-    TEST(manager.file_header.free_page_number == 1);
+    TEST(page_create(&manager) != INVALID_PAGENUM);
+
+    TEST_SUCCESS(page_free(pagenum, &manager));
+    fpread(&padded, PAGE_SIZE, 0, manager.fp);
+    TEST(padded.header.free_page_number == pagenum);
 
     struct page_t page;
-    page_read(pagenum, &manager, &page);
-    TEST(free_page(&page)->next_page_number == 2);
+    TEST_SUCCESS(page_read(pagenum, &manager, &page));
+    TEST(free_page(&page)->next_page_number == 0);
 
-    file_close(&manager);
+    TEST_SUCCESS(file_close(&manager));
     remove("testfile");
 })
 
 TEST_SUITE(page_read_write, {
     struct file_manager_t manager;
-    file_open("testfile", &manager);
+    TEST_SUCCESS(file_open("testfile", &manager));
 
     pagenum_t pagenum = page_create(&manager);
 
     struct page_t page;
-    page_read(pagenum, &manager, &page);
+    TEST_SUCCESS(page_read(pagenum, &manager, &page));
 
     struct page_header_t* pheader = page_header(&page);
     pheader->parent_page_number = 0;
     pheader->is_leaf = 0;
     pheader->number_of_keys = 0;
 
-    page_write(pagenum, &manager, &page);
+    TEST_SUCCESS(page_write(pagenum, &manager, &page));
 
-    page_read(1, &manager, &page);
+    TEST_SUCCESS(page_read(1, &manager, &page));
     TEST(pheader->parent_page_number == 0);
     TEST(pheader->is_leaf == 0);
     TEST(pheader->number_of_keys == 0);
@@ -206,26 +218,29 @@ TEST_SUITE(page_read_write, {
     pheader->is_leaf = 1;
     pheader->number_of_keys = 1;
 
-    page_write(2, &manager, &page);
+    TEST_SUCCESS(page_write(2, &manager, &page));
 
     struct page_t page2;
-    page_read(2, &manager, &page2);
+    TEST_SUCCESS(page_read(2, &manager, &page2));
 
     pheader = page_header(&page2);
     TEST(pheader->parent_page_number == 1);
     TEST(pheader->is_leaf == 1);
     TEST(pheader->number_of_keys == 1);
 
-    file_close(&manager);
+    TEST_SUCCESS(file_close(&manager));
     remove("testfile");
 })
 
 int disk_manager_test() {
     return file_init_test()
+        && file_create_test()
         && file_open_test()
         && file_close_test()
+        && file_rw_header_test()
         && last_pagenum_test()
         && last_pagenum_from_size_test()
+        && page_init_test()
         && page_create_test()
         && page_extend_free_test()
         && page_free_test()
