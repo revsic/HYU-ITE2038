@@ -24,6 +24,12 @@ const struct release_policy_t RELEASE_LRU = { get_lru, next_lru };
 
 const struct release_policy_t RELEASE_MRU = { get_mru, next_mru };
 
+int reload_ubuffer(struct ubuffer_t* buffer) {
+    struct table_t* table = buffer->buf->table;
+    CHECK_TRUE(table->table_id == buffer->uri.table_id);
+    return buffer_load(buffer->buf, table, buffer->uri.pagenum);
+}
+
 int check_ubuffer(struct ubuffer_t* buffer) {
     CHECK_NULL(buffer);
     if (buffer->uri.table_id == buffer->buf->table_id
@@ -31,12 +37,6 @@ int check_ubuffer(struct ubuffer_t* buffer) {
         return SUCCESS;       
     }
     return reload_ubuffer(buffer);
-}
-
-int reload_ubuffer(struct ubuffer_t* buffer) {
-    struct table_t* table = buffer->buf->table;
-    CHECK_TRUE(table->table_id == buffer->uri.table_id);
-    return buffer_load(buffer->buf, table, buffer->uri.pagenum);
 }
 
 struct page_t* from_buffer(struct buffer_t* buffer) {
