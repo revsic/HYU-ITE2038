@@ -24,7 +24,7 @@ CFLAGS+= -g -fPIC -I $(INC) -Wno-format
 TARGET=main
 TARGET_TEST=test
 
-all: $(TARGET) $(TARGET_TEST)
+all: $(TARGET)
 
 $(SRCDIR)bpt.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
