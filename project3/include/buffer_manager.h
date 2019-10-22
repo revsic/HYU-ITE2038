@@ -80,7 +80,7 @@ extern const struct release_policy_t RELEASE_LRU;
 
 extern const struct release_policy_t RELEASE_MRU;
 
-int check_ubuffer(struct ubuffer_t* buf);
+int check_ubuffer(struct ubuffer_t* buffer);
 
 struct page_t* from_buffer(struct buffer_t* buffer);
 
