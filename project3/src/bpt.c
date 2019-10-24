@@ -68,10 +68,10 @@ struct queue_t* dequeue(struct queue_t* queue, pagenum_t* retval) {
     return tmp;
 }
 
-int record_vec_init(struct record_vec_t* vec) {
+int record_vec_init(struct record_vec_t* vec, int cap) {
     vec->size = 0;
-    vec->capacity = DEFAULT_RECORD_VEC_CAP;
-    vec->rec = malloc(sizeof(struct record_t) * DEFAULT_RECORD_VEC_CAP);
+    vec->capacity = cap;
+    vec->rec = malloc(sizeof(struct record_t) * cap);
     if (vec->rec == NULL) {
         vec->capacity = 0;
         return FAILURE;
@@ -477,7 +477,7 @@ void find_and_print_range(prikey_t range1,
 {
     int i;
     struct record_vec_t retval;
-    EXIT_ON_FAILURE(record_vec_init(&retval));
+    EXIT_ON_FAILURE(record_vec_init(&retval, 4));
 
     bpt_find_range(range1, range2, &retval, table);
     if (retval.size == 0) {

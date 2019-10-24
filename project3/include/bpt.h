@@ -17,8 +17,6 @@
 #define VERBOSE_OUTPUT 0
 /// Enable delayed merge.
 #define DELAYED_MERGE 1
-/// Default capacity for record vector.
-#define DEFAULT_RECORD_VEC_CAP 4
 
 
 // TYPE DEFINITION
@@ -73,8 +71,9 @@ struct queue_t* dequeue(struct queue_t* queue, pagenum_t* retval);
 
 /// Initialize record vector.
 /// \param vec struct record_vec_t*, record vector.
+/// \param cap int, initial capacity.
 /// \return int, whether initialization success or not.
-int record_vec_init(struct record_vec_t* vec);
+int record_vec_init(struct record_vec_t* vec, int cap);
 /// Deallocate record vector.
 /// \param vec struct record_vec_t*, record vector.
 /// \return int, whether deallocation success or not.
