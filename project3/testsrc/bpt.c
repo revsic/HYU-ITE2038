@@ -2,15 +2,57 @@
 #include "test.h"
 
 TEST_SUITE(swap_ubuffer, {
+    struct buffer_t buf1;
+    struct buffer_t buf2;
+    buf1.table_id = 10;
+    buf2.table_id = 20;
 
+    struct page_uri_t uri1;
+    struct page_uri_t uri2;
+    uri1.table_id = 10;
+    uri2.table_id = 20;
+
+    struct ubuffer_t ubuf1;
+    struct ubuffer_t ubuf2;
+    ubuf1.buf = &buf1;
+    ubuf1.uri = uri1;
+    ubuf2.buf = &buf2;
+    ubuf2.uri = uri2;
+
+    swap_ubuffer(&ubuf1, &ubuf2);
+    TEST(ubuf1.uri.table_id == 20);
+    TEST(ubuf1.buf->table_id == 20);
+    TEST(ubuf2.uri.table_id == 10);
+    TEST(ubuf2.buf->table_id == 10);
 })
 
-TEST_SUITE(enqueue, {
+TEST_SUITE(queue, {
+    int i;
+    struct queue_t* queue = NULL;
+    for (i = 0; i < 10; ++i) {
+        queue = enqueue(queue, i);
+    }
 
-})
+    struct queue_t* tmp = queue;
+    for (i = 0; i < 10; ++i) {
+        TEST(tmp->pagenum == i);
+        tmp = tmp->next;
+    }
 
-TEST_SUITE(dequeue, {
+    pagenum_t n;
+    for (i = 0; i < 5; ++i) {
+        queue = dequeue(queue, &n);
+        TEST(n == i);
+    }
 
+    for (i = 10; i < 15; ++i) {
+        queue = enqueue(queue, i);
+    }
+
+    for (i = 5; i < 15; ++i) {
+        queue = dequeue(queue, &n);
+        TEST(n == i);
+    }
 })
 
 TEST_SUITE(record_vec_init, {
@@ -143,8 +185,7 @@ TEST_SUITE(destroy_tree, {
 
 int bpt_test() {
     return swap_ubuffer_test()
-        && enqueue_test()
-        && dequeue_test()
+        && queue_test()
         && record_vec_init_test()
         && record_vec_free_test()
         && record_vec_expand_test()
