@@ -11,20 +11,6 @@
 #include "dbms.h"
 #include "utility.h"
 
-int load_page(pagenum_t pagenum,
-              struct page_t* page,
-              struct file_manager_t* manager)
-{
-    return page_read(pagenum, manager, page);
-}
-
-int commit_page(pagenum_t pagenum,
-                struct page_t* page,
-                struct file_manager_t* manager)
-{
-    return page_write(pagenum, manager, page);
-}
-
 void swap_ubuffer(struct ubuffer_t* left, struct ubuffer_t* right) {
     struct ubuffer_t tmp = *left;
     *left = *right;
