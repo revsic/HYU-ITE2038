@@ -21,6 +21,6 @@ int headers_test();
 int disk_manager_test();
 int table_manager_test();
 int buffer_manager_test();
-// int bpt_test();
+int bpt_test();
 // int dbms_test();
 // int dbapi_test();
