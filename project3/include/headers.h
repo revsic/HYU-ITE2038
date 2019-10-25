@@ -24,6 +24,9 @@
 /// Value for invalid table id.
 #define INVALID_TABLENUM -1
 
+// Value for invalid file id.
+#define INVALID_FILENUM -1
+
 /// True value.
 #define TRUE 1
 
@@ -62,6 +65,9 @@ typedef uint64_t pagenum_t;
 
 /// Type for primary key.
 typedef int64_t prikey_t;
+
+/// Type for file ID.
+typedef int32_t filenum_t;
 
 /// Type for table ID.
 typedef int32_t tablenum_t;
