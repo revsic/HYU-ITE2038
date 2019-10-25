@@ -19,12 +19,4 @@ int table_load(struct table_t* table, const char* filename);
 
 int table_release(struct table_t* table);
 
-pagenum_t table_create_page(struct table_t* table);
-
-int table_free_page(struct table_t* table, pagenum_t pagenum);
-
-int table_read_page(struct table_t* table, pagenum_t pagenum, struct page_t* dst);
-
-int table_write_page(struct table_t* table, pagenum_t pagenum, struct page_t* src);
-
 #endif

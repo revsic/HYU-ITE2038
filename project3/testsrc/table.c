@@ -44,30 +44,10 @@ TEST_SUITE(table_release, {
     remove("testfile");
 })
 
-TEST_SUITE(table_create_page, {
-    // just porting disk_manager/page_create
-})
-
-TEST_SUITE(table_free_page, {
-    // just porting disk_manager/page_free
-})
-
-TEST_SUITE(table_read_page, {
-    // just porting disk_manager/page_read
-})
-
-TEST_SUITE(table_write_page, {
-    // just porting disk_manager/page_write
-})
-
 int table_test() {
     return create_tablenum_test()
         && rehash_tablenum_test()
         && table_init_test()
         && table_load_test()
-        && table_release_test()
-        && table_create_page_test()
-        && table_free_page_test()
-        && table_read_page_test()
-        && table_write_page_test();
+        && table_release_test();
 }
