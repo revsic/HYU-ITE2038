@@ -1,13 +1,8 @@
 #ifndef TABLE_MANAGER_H
 #define TABLE_MANAGER_H
 
-#include "disk_manager.h"
 #include "headers.h"
-
-struct table_t {
-    tablenum_t table_id;
-    struct file_manager_t file_manager;
-};
+#include "table.h"
 
 struct table_vec_t {
     int size;
@@ -19,17 +14,7 @@ struct table_manager_t {
     struct table_vec_t vec;
 };
 
-tablenum_t create_tablenum(const char* filename);
-
-tablenum_t rehash_tablenum(tablenum_t tablenum);
-
 int searching_policy(struct table_vec_t* table_vec, tablenum_t table_id);
-
-int table_init(struct table_t* table);
-
-int table_load(struct table_t* table, const char* filename);
-
-int table_release(struct table_t* table);
 
 int table_vec_init(struct table_vec_t* table_vec, int capacity);
 
