@@ -9,11 +9,17 @@
 
 /// File level disk manager.
 struct file_manager_t {
+    filenum_t id;
     FILE* fp;                           /// file pointer.
 };
 
 
 // PROCEDURE DEFINITION
+
+/// Create file ID with SDBM hash.
+/// \param filename const char*, the name of the file.
+/// \return filenum_t, file ID.
+filenum_t create_filenum(const char* filename);
 
 /// Initialize file manager.
 /// \param manager struct file_manager_t* file manager.

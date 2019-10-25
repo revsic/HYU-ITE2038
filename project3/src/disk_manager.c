@@ -7,6 +7,19 @@
 #include "fileio.h"
 #include "utility.h"
 
+filenum_t create_filenum(const char* filename) {
+    char c;
+    unsigned long hash = 0;
+    while ((c = *filename++)) {
+        if (c == '/' || c == '\\') {
+            hash = 0;
+            continue;
+        }
+        hash = c + (hash << 6) + (hash << 16) - hash;
+    }
+    return (tablenum_t)hash;
+}
+
 int file_init(struct file_manager_t* manager) {
     CHECK_TRUE(fresize(manager->fp, PAGE_SIZE));
     // zero-initialization
@@ -23,6 +36,7 @@ int file_create(struct file_manager_t* manager, const char* filename) {
     manager->fp = fopen(filename, "w+");
     CHECK_NULL(manager->fp);
 
+    manager->id = create_filenum(filename);
     return file_init(manager);
 }
 
@@ -31,6 +45,8 @@ int file_open(struct file_manager_t* manager, const char* filename) {
     if (fexist(filename)) {
         manager->fp = fopen(filename, "r+");
         CHECK_NULL(manager->fp);
+
+        manager->id = create_filenum(filename);
     } else {
         // create file
         return file_create(manager, filename);
