@@ -26,26 +26,32 @@ TARGET_TEST=test
 
 all: $(TARGET)
 
-$(SRCDIR)bpt.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
-
-$(SRCDIR)dbapi.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.c
-
-$(SRCDIR)disk_manager.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
-
 $(SRCDIR)fileio.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.c
 
 $(SRCDIR)utility.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)utility.o -c $(SRCDIR)utility.c
 
+$(SRCDIR)disk_manager.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
+
 $(SRCDIR)buffer_manager.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.c
 
+$(SRCDIR)table.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)table.o -c $(SRCDIR)table.c
+
 $(SRCDIR)table_manager.o:
 	$(CC) $(CFLAGS) -o $(SRCDIR)table_manager.o -c $(SRCDIR)table_manager.c
+
+$(SRCDIR)dbms.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)dbms.o -c $(SRCDIR)dbms.c
+
+$(SRCDIR)dbapi.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.c
+
+$(SRCDIR)bpt.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
 
 $(TARGET): $(TARGET_OBJ)
 	make static_library
