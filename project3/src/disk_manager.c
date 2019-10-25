@@ -19,14 +19,14 @@ int file_init(struct file_manager_t* manager) {
     return SUCCESS;
 }
 
-int file_create(const char* filename, struct file_manager_t* manager) {
+int file_create(struct file_manager_t* manager, const char* filename) {
     manager->fp = fopen(filename, "w+");
     CHECK_NULL(manager->fp);
 
     return file_init(manager);
 }
 
-int file_open(const char* filename, struct file_manager_t* manager) {
+int file_open(struct file_manager_t* manager, const char* filename) {
     // if file exist
     if (fexist(filename)) {
         manager->fp = fopen(filename, "r+");
@@ -147,7 +147,7 @@ int page_extend_free(struct file_manager_t* manager, int num) {
     return SUCCESS;
 }
 
-int page_free(pagenum_t pagenum, struct file_manager_t* manager) {
+int page_free(struct file_manager_t* manager, pagenum_t pagenum) {
     // read page
     struct page_t page;
     CHECK_SUCCESS(page_read(pagenum, manager, &page));
@@ -163,8 +163,8 @@ int page_free(pagenum_t pagenum, struct file_manager_t* manager) {
     return SUCCESS;
 }
 
-int page_read(pagenum_t pagenum,
-              struct file_manager_t* manager,
+int page_read(struct file_manager_t* manager,
+              pagenum_t pagenum,
               struct page_t* dst)
 {
     CHECK_TRUE(
@@ -176,8 +176,8 @@ int page_read(pagenum_t pagenum,
     return SUCCESS;
 }
 
-int page_write(pagenum_t pagenum,
-               struct file_manager_t* manager,
+int page_write(struct file_manager_t* manager,
+               pagenum_t pagenum,
                struct page_t* src)
 {
     CHECK_TRUE(

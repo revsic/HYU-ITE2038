@@ -21,16 +21,16 @@ struct file_manager_t {
 int file_init(struct file_manager_t* manager);
 
 /// Create B+Tree based record system on file manager.
-/// \param filename const char*, name of the file.
 /// \param manager struct file_manager_t*, file manager.
+/// \param filename const char*, name of the file.
 /// \return int, whether creation is successful (= SUCCESS) or not (= FAILURE).
-int file_create(const char* filename, struct file_manager_t* manager);
+int file_create(struct file_manager_t* manager, const char* filename);
 
 /// Open or create disk-based record system on file manager.
-/// \param filename const char*, name of the file.
 /// \param manager struct file_manager_t*, file manager.
+/// \param filename const char*, name of the file.
 /// \return int, whether open operation is successful (= SUCCESS) or not (= FAILURE).
-int file_open(const char* filename, struct file_manager_t* manager);
+int file_open(struct file_manager_t* manager, const char* filename);
 
 /// Close the record system from the file manager.
 /// \param manager struct file_manager_t*, file manager.
@@ -77,27 +77,27 @@ int page_init(struct page_t* page, uint32_t leaf);
 int page_extend_free(struct file_manager_t* manager, int num);
 
 /// Deallocate given page.
-/// \param pagenum pagenum_t, target page ID.
 /// \param manager struct file_manager_t*, file manager.
+/// \param pagenum pagenum_t, target page ID.
 /// \return int, whether success to deallocate page or not.
-int page_free(pagenum_t pagenum, struct file_manager_t* manager);
+int page_free(struct file_manager_t* manager, pagenum_t pagenum);
 
 /// Read page.
-/// \param pagenum pagenum_t, target page ID.
 /// \param manager struct file_manager_t*, file manager.
+/// \param pagenum pagenum_t, target page ID.
 /// \param dst struct page_t*, memory for writing read page.
 /// \return int, whether success to read page or not.
-int page_read(pagenum_t pagenum,
-              struct file_manager_t* manager,
+int page_read(struct file_manager_t* manager,
+              pagenum_t pagenum,
               struct page_t* dst);
 
 /// Write page.
-/// \param pagenum pagenum_t, target page ID.
 /// \param manager struct file_manager_t*, file manager.
+/// \param pagenum pagenum_t, target page ID.
 /// \param src struct page_t*, target page data.
 /// \return int, whether success to write page or not.
-int page_write(pagenum_t pagenum,
-               struct file_manager_t* manager,
+int page_write(struct file_manager_t* manager,
+               pagenum_t pagenum,
                struct page_t* src);
 
 #endif
