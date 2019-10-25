@@ -80,7 +80,7 @@ TEST_SUITE(file_close, {
 
 TEST_SUITE(file_rw_header, {
     struct file_manager_t manager;
-    TEST_SUCCESS(file_open(&manager, "testfile", ));
+    TEST_SUCCESS(file_open(&manager, "testfile"));
 
     struct file_header_t header;
     header.free_page_number = 100;
