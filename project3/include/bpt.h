@@ -3,7 +3,8 @@
 
 #include <stdio.h>
 
-#include "dbms.h"
+#include "buffer_manager.h"
+#include "disk_manager.h"
 #include "headers.h"
 
 // TYPE DEFINITION
@@ -74,6 +75,10 @@ void usage_2(struct bpt_t* bpt);
 int bpt_init(struct bpt_t* config,
              struct file_manager_t* file,
              struct buffer_manager_t* buffers);
+/// Release bpt configuration.
+/// \param config struct bpt_t*, B+Tree configuration.
+/// \return whether success release configuration or not.
+int bpt_release(struct bpt_t* config);
 /// Set default bpt configuartion.
 /// \param bpt struct bpt_t*, B+Tree configuration.
 /// \return whether success to write configuration or not.

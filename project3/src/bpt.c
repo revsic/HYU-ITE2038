@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include "bpt.h"
-#include "dbms.h"
 #include "utility.h"
 
 void swap_ubuffer(struct ubuffer_t* left, struct ubuffer_t* right) {
@@ -57,6 +56,11 @@ int bpt_init(struct bpt_t* config,
     bpt_default_config(config);
     config->file = file;
     config->buffers = buffers;
+    return SUCCESS;
+}
+
+int bpt_release(struct bpt_t* config) {
+    memset(config, 0, sizeof(struct bpt_t));
     return SUCCESS;
 }
 
@@ -381,7 +385,7 @@ void print_leaves(struct bpt_t* bpt) {
     is_leaf = FALSE;
     pagenum = root;
     while (!is_leaf) {
-        buffer = dbms_buffering(bpt, pagenum);
+        buffer = bpt_buffering(bpt, pagenum);
         BUFFER(buffer, READ_FLAG, {
             is_leaf = page_header(from_ubuffer(&buffer))->is_leaf;
             pagenum = page_header(from_ubuffer(&buffer))->special_page_number;
@@ -410,7 +414,7 @@ void print_leaves(struct bpt_t* bpt) {
 
         if (pagenum != INVALID_PAGENUM) {
             printf(" | ");
-            buffer = dbms_buffering(bpt, pagenum);
+            buffer = bpt_buffering(bpt, pagenum);
         } else {
             break;
         }
@@ -427,7 +431,7 @@ void print_tree(struct bpt_t* bpt) {
     struct internal_t* ent;
 
     struct ubuffer_t buffer, tmp;
-    buffer = dbms_buffering(bpt, FILE_HEADER_PAGENUM);
+    buffer = bpt_buffering(bpt, FILE_HEADER_PAGENUM);
     BUFFER(buffer, READ_FLAG, {
         root = file_header(from_ubuffer(&buffer))->root_page_number;
     })
@@ -442,11 +446,11 @@ void print_tree(struct bpt_t* bpt) {
     while (queue != NULL) {
         queue = dequeue(queue, &n);
 
-        buffer = dbms_buffering(bpt, n);
+        buffer = bpt_buffering(bpt, n);
         BUFFER(buffer, READ_FLAG, {
             pheader = page_header(from_ubuffer(&buffer));
             if (pheader->parent_page_number != INVALID_PAGENUM) {
-                tmp = dbms_buffering(
+                tmp = bpt_buffering(
                     bpt,
                     pheader->parent_page_number);
                 BUFFER(tmp, READ_FLAG, {
@@ -745,7 +749,7 @@ int insert_into_node_after_splitting(struct bpt_t* bpt,
                 temp_pagenum = new_entries[i].pagenum;
             }
 
-            temp_page = dbms_buffering(bpt, temp_pagenum);
+            temp_page = bpt_buffering(bpt, temp_pagenum);
             BUFFER(temp_page, WRITE_FLAG, {
                 page_header(from_ubuffer(&temp_page))->parent_page_number = new_node.buf->pagenum;
             })
@@ -780,7 +784,7 @@ int insert_into_parent(struct bpt_t* bpt,
     /* Find the parent's pointer to the left 
      * node.
      */
-    parent_page = dbms_buffering(bpt, parent);
+    parent_page = bpt_buffering(bpt, parent);
     index = get_index(&parent_page, left_pagenum) + 1;
 
     /* Simple case: the new key fits into the node. 
@@ -861,7 +865,7 @@ int start_new_tree(struct bpt_t* bpt, struct record_t* pointer)
         memcpy(rec, pointer, sizeof(struct record_t));
     })
 
-    fileheader = dbms_buffering(bpt, FILE_HEADER_PAGENUM);
+    fileheader = bpt_buffering(bpt, FILE_HEADER_PAGENUM);
     BUFFER(fileheader, WRITE_FLAG, {
         file_header(from_ubuffer(&fileheader))->root_page_number = root_pagenum;
     })
@@ -981,7 +985,7 @@ int shrink_root(struct bpt_t* bpt) {
     })
 
     int num_key;
-    struct ubuffer_t root_page = dbms_buffering(bpt, root);
+    struct ubuffer_t root_page = bpt_buffering(bpt, root);
     BUFFER(root_page, READ_FLAG, {
         num_key = page_header(from_ubuffer(&root_page))->number_of_keys;
     })
@@ -995,7 +999,7 @@ int shrink_root(struct bpt_t* bpt) {
     BUFFER(root_page, READ_FLAG, {
         if (!page_header(from_ubuffer(&root_page))->is_leaf) {
             child_num = page_header(from_ubuffer(&root_page))->special_page_number;
-            child = dbms_buffering(bpt, child_num);
+            child = bpt_buffering(bpt, child_num);
             BUFFER(child, WRITE_FLAG, {
                 page_header(from_ubuffer(&child))->parent_page_number = INVALID_PAGENUM;
             })
@@ -1051,7 +1055,7 @@ int merge_nodes(struct bpt_t* bpt,
                     }
 
                     pagenum = left_entries[insertion_index].pagenum;
-                    temp = dbms_buffering(bpt, pagenum);
+                    temp = bpt_buffering(bpt, pagenum);
                     BUFFER(temp, WRITE_FLAG, {
                         page_header(from_ubuffer(&temp))->parent_page_number =
                             left->buf->pagenum;
@@ -1140,7 +1144,7 @@ int rotate_to_right(struct bpt_t* bpt,
             num_key = page_header(from_ubuffer(left))->number_of_keys;
 
             tmp = left_internal[num_key - 1];
-            temp_page = dbms_buffering(bpt, tmp.pagenum);
+            temp_page = bpt_buffering(bpt, tmp.pagenum);
             BUFFER(*parent, WRITE_FLAG, {
                 entries(from_ubuffer(parent))[k_prime_index].key = tmp.key;
             })
@@ -1212,7 +1216,7 @@ int rotate_to_left(struct bpt_t* bpt,
                 child_pagenum = left_internal[num_key].pagenum;
             })
 
-            tmp = dbms_buffering(bpt, child_pagenum);
+            tmp = bpt_buffering(bpt, child_pagenum);
             BUFFER(tmp, WRITE_FLAG, {
                 page_header(from_ubuffer(&tmp))->parent_page_number = left->buf->pagenum;
             })
@@ -1292,7 +1296,7 @@ int delete_entry(struct bpt_t* bpt,
 
     /* Case:  deletion from the root. 
      */
-    struct ubuffer_t file_page = dbms_buffering(bpt, FILE_HEADER_PAGENUM);
+    struct ubuffer_t file_page = bpt_buffering(bpt, FILE_HEADER_PAGENUM);
     BUFFER(file_page, READ_FLAG, {
         root_num = file_header(from_ubuffer(&file_page))->root_page_number;
     })
@@ -1326,7 +1330,7 @@ int delete_entry(struct bpt_t* bpt,
      * Either coalescence or redistribution
      * is needed.
      */
-    struct ubuffer_t parent = dbms_buffering(bpt, parent_num);
+    struct ubuffer_t parent = bpt_buffering(bpt, parent_num);
 
     int index = get_index(&parent, pagenum);
     int k_prime_index = index == -1 ? 0 : index;
@@ -1344,7 +1348,7 @@ int delete_entry(struct bpt_t* bpt,
         ? entries(from_ubuffer(&parent))[0].pagenum
         : index ==  0 ? page_header(from_ubuffer(&parent))->special_page_number
                       : entries(from_ubuffer(&parent))[index - 1].pagenum;
-    left = dbms_buffering(bpt, left_num);
+    left = bpt_buffering(bpt, left_num);
 
     if (index == -1) {
         swap_ubuffer(&left, &right);
@@ -1384,7 +1388,7 @@ int destroy_tree(struct bpt_t* bpt) {
     pagenum_t pagenum, root;
     struct page_t* page_ptr;
     struct queue_t* queue;
-    struct ubuffer_t page = dbms_buffering(bpt, FILE_HEADER_PAGENUM);
+    struct ubuffer_t page = bpt_buffering(bpt, FILE_HEADER_PAGENUM);
     BUFFER(page, WRITE_FLAG, {
         page_ptr = from_ubuffer(&page);
         root = file_header(page_ptr)->root_page_number;
@@ -1398,7 +1402,7 @@ int destroy_tree(struct bpt_t* bpt) {
     queue = enqueue(NULL, root);
     while (queue != NULL) {
         queue = dequeue(queue, &pagenum);
-        page = dbms_buffering(bpt, pagenum);
+        page = bpt_buffering(bpt, pagenum);
         BUFFER(page, READ_FLAG, {
             page_ptr = from_ubuffer(&page);
             if (!page_header(page_ptr)->is_leaf) {
