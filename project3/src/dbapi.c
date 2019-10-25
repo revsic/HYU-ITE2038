@@ -23,23 +23,19 @@ int shutdown_db() {
 }
 
 int insert(tablenum_t table_id, int64_t key, char* value) {
-    struct dbms_table_t table = { &GLOBAL_DBMS, table_id };
-    return dbms_insert(&table, key, (uint8_t*)value, strlen(value) + 1);
+    return dbms_insert(
+        &GLOBAL_DBMS, table_id, key, (uint8_t*)value, strlen(value) + 1);
 }
 
 int find(tablenum_t table_id, int64_t key, char* retval) {
-    struct record_t rec;
-    rec.key = key;
-
-    struct dbms_table_t table = { &GLOBAL_DBMS, table_id };
-    CHECK_SUCCESS(dbms_find(&table, &rec));
+    struct record_t temporal;
+    CHECK_SUCCESS(dbms_find(&GLOBAL_DBMS, table_id, key, &temporal));
     if (retval != NULL) {
-        memcpy(retval, rec.value, sizeof(struct record_t) - sizeof(prikey_t));
+        memcpy(retval, temporal.value, sizeof(struct record_t) - sizeof(prikey_t));
     }
     return SUCCESS;
 }
 
 int delete(tablenum_t table_id, int64_t key) {
-    struct dbms_table_t table = { &GLOBAL_DBMS, table_id };
-    return dbms_delete(&table, key);
+    return dbms_delete(&GLOBAL_DBMS, table_id, key);
 }
