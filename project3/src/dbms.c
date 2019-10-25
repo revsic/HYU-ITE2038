@@ -14,54 +14,38 @@ int dbms_shutdown(struct dbms_t* dbms) {
 }
 
 tablenum_t dbms_open_table(struct dbms_t* dbms, const char* filename) {
-    return table_manager_load(&dbms->tables, filename);
+    return table_manager_load(&dbms->tables, filename, &dbms->buffers);
 }
 
 int dbms_close_table(struct dbms_t* dbms, tablenum_t table_id) {
-    CHECK_SUCCESS(buffer_manager_release_table(&dbms->buffers, table_id));
+    CHECK_SUCCESS(buffer_manager_release_file(&dbms->buffers, table_id));
     CHECK_SUCCESS(table_manager_remove(&dbms->tables, table_id));
     return SUCCESS;
 }
 
-struct ubuffer_t dbms_buffering(struct dbms_table_t* table,
-                                pagenum_t pagenum)
+int dbms_find(struct dbms_t* dbms,
+              tablenum_t table_id,
+              prikey_t key,
+              struct record_t* record)
 {
-    struct page_uri_t uri = { table->table_id, pagenum };
-    return buffer_manager_buffering(&table->dbms->buffers,
-                                    &table->dbms->tables,
-                                    &uri);
+    struct table_t* table;
+    CHECK_NULL(table = table_manager_find(&dbms->tables, table_id));
+    return table_find(table, key, record);
 }
 
-struct ubuffer_t dbms_new_page(struct dbms_table_t* table)
-{
-    return buffer_manager_new_page(&table->dbms->buffers,
-                                   &table->dbms->tables,
-                                   table->table_id);
-}
-
-int dbms_free_page(struct dbms_table_t* table, pagenum_t pagenum) {
-    struct page_uri_t uri = { table->table_id, pagenum };
-    return buffer_manager_free_page(&table->dbms->buffers,
-                                    &table->dbms->tables,
-                                    &uri);
-}
-
-int dbms_find(struct dbms_table_t* table, struct record_t* record)
-{
-    return bpt_find(record->key, record, table);
-}
-
-int dbms_insert(struct dbms_table_t* table,
+int dbms_insert(struct dbms_t* dbms,
+                tablenum_t table_id,
                 prikey_t key,
                 uint8_t* value,
                 int value_size)
 {
-    return bpt_insert(key,
-                      value,
-                      value_size,
-                      table);
+    struct table_t* table;
+    CHECK_NULL(table = table_manager_find(&dbms->tables, table_id));
+    return table_insert(table, key, value, value_size);
 }
 
-int dbms_delete(struct dbms_table_t* table, prikey_t key) {
-    return bpt_delete(key, table);
+int dbms_delete(struct dbms_t* dbms, tablenum_t table_id, prikey_t key) {
+    struct table_t* table;
+    CHECK_NULL(table = table_manager_find(&dbms->tables, table_id));
+    return table_delete(table, key);
 }
