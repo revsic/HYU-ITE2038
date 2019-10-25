@@ -8,13 +8,12 @@ int main(int argc, char ** argv) {
     char instruction;
     char value[1024];
 
-    struct dbms_table_t table = { &GLOBAL_DBMS, INVALID_TABLENUM };
-
     init_db(4);
-    table.table_id = open_table("datafile");
+    tablenum_t table_id = open_table("datafile");
+    struct bpt_t* bpt = &table_manager_find(&GLOBAL_DBMS.tables, table_id)->bpt;
 
-    usage_1();
-    usage_2();
+    usage_1(bpt);
+    usage_2(bpt);
 
     printf("> ");
     while (scanf("%c", &instruction) != EOF) {
@@ -27,29 +26,29 @@ int main(int argc, char ** argv) {
             if (input == -1) {
                 printf("cannot open file %s\n", value);
             } else {
-                close_table(table.table_id);
-                table.table_id = input;
+                close_table(table_id);
+                table_id = input;
             }
             break;
         case 'd':
             scanf("%d", &input);
-            delete(table.table_id, input);
-            print_tree(&table);
+            delete(table_id, input);
+            print_tree(bpt);
             break;
         case 'i':
             scanf("%d", &input);
             snprintf(value, 100, "%d value", input);
-            insert(table.table_id, input, value);
-            print_tree(&table);
+            insert(table_id, input, value);
+            print_tree(bpt);
             break;
         case 'f':
             scanf("%d", &input);
-            if (find(table.table_id, input, value) == SUCCESS) {
+            if (find(table_id, input, value) == SUCCESS) {
                 printf("Key: %d  Value: %s\n", input, value);
             } else {
                 printf("not found\n");
             }
-            find_and_print(input, &table);
+            find_and_print(bpt, input);
             break;
         case 'r':
             scanf("%d %d", &input, &range2);
@@ -58,10 +57,10 @@ int main(int argc, char ** argv) {
                 range2 = input;
                 input = tmp;
             }
-            find_and_print_range(input, range2, &table);
+            find_and_print_range(bpt, input, range2);
             break;
         case 'l':
-            print_leaves(&table);
+            print_leaves(bpt);
             break;
         case 'q':
             while (getchar() != (int)'\n');
@@ -69,14 +68,14 @@ int main(int argc, char ** argv) {
             return 0;
             break;
         case 't':
-            print_tree(&table);
+            print_tree(bpt);
             break;
         case 'x':
-            destroy_tree(&table);
-            print_tree(&table);
+            destroy_tree(bpt);
+            print_tree(bpt);
             break;
         default:
-            usage_2();
+            usage_2(bpt);
             break;
         }
         while (getchar() != (int)'\n');
