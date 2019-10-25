@@ -68,7 +68,7 @@ int buffer_load(struct buffer_t* buffer,
                 pagenum_t pagenum)
 {
     // buffer must be initialized by buffer_init
-    CHECK_SUCCESS(page_read(pagenum, &table->file_manager, &buffer->frame));
+    CHECK_SUCCESS(table_read_page(table, pagenum, &buffer->frame));
     buffer->table_id = table->table_id;
     buffer->pagenum = pagenum;
     buffer->table = table;
@@ -76,7 +76,7 @@ int buffer_load(struct buffer_t* buffer,
 }
 
 int buffer_new_page(struct buffer_t* buffer, struct table_t* table) {
-    pagenum_t res = page_create(&table->file_manager);
+    pagenum_t res = table_create_page(table);
     if (res == INVALID_PAGENUM) {
         return FAILURE;
     }
@@ -132,9 +132,9 @@ int buffer_release(struct buffer_t* buffer) {
 
     if (buffer->is_dirty) {
         CHECK_SUCCESS(
-            page_write(
+            table_write_page(
+                buffer->table,
                 buffer->pagenum,
-                &buffer->table->file_manager,
                 &buffer->frame));
     }
     return buffer_init(buffer, buffer->block_idx, buffer->manager);
@@ -375,5 +375,5 @@ int buffer_manager_free_page(struct buffer_manager_t* manager,
         CHECK_SUCCESS(buffer_manager_release_block(manager, idx));
     }
 
-    return page_free(page_uri->pagenum, &table->file_manager);
+    return table_free_page(table, page_uri->pagenum);
 }

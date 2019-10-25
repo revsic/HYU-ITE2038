@@ -32,7 +32,7 @@ int table_init(struct table_t* table) {
 
 int table_load(struct table_t* table, const char* filename) {
     table->table_id = create_tablenum(filename);
-    return file_open(filename, &table->file_manager);
+    return file_open(&table->file_manager, filename);
 }
 
 int table_release(struct table_t* table) {
@@ -45,13 +45,13 @@ pagenum_t table_create_page(struct table_t* table) {
 }
 
 int table_free_page(struct table_t* table, pagenum_t pagenum) {
-    return page_free(pagenum, &table->file_manager);
+    return page_free(&table->file_manager, pagenum);
 }
 
 int table_read_page(struct table_t* table, pagenum_t pagenum, struct page_t* dst) {
-    return page_read(pagenum, &table->file_manager, dst);
+    return page_read(&table->file_manager, pagenum, dst);
 }
 
 int table_write_page(struct table_t* table, pagenum_t pagenum, struct page_t* src) {
-    return page_write(pagenum, &table->file_manager, src);
+    return page_write(&table->file_manager, pagenum, src);
 }

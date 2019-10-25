@@ -33,7 +33,7 @@ int file_open(struct file_manager_t* manager, const char* filename) {
         CHECK_NULL(manager->fp);
     } else {
         // create file
-        return file_create(filename, manager);
+        return file_create(manager, filename);
     }
     return SUCCESS;
 }
@@ -96,7 +96,7 @@ pagenum_t page_create(struct file_manager_t* manager) {
     }
     // read free page
     struct page_t page;
-    EXIT_ON_FAILURE(page_read(pagenum, manager, &page));
+    EXIT_ON_FAILURE(page_read(manager, pagenum, &page));
     // fix next free page number
     header.free_page_number = free_page(&page)->next_page_number;
     EXIT_ON_FAILURE(file_write_header(manager, &header));
@@ -135,7 +135,7 @@ int page_extend_free(struct file_manager_t* manager, int num) {
 
     // write free page headers
     for (i = 1; i <= num; ++i) {
-        CHECK_SUCCESS(page_write(last + i, manager, &page));
+        CHECK_SUCCESS(page_write(manager, last + i, &page));
         fpage->next_page_number = last + i;
     }
 
@@ -150,13 +150,13 @@ int page_extend_free(struct file_manager_t* manager, int num) {
 int page_free(struct file_manager_t* manager, pagenum_t pagenum) {
     // read page
     struct page_t page;
-    CHECK_SUCCESS(page_read(pagenum, manager, &page));
+    CHECK_SUCCESS(page_read(manager, pagenum, &page));
     // read file header
     struct file_header_t header;
     CHECK_SUCCESS(file_read_header(manager, &header));
     // write free page header
     free_page(&page)->next_page_number = header.free_page_number;
-    CHECK_SUCCESS(page_write(pagenum, manager, &page));
+    CHECK_SUCCESS(page_write(manager, pagenum, &page));
     // append as free page
     header.free_page_number = pagenum;
     CHECK_SUCCESS(file_write_header(manager, &header));
