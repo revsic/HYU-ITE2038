@@ -34,12 +34,15 @@ struct record_vec_t {
     struct record_t* rec;   /// record array.
 };
 
-/// Page and page ID pair.
-struct page_pair_t {
-    pagenum_t pagenum;      /// page ID.
-    struct page_t* page;    /// page.
+/// B+Tree configuration.
+struct bpt_t {
+    int leaf_order;
+    int internal_order;
+    int verbose_output;
+    int delayed_merge;
+    struct table_t* table;
+    struct buffer_manager_t* buffers;
 };
-
 
 // PROCEDURE DEFINTION
 
@@ -57,6 +60,27 @@ void swap_ubuffer(struct ubuffer_t* left, struct ubuffer_t* right);
 void usage_1();
 /// Print usage2.
 void usage_2();
+
+/// Initialize bpt configuration.
+/// \param config struct bpt_config_t*, configuration.
+/// \param table struct table_t*, table structure.
+/// \param buffers struct buffer_manager_t*, buffer manager.
+/// \return whether success to write configuration or not.
+int bpt_init(struct bpt_t* config,
+             struct table_t* table,
+             struct buffer_manager_t* buffers);
+/// Set default bpt configuartion.
+/// \param config struct bpt_config_t*, configuration.
+/// \return whether success to write configuration or not.
+int bpt_default_config(struct bpt_t* config);
+/// Set test mode bpt configuartion.
+/// \param config struct bpt_config_t*, configuration.
+/// \param leaf_order int, leaf order.
+/// \param internal_order int, internal order.
+/// \return whether success to write configuration or not.
+int bpt_test_config(struct bpt_t* config,
+                    int leaf_order,
+                    int internal_order);
 
 /// Enqueue page ID.
 /// \param queue struct queue_t*, target queue.

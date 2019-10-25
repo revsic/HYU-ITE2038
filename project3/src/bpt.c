@@ -38,6 +38,35 @@ void usage_2() {
     "\t? -- Print this help message.\n");
 }
 
+int bpt_init(struct bpt_t* config,
+             struct table_t* table,
+             struct buffer_manager_t* buffers)
+{
+    bpt_default_config(config);
+    config->table = table;
+    config->buffers = buffers;
+    return SUCCESS;
+}
+
+int bpt_default_config(struct bpt_t* config) {
+    config->leaf_order = 32;
+    config->internal_order = 2249;
+    config->verbose_output = FALSE;
+    config->delayed_merge = TRUE;
+    return SUCCESS;
+}
+
+int bpt_test_config(struct bpt_t* config,
+                    int leaf_order,
+                    int internal_order)
+{
+    config->leaf_order = leaf_order;
+    config->internal_order = internal_order;
+    config->verbose_output = TRUE;
+    config->delayed_merge = TRUE;
+    return SUCCESS;
+}
+
 struct queue_t* enqueue(struct queue_t* queue, pagenum_t pagenum) {
     struct queue_t* tmp;
     struct queue_t* new_node = malloc(sizeof(struct queue_t));
