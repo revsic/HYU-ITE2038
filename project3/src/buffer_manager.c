@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include "buffer_manager.h"
-#include "disk_manager.h"
 
 int get_lru(struct buffer_manager_t* manager) {
     return manager->lru;
@@ -25,16 +24,15 @@ const struct release_policy_t RELEASE_LRU = { get_lru, next_lru };
 const struct release_policy_t RELEASE_MRU = { get_mru, next_mru };
 
 int reload_ubuffer(struct ubuffer_t* buffer) {
-    struct table_t* table = buffer->buf->table;
-    CHECK_TRUE(table->table_id == buffer->uri.table_id);
-    return buffer_load(buffer->buf, table, buffer->uri.pagenum);
+    return buffer_load(buffer->buf,
+                       buffer->buf->file,
+                       buffer->buf->pagenum);
 }
 
 int check_ubuffer(struct ubuffer_t* buffer) {
     CHECK_NULL(buffer);
-    if (buffer->uri.table_id == buffer->buf->table_id
-        && buffer->uri.pagenum == buffer->buf->pagenum) {
-        return SUCCESS;       
+    if (buffer->use_count == buffer->buf->use_count) {
+        return SUCCESS;
     }
     return reload_ubuffer(buffer);
 }
@@ -48,39 +46,39 @@ struct page_t* from_ubuffer(struct ubuffer_t* buffer) {
 }
 
 int buffer_init(struct buffer_t* buffer,
+                int count,
                 int block_idx,
                 struct buffer_manager_t* manager)
 {
-    buffer->table_id = INVALID_TABLENUM;
     buffer->pagenum = INVALID_PAGENUM;
     buffer->is_dirty = FALSE;
     buffer->pin = 0;
     buffer->prev_use = -1;
     buffer->next_use = -1;
+    buffer->use_count = count ? (buffer->use_count + 1) % (1 << 20) : 0;
     buffer->block_idx = block_idx;
-    buffer->table = NULL;
+    buffer->file = NULL;
     buffer->manager = manager;
     return SUCCESS;
 }
 
 int buffer_load(struct buffer_t* buffer,
-                struct table_t* table,
+                struct file_manager_t* file,
                 pagenum_t pagenum)
 {
     // buffer must be initialized by buffer_init
-    CHECK_SUCCESS(table_read_page(table, pagenum, &buffer->frame));
-    buffer->table_id = table->table_id;
+    CHECK_SUCCESS(page_read(file, pagenum, &buffer->frame));
     buffer->pagenum = pagenum;
-    buffer->table = table;
+    buffer->file = file;
     return SUCCESS;
 }
 
-int buffer_new_page(struct buffer_t* buffer, struct table_t* table) {
-    pagenum_t res = table_create_page(table);
+int buffer_new_page(struct buffer_t* buffer, struct file_manager_t* file) {
+    pagenum_t res = page_create(file);
     if (res == INVALID_PAGENUM) {
         return FAILURE;
     }
-    return buffer_load(buffer, table, res);
+    return buffer_load(buffer, file, res);
 }
 
 int buffer_link_neighbor(struct buffer_t* buffer) {
@@ -132,12 +130,12 @@ int buffer_release(struct buffer_t* buffer) {
 
     if (buffer->is_dirty) {
         CHECK_SUCCESS(
-            table_write_page(
-                buffer->table,
+            page_write(
+                buffer->file,
                 buffer->pagenum,
                 &buffer->frame));
     }
-    return buffer_init(buffer, buffer->block_idx, buffer->manager);
+    return buffer_init(buffer, TRUE, buffer->block_idx, buffer->manager);
 }
 
 int buffer_start_read(struct buffer_t* buffer) {
@@ -193,7 +191,7 @@ int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
     }
     
     for (i = 0; i < manager->capacity; ++i) {
-        CHECK_SUCCESS(buffer_init(&manager->buffers[i], i, manager));
+        CHECK_SUCCESS(buffer_init(&manager->buffers[i], FALSE, i, manager));
     }
     return SUCCESS;
 }
@@ -214,7 +212,7 @@ int buffer_manager_alloc(struct buffer_manager_t* manager) {
     if (manager->num_buffer < manager->capacity) {
         for (idx = 0;
              idx < manager->capacity
-                && manager->buffers[idx].table_id != INVALID_TABLENUM;
+                && manager->buffers[idx].file != NULL;
              ++idx)
             {}
     } else {
@@ -228,15 +226,11 @@ int buffer_manager_alloc(struct buffer_manager_t* manager) {
 }
 
 int buffer_manager_load(struct buffer_manager_t* manager,
-                        struct table_manager_t* tables,
-                        struct page_uri_t* page_uri)
+                        struct file_manager_t* file,
+                        pagenum_t pagenum)
 {
     int idx;
     struct buffer_t* buffer;
-    struct table_t* table = table_manager_find(tables, page_uri->table_id);
-    if (table == NULL) {
-        return -1;
-    }
 
     idx = buffer_manager_alloc(manager);
     if (idx == -1) {
@@ -244,9 +238,9 @@ int buffer_manager_load(struct buffer_manager_t* manager,
     }
 
     buffer = &manager->buffers[idx];
-    if (buffer_load(buffer, table, page_uri->pagenum) == FAILURE) {
+    if (buffer_load(buffer, file, pagenum) == FAILURE) {
         --manager->num_buffer;
-        buffer_init(buffer, idx, manager);    
+        buffer_init(buffer, TRUE, idx, manager);    
         return -1;
     }
 
@@ -258,20 +252,22 @@ int buffer_manager_release_block(struct buffer_manager_t* manager, int idx) {
     CHECK_TRUE(0 <= idx && idx < manager->capacity);
 
     struct buffer_t* buffer = &manager->buffers[idx];
-    CHECK_TRUE(buffer->table_id != INVALID_TABLENUM);
+    CHECK_NULL(buffer->file);
     CHECK_SUCCESS(buffer_release(buffer));
 
     --manager->num_buffer;
     return SUCCESS;
 }
 
-int buffer_manager_release_table(struct buffer_manager_t* manager,
-                                 tablenum_t table_id)
+int buffer_manager_release_file(struct buffer_manager_t* manager,
+                                filenum_t file_id)
 {
     int i;
-    CHECK_TRUE(table_id != INVALID_TABLENUM);
+    struct file_manager_t* file;
+    CHECK_TRUE(file_id != INVALID_FILENUM);
     for (i = 0; i < manager->capacity; ++i) {
-        if (manager->buffers[i].table_id == table_id) {
+        file = manager->buffers[i].file;
+        if (file != NULL && file->id == file_id) {
             CHECK_SUCCESS(buffer_manager_release_block(manager, i));
         }
     }
@@ -295,18 +291,16 @@ int buffer_manager_release(struct buffer_manager_t* manager,
 }
 
 int buffer_manager_find(struct buffer_manager_t* manager,
-                        struct page_uri_t* page_uri)
+                        filenum_t file_id,
+                        pagenum_t pagenum)
 {
     int i;
     struct buffer_t* buffer;
     for (i = 0; i < manager->capacity; ++i) {
-        if (manager->buffers[i].table_id == INVALID_TABLENUM) {
-            continue;
-        }
-
         buffer = &manager->buffers[i];
-        if (buffer->pagenum == page_uri->pagenum
-            && buffer->table_id == page_uri->table_id)
+        if (buffer->file != NULL
+            && buffer->pagenum == pagenum
+            && buffer->file->id == file_id)
         {
             return i;
         }
@@ -316,40 +310,35 @@ int buffer_manager_find(struct buffer_manager_t* manager,
 }
 
 struct ubuffer_t buffer_manager_buffering(struct buffer_manager_t* manager,
-                                          struct table_manager_t* tables,
-                                          struct page_uri_t* page_uri)
+                                          struct file_manager_t* file,
+                                          pagenum_t pagenum)
 {
-    struct ubuffer_t ubuf = { NULL, *page_uri };
-    int idx = buffer_manager_find(manager, page_uri);
+    struct ubuffer_t ubuf = { NULL, 0 };
+    int idx = buffer_manager_find(manager, file->id, pagenum);
     if (idx == -1) {
-        idx = buffer_manager_load(manager, tables, page_uri);
+        idx = buffer_manager_load(manager, file, pagenum);
         if (idx == -1) {
             return ubuf;
         }
     }
     ubuf.buf = &manager->buffers[idx];
+    ubuf.use_count = ubuf.buf->use_count;
     return ubuf;
 }
 
 struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
-                                         struct table_manager_t* tables,
-                                         tablenum_t table_id)
+                                         struct file_manager_t* file)
 {
     struct ubuffer_t ubuf = { NULL, 0 };
-    struct table_t* table = table_manager_find(tables, table_id);
-    if (table == NULL) {
-        return ubuf;
-    }
-
     int idx = buffer_manager_alloc(manager);
     if (idx == -1) {
         return ubuf;
     }
 
     struct buffer_t* buffer = &manager->buffers[idx];
-    if (buffer_new_page(buffer, table) == FAILURE) {
+    if (buffer_new_page(buffer, file) == FAILURE) {
         --manager->num_buffer;
-        buffer_init(buffer, idx, manager);
+        buffer_init(buffer, TRUE, idx, manager);
         return ubuf;
     }
 
@@ -357,23 +346,19 @@ struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
         return ubuf;
     }
 
-    struct page_uri_t uri = { table_id, buffer->pagenum };
     ubuf.buf = buffer;
-    ubuf.uri = uri;
+    ubuf.use_count = buffer->use_count;
     return ubuf;
 }
 
 int buffer_manager_free_page(struct buffer_manager_t* manager,
-                             struct table_manager_t* tables,
-                             struct page_uri_t* page_uri)
+                             struct file_manager_t* file,
+                             pagenum_t pagenum)
 {
-    struct table_t* table;
-    CHECK_NULL(table = table_manager_find(tables, page_uri->table_id));
-
-    int idx = buffer_manager_find(manager, page_uri);
+    int idx = buffer_manager_find(manager, file->id, pagenum);
     if (idx != -1) {
         CHECK_SUCCESS(buffer_manager_release_block(manager, idx));
     }
 
-    return table_free_page(table, page_uri->pagenum);
+    return page_free(file, pagenum);
 }
