@@ -34,7 +34,8 @@ int table_vec_release(struct table_vec_t* table_vec);
 int table_manager_init(struct table_manager_t* manager, int capacity);
 
 tablenum_t table_manager_load(struct table_manager_t* manager,
-                              const char* filename);
+                              const char* filename,
+                              struct buffer_manager_t* buffers);
 
 struct table_t* table_manager_find(struct table_manager_t* manager,
                                    tablenum_t table_id);

@@ -6,7 +6,7 @@
 int table_searching_policy(struct table_vec_t* table_vec, tablenum_t table_id) {
     int i;
     for (i = 0; i < table_vec->size; ++i) {
-        if (table_vec->array[i]->table_id == table_id) {
+        if (table_vec->array[i]->id == table_id) {
             return i;
         }
     }
@@ -73,6 +73,7 @@ int table_vec_remove(struct table_vec_t* table_vec, tablenum_t table_id) {
         return FAILURE;
     }
 
+    CHECK_SUCCESS(table_release(table_vec->array[idx]));
     free(table_vec->array[idx]);
     for (; idx < table_vec->size - 1; ++idx) {
         table_vec->array[idx] = table_vec->array[idx + 1];
@@ -102,6 +103,12 @@ int table_vec_shrink(struct table_vec_t* table_vec) {
 }
 
 int table_vec_release(struct table_vec_t* table_vec) {
+    int i;
+    for (i = 0; i < table_vec->size; ++i) {
+        CHECK_SUCCESS(table_release(table_vec->array[i]));
+        free(table_vec->array[i]);
+    }
+
     free(table_vec->array);
     table_vec->size = 0;
     table_vec->capacity = 0;
@@ -114,20 +121,25 @@ int table_manager_init(struct table_manager_t* manager, int capacity) {
 }
 
 tablenum_t table_manager_load(struct table_manager_t* manager,
-                              const char* filename)
+                              const char* filename,
+                              struct buffer_manager_t* buffers)
 {
     tablenum_t id;
     struct table_t table;
-    if (table_load(&table, filename) == FAILURE) {
+    if (table_load(&table, filename, buffers) == FAILURE) {
         return INVALID_TABLENUM;
     }
 
-    while (table_vec_find(&manager->vec, table.table_id) != NULL) {
-        table.table_id = rehash_tablenum(table.table_id);
+    while (table_vec_find(&manager->vec, table.id) != NULL) {
+        if (table_rehash(&table, TRUE) == INVALID_TABLENUM) {
+            table_release(&table);
+            return INVALID_TABLENUM;
+        }
     }
 
-    id = table.table_id;
+    id = table.id;
     if (table_vec_append(&manager->vec, &table) == FAILURE) {
+        table_release(&table);
         return INVALID_TABLENUM;
     }
     return id;
