@@ -3,7 +3,7 @@
 
 #include "table_manager.h"
 
-int searching_policy(struct table_vec_t* table_vec, tablenum_t table_id) {
+int table_searching_policy(struct table_vec_t* table_vec, tablenum_t table_id) {
     int i;
     for (i = 0; i < table_vec->size; ++i) {
         if (table_vec->array[i]->table_id == table_id) {
@@ -60,7 +60,7 @@ int table_vec_append(struct table_vec_t* table_vec, struct table_t* table) {
 struct table_t* table_vec_find(struct table_vec_t* table_vec,
                                tablenum_t table_id)
 {
-    int idx = searching_policy(table_vec, table_id);
+    int idx = table_searching_policy(table_vec, table_id);
     if (idx == -1) {
         return NULL;
     }
@@ -68,7 +68,7 @@ struct table_t* table_vec_find(struct table_vec_t* table_vec,
 }
 
 int table_vec_remove(struct table_vec_t* table_vec, tablenum_t table_id) {
-    int idx = searching_policy(table_vec, table_id);
+    int idx = table_searching_policy(table_vec, table_id);
     if (idx == -1) {
         return FAILURE;
     }

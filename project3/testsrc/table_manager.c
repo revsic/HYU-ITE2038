@@ -3,7 +3,7 @@
 #include "table_manager.h"
 #include "test.h"
 
-TEST_SUITE(searching_policy, {
+TEST_SUITE(table_searching_policy, {
     const int capacity = 5;
     struct table_vec_t vec;
     TEST_SUCCESS(table_vec_init(&vec, capacity));
@@ -16,10 +16,10 @@ TEST_SUITE(searching_policy, {
     }
 
     for (i = 0; i < 3 * capacity; ++i) {
-        TEST(searching_policy(&vec, i) == i);
+        TEST(table_searching_policy(&vec, i) == i);
     }
-    TEST(searching_policy(&vec, 100) == -1);
-    TEST(searching_policy(&vec, -100) == -1);
+    TEST(table_searching_policy(&vec, 100) == -1);
+    TEST(table_searching_policy(&vec, -100) == -1);
     free(vec.array);
 })
 
@@ -279,7 +279,7 @@ TEST_SUITE(table_manager_release, {
 })
 
 int table_manager_test() {
-    return searching_policy_test()
+    return table_searching_policy_test()
         && table_vec_init_test()
         && table_vec_extend_test()
         && table_vec_append_test()

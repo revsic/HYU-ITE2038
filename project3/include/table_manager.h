@@ -14,7 +14,7 @@ struct table_manager_t {
     struct table_vec_t vec;
 };
 
-int searching_policy(struct table_vec_t* table_vec, tablenum_t table_id);
+int table_searching_policy(struct table_vec_t* table_vec, tablenum_t table_id);
 
 int table_vec_init(struct table_vec_t* table_vec, int capacity);
 
