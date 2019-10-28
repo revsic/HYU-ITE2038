@@ -1,4 +1,4 @@
-#ifndef TABLE_h
+#ifndef TABLE_H
 #define TABLE_H
 
 #include "disk_manager.h"
