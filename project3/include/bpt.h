@@ -132,7 +132,7 @@ int height(struct bpt_t* bpt, pagenum_t pagenum);
 /// \return int, length of path to root.
 int path_to_root(struct bpt_t* table, pagenum_t pagenum);
 
-/// Return split position with given length.
+/// Return split position with given length, ceil(length / 2).
 /// \param length length of the key array.
 /// \return int, split position.
 int cut(int length);
