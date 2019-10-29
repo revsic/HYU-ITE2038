@@ -170,7 +170,8 @@ TEST_SUITE(path_to_root, {
 })
 
 TEST_SUITE(cut, {
-
+    TEST(cut(4) == 2);
+    TEST(cut(5) == 3);
 })
 
 TEST_SUITE(find_leaf, {
@@ -178,7 +179,31 @@ TEST_SUITE(find_leaf, {
 })
 
 TEST_SUITE(find_key_from_leaf, {
+    // // preproc
+    // struct buffer_manager_t buffers;
+    // TEST_SUCCESS(buffer_manager_init(&buffers, 4));
 
+    // struct file_manager_t file;
+    // TEST_SUCCESS(file_open(&file, "testfile"));
+
+    // struct bpt_t bpt;
+    // TEST_SUCCESS(bpt_init(&bpt, &file, &buffers));
+
+    // struct ubuffer_t node = make_node(&bpt, FALSE);
+
+    // // case 0. leaf validation
+
+    // // case 1. cannot find
+
+    // // case 2. find and record=NULL
+
+    // // case 3. find and record
+
+    // // postproc
+    // TEST_SUCCESS(bpt_release(&bpt));
+    // TEST_SUCCESS(file_close(&file));
+    // TEST_SUCCESS(buffer_manager_shutdown(&buffers));
+    // remove("testfile");
 })
 
 TEST_SUITE(bpt_find, {
@@ -190,23 +215,42 @@ TEST_SUITE(bpt_find_range, {
 })
 
 TEST_SUITE(print_leaves, {
-
+    // print method
 })
 
 TEST_SUITE(print_tree, {
-
+    // print method
 })
 
 TEST_SUITE(find_and_print, {
-
+    // print method
 })
 
 TEST_SUITE(find_and_print_range, {
-
+    // print method
 })
 
 TEST_SUITE(make_record, {
+    struct record_t rec;
 
+    int value = 100;
+    TEST_SUCCESS(make_record(&rec, 10, (uint8_t*)&value, sizeof(int)));
+    TEST(rec.key == 10);
+    TEST(*(int*)rec.value == value);
+
+    int i;
+    int array[200];
+    for (i = 0; i < 200; ++i) {
+        array[i] = i;
+    }
+
+    TEST_SUCCESS(make_record(&rec, 20, (const uint8_t*)array, sizeof(int) * 200));
+    TEST(rec.key == 20);
+
+    int* ptr = (int*)rec.value;
+    for (i = 0; i < 30; ++i) {
+        TEST(ptr[i] == array[i]);
+    }
 })
 
 TEST_SUITE(make_node, {
