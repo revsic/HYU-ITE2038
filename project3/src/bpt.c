@@ -553,9 +553,8 @@ struct ubuffer_t make_node(struct bpt_t* bpt, uint32_t leaf) {
         return buffer;
     }
 
-    struct page_t* page = from_ubuffer(&buffer);
     BUFFER(buffer, WRITE_FLAG, {
-        EXIT_ON_FAILURE(page_init(page, leaf));
+        EXIT_ON_FAILURE(page_init(from_ubuffer(&buffer), leaf));
     })
 
     return buffer;
