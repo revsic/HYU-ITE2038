@@ -125,7 +125,11 @@ int record_vec_init(struct record_vec_t* vec, int cap) {
 }
 
 int record_vec_free(struct record_vec_t* vec) {
+    vec->size = 0;
+    vec->capacity = 0;
+
     free(vec->rec);
+    vec->rec = NULL;
     return SUCCESS;
 }
 

@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "bpt.h"
 #include "test.h"
 
@@ -111,18 +113,52 @@ TEST_SUITE(record_vec_init, {
     TEST(vec.size == 0);
     TEST(vec.capacity == 3);
     TEST(vec.rec != NULL);
+    free(vec.rec);
 })
 
 TEST_SUITE(record_vec_free, {
-
+    struct record_vec_t vec;
+    TEST_SUCCESS(record_vec_init(&vec, 3));
+    TEST_SUCCESS(record_vec_free(&vec));
+    TEST(vec.size == 0);
+    TEST(vec.capacity == 0);
+    TEST(vec.rec == NULL);
 })
 
 TEST_SUITE(record_vec_expand, {
+    struct record_vec_t vec;
+    TEST_SUCCESS(record_vec_init(&vec, 5));
 
+    int i;
+    for (i = 0; i < 3; ++i) {
+        vec.rec[i].key = 10 * i;
+        vec.size++;
+    }
+
+    TEST_SUCCESS(record_vec_expand(&vec));
+    TEST(vec.size == 3);
+    TEST(vec.capacity == 10);
+    
+    for (i = 0; i < 3; ++i) {
+        TEST(vec.rec[i].key == 10 * i);
+    }
+
+    TEST_SUCCESS(record_vec_free(&vec));
 })
 
 TEST_SUITE(record_vec_append, {
+    struct record_vec_t vec;
+    TEST_SUCCESS(record_vec_init(&vec, 5));
 
+    int i;
+    struct record_t rec;
+    for (i = 0; i < 13; ++i) {
+        rec.key = i * 10;
+        TEST_SUCCESS(record_vec_append(&vec, &rec));
+        TEST(vec.rec[i].key == i * 10);
+    }
+
+    TEST_SUCCESS(record_vec_free(&vec));
 })
 
 TEST_SUITE(height, {
