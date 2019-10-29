@@ -364,368 +364,302 @@ TEST_SUITE(buffer_macro, {
     TEST_SUCCESS(buffer_manager_shutdown(&manager));
 })
 
-// TEST_SUITE(buffer_manager_init, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
+TEST_SUITE(buffer_manager_init, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
-//     TEST(manager.capacity == 5);
-//     TEST(manager.num_buffer == 0);
-//     TEST(manager.lru == -1);
-//     TEST(manager.mru == -1);
-//     TEST(manager.buffers != NULL);
+    TEST(manager.capacity == 5);
+    TEST(manager.num_buffer == 0);
+    TEST(manager.lru == -1);
+    TEST(manager.mru == -1);
+    TEST(manager.buffers != NULL);
 
-//     int i;
-//     for (i = 0; i < 5; ++i) {
-//         TEST(manager.buffers[i].table_id == INVALID_TABLENUM);
-//     }
+    int i;
+    for (i = 0; i < 5; ++i) {
+        TEST(manager.buffers[i].file == NULL);
+    }
 
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-// })
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+})
 
-// TEST_SUITE(buffer_manager_shutdown, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
+TEST_SUITE(buffer_manager_shutdown, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
 
-//     struct table_manager_t tables;
-//     TEST_SUCCESS(table_manager_init(&tables, 5));
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    int i;
+    for (i = 0; i < 3; ++i) {
+        buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
+    }
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(file_close(&file));
+    TEST(manager.num_buffer == 0);
+    TEST(manager.capacity == 0);
+    remove("testfile");
+})
+
+TEST_SUITE(buffer_manager_alloc, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
+
+    struct file_manager_t file;
+
+    int i;
+    for (i = 0; i < 13; ++i) {
+        TEST(i % 5 == buffer_manager_alloc(&manager));
+        manager.buffers[i % 5].file = &file;
+        manager.buffers[i % 5].is_dirty = FALSE;
+        TEST_SUCCESS(buffer_append_mru(&manager.buffers[i % 5], FALSE));
+    }
+
+    for (i = 0; i < 5; ++i) {
+        manager.buffers[i].file = NULL;
+    }
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+})
+
+TEST_SUITE(buffer_manager_load, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
+
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    int idx = buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
+    TEST(idx == 0);
+    TEST(manager.num_buffer == 1);
+    TEST(manager.mru == 0);
+    TEST(manager.lru == 0);
+
+    struct buffer_t* buffer = &manager.buffers[idx];
+    TEST(buffer->block_idx == 0);
+    TEST(buffer->prev_use == -1);
+    TEST(buffer->next_use == -1);
+    TEST(buffer->pagenum == FILE_HEADER_PAGENUM);
+
+    idx = buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
+    TEST(idx == 1);
+    TEST(manager.num_buffer == 2);
+    TEST(manager.mru == 1);
+    TEST(manager.lru == 0);
+    TEST(buffer->prev_use == -1);
+    TEST(buffer->next_use == 1);
+
+    buffer = &manager.buffers[idx];
+    TEST(buffer->block_idx == 1);
+    TEST(buffer->prev_use == 0);
+    TEST(buffer->next_use == -1);
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(file_close(&file));
+    remove("testfile");
+})
+
+TEST_SUITE(buffer_manager_release_block, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
+
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    int idx = buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
+    TEST(idx == 0);
+
+    idx = buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
+    TEST(idx == 1);
+
+    TEST_SUCCESS(buffer_manager_release_block(&manager, 1));
+    TEST(manager.num_buffer == 1);
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 0);
+    TEST(manager.buffers[0].next_use == -1);
+    TEST(manager.buffers[0].prev_use == -1);
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(file_close(&file));
+    remove("testfile");
+})
+
+TEST_SUITE(buffer_manager_release_file, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
+
+    struct file_manager_t file1;
+    struct file_manager_t file2;
+    TEST_SUCCESS(file_open(&file1, "testfile"));
+    TEST_SUCCESS(file_open(&file2, "testfile2"));
+
+    TEST(0 == buffer_manager_load(&manager, &file1, FILE_HEADER_PAGENUM));
+
+    TEST(1 == buffer_manager_load(&manager, &file2, FILE_HEADER_PAGENUM));
+    TEST(2 == buffer_manager_load(&manager, &file2, FILE_HEADER_PAGENUM));
+
+    TEST_SUCCESS(buffer_manager_release_file(&manager, file2.id));
+    TEST(manager.num_buffer == 1);
+    TEST(manager.buffers[0].file == &file1);
+    TEST(manager.buffers[1].file == NULL);
+    TEST(manager.buffers[2].file == NULL);
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(file_close(&file1));
+    TEST_SUCCESS(file_close(&file2));
+    remove("testfile");
+    remove("testfile2");
+})
+
+TEST_SUITE(buffer_manager_release, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
+
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    int i;
+    for (i = 0; i < 4; ++i) {
+        TEST(-1 != buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
+    }
+    TEST(manager.lru == 0);
+
+    // case 1. lru
+    // 0 -> 1 -> 2 -> 3
+    TEST(0 == buffer_manager_release(&manager, &RELEASE_LRU));
+    TEST(manager.lru == 1);
+    TEST(manager.buffers[1].next_use == 2);
+
+    // case 2. lru is pinned
+    // 1 -> 2 -> 3
+    manager.buffers[1].pin++;
+    TEST(2 == buffer_manager_release(&manager, &RELEASE_LRU));
+    TEST(manager.lru == 1);
+
+    // case 3. mru
+    // 1 -> 3 -> 0 
+    manager.buffers[3].pin++;
+    TEST(0 == buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
+    TEST(0 == buffer_manager_release(&manager, &RELEASE_LRU));
+    TEST(manager.lru == 1);
+
+    // case 1. mru
+    // 1 -> 3 -> 0
+    manager.buffers[1].pin = 0;
+    manager.buffers[3].pin = 0;
+    TEST(0 == buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
+    TEST(0 == buffer_manager_release(&manager, &RELEASE_MRU));
+
+    // case 2. mru is pinned
+    // 1 -> 3 -> 0
+    TEST(0 == buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
+    manager.buffers[0].pin++;
+
+    TEST(3 == buffer_manager_release(&manager, &RELEASE_MRU));
+
+    // case 3. lru
+    // 1 -> 0 -> 2
+    TEST(2 == buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
+    manager.buffers[2].pin++;
+
+    TEST(1 == buffer_manager_release(&manager, &RELEASE_MRU));
+
+    manager.buffers[0].pin = 0;
+    manager.buffers[2].pin = 0;
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(file_close(&file));
+    remove("testfile");
+})
+
+TEST_SUITE(buffer_manager_find, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
+
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    int i;
+    pagenum_t pagenum[3];
+    for (i = 0; i < 3; ++i) {
+        pagenum[i] = page_create(&file);
+        TEST(pagenum != INVALID_PAGENUM);
+        TEST(i == buffer_manager_load(&manager, &file, pagenum[i]));
+    }
+
+    for (i = 0; i < 3; ++i) {
+        TEST(i == buffer_manager_find(&manager, file.id, pagenum[i]));
+    }
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(file_close(&file));
+    remove("testfile");
+})
+
+TEST_SUITE(buffer_manager_buffering, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
+
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    int i;
+    pagenum_t pagenum[10];
+    struct ubuffer_t ubuf;
+    for (i = 0; i < 10; ++i) {
+        pagenum[i] = page_create(&file);
+        TEST(pagenum != INVALID_PAGENUM);
+
+        ubuf = buffer_manager_buffering(&manager, &file, pagenum[i]);
+        TEST(ubuf.use_count == ubuf.buf->use_count);
+        TEST(pagenum[i] == ubuf.buf->pagenum);
+        TEST(&manager.buffers[i % 5] == ubuf.buf);
+    }
+
+    for (i = 9; i >= 5; --i) {
+        ubuf = buffer_manager_buffering(&manager, &file, pagenum[i]);
+        TEST(ubuf.use_count == ubuf.buf->use_count);
+        TEST(pagenum[i] == ubuf.buf->pagenum);
+        TEST(&manager.buffers[i % 5] == ubuf.buf);
+    }
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(file_close(&file));
+    remove("testfile");
+})
+
+TEST_SUITE(buffer_manager_new_page, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
+
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    int i;
+    struct ubuffer_t ubuf;
+    for (i = 0; i < 13; ++i) {
+        ubuf = buffer_manager_new_page(&manager, &file);
+        TEST(&manager.buffers[i % 5] == ubuf.buf);
+    }
     
-//     tablenum_t tid = table_manager_load(&tables, "testfile");
-//     TEST(tid != INVALID_TABLENUM);
-
-//     struct page_uri_t uri;
-//     uri.table_id = tid;
-//     uri.pagenum = FILE_HEADER_PAGENUM;
-
-//     int i;
-//     for (i = 0; i < 3; ++i) {
-//         buffer_manager_load(&manager, &tables, &uri);
-//     }
-
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-//     TEST_SUCCESS(table_manager_release(&tables));
-//     TEST(manager.num_buffer == 0);
-//     TEST(manager.capacity == 0);
-//     remove("testfile");
-// })
-
-// TEST_SUITE(buffer_manager_alloc, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
-
-//     int i;
-//     for (i = 0; i < 13; ++i) {
-//         TEST(i % 5 == buffer_manager_alloc(&manager));
-//         manager.buffers[i % 5].table_id = 10;
-//         TEST_SUCCESS(buffer_append_mru(&manager.buffers[i % 5], FALSE));
-//     }
-
-//     for (i = 0; i < 5; ++i) {
-//         manager.buffers[i].table_id = INVALID_TABLENUM;
-//     }
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-// })
-
-// TEST_SUITE(buffer_manager_load, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
-
-//     struct table_manager_t tables;
-//     TEST_SUCCESS(table_manager_init(&tables, 5));
-    
-//     tablenum_t tid = table_manager_load(&tables, "testfile");
-//     TEST(tid != INVALID_TABLENUM);
-
-//     struct page_uri_t uri;
-//     uri.table_id = tid;
-//     uri.pagenum = FILE_HEADER_PAGENUM;
-
-//     int idx = buffer_manager_load(&manager, &tables, &uri);
-//     TEST(idx == 0);
-//     TEST(manager.num_buffer == 1);
-//     TEST(manager.mru == 0);
-//     TEST(manager.lru == 0);
-
-//     struct buffer_t* buffer = &manager.buffers[idx];
-//     TEST(buffer->block_idx == 0);
-//     TEST(buffer->prev_use == -1);
-//     TEST(buffer->next_use == -1);
-//     TEST(buffer->table_id == tid);
-//     TEST(buffer->pagenum == FILE_HEADER_PAGENUM);
-
-//     idx = buffer_manager_load(&manager, &tables, &uri);
-//     TEST(idx == 1);
-//     TEST(manager.num_buffer == 2);
-//     TEST(manager.mru == 1);
-//     TEST(manager.lru == 0);
-//     TEST(buffer->prev_use == -1);
-//     TEST(buffer->next_use == 1);
-
-//     buffer = &manager.buffers[idx];
-//     TEST(buffer->block_idx == 1);
-//     TEST(buffer->prev_use == 0);
-//     TEST(buffer->next_use == -1);
-
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-//     TEST_SUCCESS(table_manager_release(&tables));
-//     remove("testfile");
-// })
-
-// TEST_SUITE(buffer_manager_release_block, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
-
-//     struct table_manager_t tables;
-//     TEST_SUCCESS(table_manager_init(&tables, 5));
-    
-//     tablenum_t tid = table_manager_load(&tables, "testfile");
-//     TEST(tid != INVALID_TABLENUM);
-
-//     struct page_uri_t uri;
-//     uri.table_id = tid;
-//     uri.pagenum = FILE_HEADER_PAGENUM;
-
-//     int idx = buffer_manager_load(&manager, &tables, &uri);
-//     TEST(idx == 0);
-
-//     idx = buffer_manager_load(&manager, &tables, &uri);
-//     TEST(idx == 1);
-
-//     TEST_SUCCESS(buffer_manager_release_block(&manager, 1));
-//     TEST(manager.num_buffer == 1);
-//     TEST(manager.lru == 0);
-//     TEST(manager.mru == 0);
-//     TEST(manager.buffers[0].next_use == -1);
-//     TEST(manager.buffers[0].prev_use == -1);
-
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-//     TEST_SUCCESS(table_manager_release(&tables));
-//     remove("testfile");
-// })
-
-// TEST_SUITE(buffer_manager_release_table, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
-
-//     struct table_manager_t tables;
-//     TEST_SUCCESS(table_manager_init(&tables, 5));
-    
-//     tablenum_t tid1 = table_manager_load(&tables, "testfile");
-//     tablenum_t tid2 = table_manager_load(&tables, "testfile2");
-//     TEST(tid1 != INVALID_TABLENUM);
-//     TEST(tid2 != INVALID_TABLENUM);
-
-//     struct page_uri_t uri;
-//     uri.pagenum = FILE_HEADER_PAGENUM;
-
-//     uri.table_id = tid1;
-//     TEST(0 == buffer_manager_load(&manager, &tables, &uri));
-
-//     uri.table_id = tid2;
-//     TEST(1 == buffer_manager_load(&manager, &tables, &uri));
-//     TEST(2 == buffer_manager_load(&manager, &tables, &uri));
-
-//     TEST_SUCCESS(buffer_manager_release_table(&manager, tid2));
-//     TEST(manager.num_buffer == 1);
-//     TEST(manager.buffers[0].table_id == tid1);
-//     TEST(manager.buffers[1].table_id == INVALID_TABLENUM);
-//     TEST(manager.buffers[2].table_id == INVALID_TABLENUM);
-
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-//     TEST_SUCCESS(table_manager_release(&tables));
-//     remove("testfile");
-//     remove("testfile2");
-// })
-
-// TEST_SUITE(buffer_manager_release, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
-
-//     struct table_manager_t tables;
-//     TEST_SUCCESS(table_manager_init(&tables, 5));
-
-//     tablenum_t tid = table_manager_load(&tables, "testfile");
-//     TEST(tid != INVALID_TABLENUM);
-
-//     struct page_uri_t uri;
-//     uri.table_id = tid;
-//     uri.pagenum = FILE_HEADER_PAGENUM;
-
-//     int i;
-//     for (i = 0; i < 4; ++i) {
-//         TEST(-1 != buffer_manager_load(&manager, &tables, &uri));
-//     }
-//     TEST(manager.lru == 0);
-
-//     // case 1. lru
-//     // 0 -> 1 -> 2 -> 3
-//     TEST(0 == buffer_manager_release(&manager, &RELEASE_LRU));
-//     TEST(manager.lru == 1);
-//     TEST(manager.buffers[1].next_use == 2);
-
-//     // case 2. lru is pinned
-//     // 1 -> 2 -> 3
-//     manager.buffers[1].pin++;
-//     TEST(2 == buffer_manager_release(&manager, &RELEASE_LRU));
-//     TEST(manager.lru == 1);
-
-//     // case 3. mru
-//     // 1 -> 3 -> 0 
-//     manager.buffers[3].pin++;
-//     TEST(0 == buffer_manager_load(&manager, &tables, &uri));
-//     TEST(0 == buffer_manager_release(&manager, &RELEASE_LRU));
-//     TEST(manager.lru == 1);
-
-//     // case 1. mru
-//     // 1 -> 3 -> 0
-//     manager.buffers[1].pin = 0;
-//     manager.buffers[3].pin = 0;
-//     TEST(0 == buffer_manager_load(&manager, &tables, &uri));
-//     TEST(0 == buffer_manager_release(&manager, &RELEASE_MRU));
-
-//     // case 2. mru is pinned
-//     // 1 -> 3 -> 0
-//     TEST(0 == buffer_manager_load(&manager, &tables, &uri));
-//     manager.buffers[0].pin++;
-
-//     TEST(3 == buffer_manager_release(&manager, &RELEASE_MRU));
-
-//     // case 3. lru
-//     // 1 -> 0 -> 2
-//     TEST(2 == buffer_manager_load(&manager, &tables, &uri));
-//     manager.buffers[2].pin++;
-
-//     TEST(1 == buffer_manager_release(&manager, &RELEASE_MRU));
-
-//     manager.buffers[0].pin = 0;
-//     manager.buffers[2].pin = 0;
-
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-//     TEST_SUCCESS(table_manager_release(&tables));
-//     remove("testfile");
-// })
-
-// TEST_SUITE(buffer_manager_find, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
-
-//     struct table_manager_t tables;
-//     TEST_SUCCESS(table_manager_init(&tables, 5));
-
-//     tablenum_t tid = table_manager_load(&tables, "testfile");
-//     TEST(tid != INVALID_TABLENUM);
-
-//     struct table_t* table = table_manager_find(&tables, tid);
-//     TEST(table != NULL);
-
-//     struct page_uri_t uri;
-//     uri.table_id = tid;
-
-//     int i;
-//     pagenum_t pagenum[3];
-//     for (i = 0; i < 3; ++i) {
-//         pagenum[i] = page_create(&table->file_manager);
-//         TEST(pagenum != INVALID_PAGENUM);
-
-//         uri.pagenum = pagenum[i];
-//         TEST(i == buffer_manager_load(&manager, &tables, &uri));
-//     }
-
-//     for (i = 0; i < 3; ++i) {
-//         uri.pagenum = pagenum[i];
-//         TEST(i == buffer_manager_find(&manager, &uri));
-//     }
-
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-//     TEST_SUCCESS(table_manager_release(&tables));
-//     remove("testfile");
-// })
-
-// TEST_SUITE(buffer_manager_buffering, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
-
-//     struct table_manager_t tables;
-//     TEST_SUCCESS(table_manager_init(&tables, 5));
-
-//     tablenum_t tid = table_manager_load(&tables, "testfile");
-//     TEST(tid != INVALID_TABLENUM);
-
-//     struct table_t* table = table_manager_find(&tables, tid);
-//     TEST(table != NULL);
-
-//     struct page_uri_t uri;
-//     uri.table_id = tid;
-
-//     int i;
-//     pagenum_t pagenum[10];
-//     struct ubuffer_t ubuf;
-//     for (i = 0; i < 10; ++i) {
-//         pagenum[i] = page_create(&table->file_manager);
-//         TEST(pagenum != INVALID_PAGENUM);
-
-//         uri.pagenum = pagenum[i];
-//         ubuf = buffer_manager_buffering(&manager, &tables, &uri);
-//         TEST(tid == ubuf.uri.table_id);
-//         TEST(pagenum[i] == ubuf.uri.pagenum);
-//         TEST(&manager.buffers[i % 5] == ubuf.buf);
-//     }
-
-//     for (i = 9; i >= 5; --i) {
-//         uri.pagenum = pagenum[i];
-//         ubuf = buffer_manager_buffering(&manager, &tables, &uri);
-//         TEST(tid == ubuf.uri.table_id);
-//         TEST(pagenum[i] == ubuf.uri.pagenum);
-//         TEST(&manager.buffers[i % 5] == ubuf.buf);
-//     }
-
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-//     TEST_SUCCESS(table_manager_release(&tables));
-//     remove("testfile");
-// })
-
-// TEST_SUITE(buffer_manager_new_page, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
-
-//     struct table_manager_t tables;
-//     TEST_SUCCESS(table_manager_init(&tables, 5));
-
-//     tablenum_t tid = table_manager_load(&tables, "testfile");
-//     TEST(tid != INVALID_TABLENUM);
-
-//     int i;
-//     struct ubuffer_t ubuf;
-//     for (i = 0; i < 13; ++i) {
-//         ubuf = buffer_manager_new_page(&manager, &tables, tid);
-//         TEST(&manager.buffers[i % 5] == ubuf.buf);
-//     }
-    
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-//     TEST_SUCCESS(table_manager_release(&tables));
-//     remove("testfile");
-// })
-
-// TEST_SUITE(buffer_manager_free_page, {
-//     struct buffer_manager_t manager;
-//     TEST_SUCCESS(buffer_manager_init(&manager, 5));
-
-//     struct table_manager_t tables;
-//     TEST_SUCCESS(table_manager_init(&tables, 5));
-
-//     tablenum_t tid = table_manager_load(&tables, "testfile");
-//     TEST(tid != INVALID_TABLENUM);
-
-//     struct ubuffer_t ubuf = buffer_manager_new_page(&manager, &tables, tid);
-
-//     struct page_uri_t uri;
-//     uri.table_id = tid;
-//     uri.pagenum = ubuf.uri.pagenum;
-//     TEST_SUCCESS(buffer_manager_free_page(&manager, &tables, &uri));
-
-//     TEST_SUCCESS(buffer_manager_shutdown(&manager));
-//     TEST_SUCCESS(table_manager_release(&tables));
-//     remove("testfile");
-// })
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(file_close(&file));
+    remove("testfile");
+})
+
+TEST_SUITE(buffer_manager_free_page, {
+    struct buffer_manager_t manager;
+    TEST_SUCCESS(buffer_manager_init(&manager, 5));
+
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    struct ubuffer_t ubuf = buffer_manager_new_page(&manager, &file);
+    TEST_SUCCESS(buffer_manager_free_page(&manager, &file, ubuf.buf->pagenum));
+
+    TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(file_close(&file));
+    remove("testfile");
+})
 
 int buffer_manager_test() {
     return check_ubuffer_test()
@@ -739,16 +673,16 @@ int buffer_manager_test() {
         && buffer_release_test()
         && buffer_start_end_test()
         && buffer_macro_test()
-        // && buffer_manager_init_test()
-        // && buffer_manager_shutdown_test()
-        // && buffer_manager_alloc_test()
-        // && buffer_manager_load_test()
-        // && buffer_manager_release_block_test()
-        // && buffer_manager_release_table_test()
-        // && buffer_manager_release_test()
-        // && buffer_manager_find_test()
-        // && buffer_manager_buffering_test()
-        // && buffer_manager_new_page_test()
-        // && buffer_manager_free_page_test();
+        && buffer_manager_init_test()
+        && buffer_manager_shutdown_test()
+        && buffer_manager_alloc_test()
+        && buffer_manager_load_test()
+        && buffer_manager_release_block_test()
+        && buffer_manager_release_file_test()
+        && buffer_manager_release_test()
+        && buffer_manager_find_test()
+        && buffer_manager_buffering_test()
+        && buffer_manager_new_page_test()
+        && buffer_manager_free_page_test();
         ;
 }
