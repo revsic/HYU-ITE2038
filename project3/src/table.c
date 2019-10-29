@@ -11,7 +11,7 @@ int table_load(struct table_t* table,
 {
     CHECK_SUCCESS(file_open(&table->file, filename));
     CHECK_SUCCESS(bpt_init(&table->bpt, &table->file, buffers));
-    table->id = table->file.id;
+    table->id = table_id_from_filenum(table->file.id);
     return SUCCESS;
 }
 
@@ -36,6 +36,10 @@ int table_insert(struct table_t* table, prikey_t key, uint8_t* value, int value_
 
 int table_delete(struct table_t* table, prikey_t key) {
     return bpt_delete(&table->bpt, key);
+}
+
+tablenum_t table_id_from_filenum(filenum_t filenum) {
+    return (tablenum_t)filenum;
 }
 
 tablenum_t table_rehash(struct table_t* table, int update_id) {

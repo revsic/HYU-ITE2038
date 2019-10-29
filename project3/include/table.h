@@ -27,6 +27,8 @@ int table_insert(struct table_t* table, prikey_t key, uint8_t* value, int value_
 
 int table_delete(struct table_t* table, prikey_t key);
 
+tablenum_t table_id_from_filenum(filenum_t filenum);
+
 tablenum_t table_rehash(struct table_t* table, int update_id);
 
 #endif
