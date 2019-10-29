@@ -3,6 +3,12 @@
 
 #include "headers.h"
 
+/// Return minimum value.
+/// \param a int, integer value.
+/// \param b int, integer value.
+/// \return int, minimum value between two arguments.
+int min(int a, int b);
+
 /// Return maximum value.
 /// \param a int, integer value.
 /// \param b int, integer value.
