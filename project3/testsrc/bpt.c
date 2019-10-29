@@ -180,7 +180,8 @@ TEST_SUITE(find_leaf, {
 })
 
 TEST_SUITE(find_key_from_leaf, {
-    // // preproc
+    // preproc
+    int i;
     struct buffer_manager_t buffers;
     TEST_SUCCESS(buffer_manager_init(&buffers, 4));
 
@@ -190,15 +191,40 @@ TEST_SUITE(find_key_from_leaf, {
     struct bpt_t bpt;
     TEST_SUCCESS(bpt_init(&bpt, &file, &buffers));
 
-    struct ubuffer_t node = make_node(&bpt, FALSE);
-
     // case 0. leaf validation
+    struct ubuffer_t node = make_node(&bpt, FALSE);
+    struct page_t* page = from_ubuffer(&node);
+    for (i = 0; i < 3; ++i) {
+        page_header(page)->number_of_keys++;
+        records(page)[i].key = i * 10;
+    }
+
+    TEST_SUCCESS(!find_key_from_leaf(10, node, NULL));
 
     // case 1. cannot find
+    page_header(page)->is_leaf = TRUE;
+    records(page)[1].key = 15;
+    TEST_SUCCESS(!find_key_from_leaf(10, node, NULL));
 
     // case 2. find and record=NULL
+    records(page)[1].key = 10;
+    TEST_SUCCESS(find_key_from_leaf(10, node, NULL));
+
+    records(page)[0].key = 10;
+    records(page)[1].key = 15;
+    TEST_SUCCESS(find_key_from_leaf(10, node, NULL));
+
+    records(page)[0].key = 5;
+    records(page)[1].key = 7;
+    records(page)[2].key = 10;
+    TEST_SUCCESS(find_key_from_leaf(10, node, NULL));
 
     // case 3. find and record
+    struct record_t rec;
+    *(int*)records(page)[2].value = 40;
+    TEST_SUCCESS(find_key_from_leaf(10, node, &rec));
+    TEST(rec.key == 10);
+    TEST(*(int*)rec.value == 40);
 
     // postproc
     TEST_SUCCESS(bpt_release(&bpt));
