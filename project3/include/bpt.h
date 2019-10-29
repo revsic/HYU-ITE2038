@@ -292,6 +292,46 @@ int bpt_insert(struct bpt_t* bpt,
 
 // DELETION
 
+/// Simply remove record from leaf without any other manipulation policy.
+/// \param key prikey_t, the key to remove.
+/// \param node struct ubuffer_t*, buffered node.
+/// \return int, whether success to remove or not.
+int remove_record_from_leaf(prikey_t key, struct ubuffer_t* node);
+
+/// Simply remove entry from internal node without any other manipulation policy.
+/// \param key prikey_t, the key to remove.
+/// \param node struct ubuffer_t*, buffered node.
+/// \return int, whether success to remove or not.
+int remove_entry_from_internal(prikey_t key, struct ubuffer_t* node);
+
+/// Move key from right node to left node (right rotation).
+/// \param bpt struct bpt_t*, B+ Tree structure.
+/// \param left struct ubuffer_t*, left node.
+/// \param k_prime prikey_t, median value from parent node.
+/// \param k_prime_index int, index of the k_prime on parent node.
+/// \param right struct ubuffer_t*, right node.
+/// \param parent struct ubuffer_t*, parent node.
+int rotate_to_right(struct bpt_t* bpt,
+                    struct ubuffer_t* left,
+                    prikey_t k_prime,
+                    int k_prime_index,
+                    struct ubuffer_t* right,
+                    struct ubuffer_t* parent);
+
+/// Move key from left node to right node (left rotation).
+/// \param bpt struct bpt_t*, B+ Tree structure.
+/// \param left struct ubuffer_t*, left node.
+/// \param k_prime prikey_t, median value from parent node.
+/// \param k_prime_index int, index of the k_prime on parent node.
+/// \param right struct ubuffer_t*, right node.
+/// \param parent struct ubuffer_t*, parent node.
+int rotate_to_left(struct bpt_t* bpt,
+                   struct ubuffer_t* left,
+                   prikey_t k_prime,
+                   int k_prime_index,
+                   struct ubuffer_t* right,
+                   struct ubuffer_t* parent);
+
 /// Shrink root page if it is blank.
 /// \param bpt struct bpt_t*, B+Tree configuration.
 /// \return int, whether success to shrink root or not.
