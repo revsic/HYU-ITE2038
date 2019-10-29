@@ -142,7 +142,6 @@ int buffer_start_read(struct buffer_t* buffer) {
     while (buffer->pin < 0)
         {}
     ++buffer->pin;
-    CHECK_SUCCESS(buffer_append_mru(buffer, TRUE));
     return SUCCESS;
 }
 
@@ -150,7 +149,6 @@ int buffer_start_write(struct buffer_t* buffer) {
     while (buffer->pin != 0)
         {}
     --buffer->pin;
-    CHECK_SUCCESS(buffer_append_mru(buffer, TRUE));
     return SUCCESS;
 }
 
@@ -162,12 +160,14 @@ int buffer_start(struct buffer_t* buffer, enum RW_FLAG rw_flag) {
 
 int buffer_end_read(struct buffer_t* buffer) {
     --buffer->pin;
+    CHECK_SUCCESS(buffer_append_mru(buffer, TRUE));
     return SUCCESS;
 }
 
 int buffer_end_write(struct buffer_t* buffer) {
     ++buffer->pin;
     buffer->is_dirty = TRUE;
+    CHECK_SUCCESS(buffer_append_mru(buffer, TRUE));
     return SUCCESS;
 }
 

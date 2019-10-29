@@ -10,9 +10,9 @@ Database Systems and Applications in Hanyang University
 ## TODO
 
 3. project3: Buffer management system
-- udpate mru: 업데이트 시점 lock 해제할 때
 - lock: 그때그떄 락거는게 아니라 트리 전체 락 걸고 propagation 계산해서 다시 부분에 거는거
 - buffer manager: searching policy
 - bpt bug fix, bpt test
 - table, table manager test
 - buffer manager mru, lru 연산 락 거는거
+- pin atomicity

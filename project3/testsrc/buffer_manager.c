@@ -283,6 +283,9 @@ TEST_SUITE(buffer_start_end, {
 
     TEST_SUCCESS(buffer_start(target, READ_FLAG));
     TEST(target->pin == 1);
+
+    TEST_SUCCESS(buffer_end(target, READ_FLAG));
+    TEST(target->pin == 0);
     TEST(target->next_use == -1);
     TEST(target->prev_use == 2);
     TEST(manager.lru == 0);
@@ -292,12 +295,12 @@ TEST_SUITE(buffer_start_end, {
     TEST(manager.buffers[2].prev_use == 0);
     TEST(manager.buffers[2].next_use == 1);
 
-    TEST_SUCCESS(buffer_end(target, READ_FLAG));
-    TEST(target->pin == 0);
-
     target = &manager.buffers[2];
     TEST_SUCCESS(buffer_start(target, WRITE_FLAG));
     TEST(target->pin == -1);
+
+    TEST_SUCCESS(buffer_end(target, WRITE_FLAG));
+    TEST(target->pin == 0);
     TEST(target->next_use == -1);
     TEST(target->prev_use == 1);
     TEST(manager.lru == 0);
@@ -307,8 +310,6 @@ TEST_SUITE(buffer_start_end, {
     TEST(manager.buffers[1].prev_use == 0);
     TEST(manager.buffers[1].next_use == 2);
 
-    TEST_SUCCESS(buffer_end(target, WRITE_FLAG));
-    TEST(target->pin == 0);
     TEST_SUCCESS(buffer_manager_shutdown(&manager));
 })
 
