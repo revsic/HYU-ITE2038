@@ -181,30 +181,30 @@ TEST_SUITE(find_leaf, {
 
 TEST_SUITE(find_key_from_leaf, {
     // // preproc
-    // struct buffer_manager_t buffers;
-    // TEST_SUCCESS(buffer_manager_init(&buffers, 4));
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(buffer_manager_init(&buffers, 4));
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
 
-    // struct bpt_t bpt;
-    // TEST_SUCCESS(bpt_init(&bpt, &file, &buffers));
+    struct bpt_t bpt;
+    TEST_SUCCESS(bpt_init(&bpt, &file, &buffers));
 
-    // struct ubuffer_t node = make_node(&bpt, FALSE);
+    struct ubuffer_t node = make_node(&bpt, FALSE);
 
-    // // case 0. leaf validation
+    // case 0. leaf validation
 
-    // // case 1. cannot find
+    // case 1. cannot find
 
-    // // case 2. find and record=NULL
+    // case 2. find and record=NULL
 
-    // // case 3. find and record
+    // case 3. find and record
 
-    // // postproc
-    // TEST_SUCCESS(bpt_release(&bpt));
-    // TEST_SUCCESS(file_close(&file));
-    // TEST_SUCCESS(buffer_manager_shutdown(&buffers));
-    // remove("testfile");
+    // postproc
+    TEST_SUCCESS(bpt_release(&bpt));
+    TEST_SUCCESS(buffer_manager_shutdown(&buffers));
+    TEST_SUCCESS(file_close(&file));
+    remove("testfile");
 })
 
 TEST_SUITE(bpt_find, {
