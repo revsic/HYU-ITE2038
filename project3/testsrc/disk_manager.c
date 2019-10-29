@@ -5,6 +5,13 @@
 #include "test.h"
 #include "utility.h"
 
+TEST_SUITE(create_filenum, {
+    const char* filename = "datafile";
+    const char* fullpath = "/Users/revsic/datafile";
+    filenum_t filenum = create_filenum(filename);
+    TEST(filenum == create_filenum(fullpath))
+})
+
 TEST_SUITE(file_init, {
     struct file_manager_t manager;
     manager.fp = fopen("testfile", "w+");
@@ -250,7 +257,8 @@ TEST_SUITE(page_read_write, {
 })
 
 int disk_manager_test() {
-    return file_init_test()
+    return create_filenum_test()
+        && file_init_test()
         && file_create_test()
         && file_open_test()
         && file_close_test()
