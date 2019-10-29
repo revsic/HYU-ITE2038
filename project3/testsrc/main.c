@@ -5,9 +5,9 @@ TEST_SUITE(unit, {
     TEST(headers_test());
     TEST(disk_manager_test());
     TEST(buffer_manager_test());
+    // TEST(bpt_test());
     // TEST(table_test());
     // TEST(table_manager_test());
-    // TEST(bpt_test());
 })
 
 int main() {
