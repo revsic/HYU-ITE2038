@@ -201,10 +201,10 @@ void find_and_print_range(struct bpt_t* bpt, prikey_t range1, prikey_t range2);
 /// Write record with given key and value.
 /// \param record struct record_t*, target record.
 /// \param key prikey_t, key.
-/// \param value uint8_t*, value data.
+/// \param value const uint8_t*, value data.
 /// \param value_size int, size of the value data.
 /// \return int, whether success to write record or not.
-int make_record(struct record_t* record, prikey_t key, uint8_t* value, int value_size);
+int make_record(struct record_t* record, prikey_t key, const uint8_t* value, int value_size);
 /// Create new page.
 /// \param bpt struct bpt_t*, B+Tree configuration.
 /// \param leaf int, whether leaf page or not.

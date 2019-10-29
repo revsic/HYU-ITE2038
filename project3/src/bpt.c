@@ -540,7 +540,7 @@ void find_and_print_range(struct bpt_t* bpt, prikey_t range1, prikey_t range2) {
 
 // INSERTION
 
-int make_record(struct record_t* record, prikey_t key, uint8_t* value, int value_size) {
+int make_record(struct record_t* record, prikey_t key, const uint8_t* value, int value_size) {
     record->key = key;    
     value_size = max(value_size, sizeof(struct record_t) - sizeof(prikey_t));
     memcpy(record->value, value, value_size);
