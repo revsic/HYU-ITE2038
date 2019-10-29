@@ -106,7 +106,11 @@ TEST_SUITE(queue, {
 })
 
 TEST_SUITE(record_vec_init, {
-
+    struct record_vec_t vec;
+    TEST_SUCCESS(record_vec_init(&vec, 3));
+    TEST(vec.size == 0);
+    TEST(vec.capacity == 3);
+    TEST(vec.rec != NULL);
 })
 
 TEST_SUITE(record_vec_free, {
