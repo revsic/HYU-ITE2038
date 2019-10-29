@@ -66,7 +66,7 @@ int bpt_release(struct bpt_t* config) {
 
 int bpt_default_config(struct bpt_t* config) {
     config->leaf_order = 32;
-    config->internal_order = 2249;
+    config->internal_order = 249;
     config->verbose_output = FALSE;
     config->delayed_merge = TRUE;
     return SUCCESS;

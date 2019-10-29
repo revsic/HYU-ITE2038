@@ -22,31 +22,58 @@ TEST_SUITE(swap_ubuffer, {
 })
 
 TEST_SUITE(bpt_buffering, {
-
+    // just porting buffer_manager_buffering
 })
 
 TEST_SUITE(bpt_create_page, {
-
+    // just porting buffer_manager_new_page
 })
 
 TEST_SUITE(bpt_free_page, {
-
+    // just porting buffer_manager_free_page
 })
 
 TEST_SUITE(bpt_init, {
+    struct bpt_t config;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
 
+    TEST_SUCCESS(bpt_init(&config, &file, &buffers));
+    TEST(config.file == &file);
+    TEST(config.buffers == &buffers);
+    TEST(config.leaf_order == 32);
+    TEST(config.internal_order == 249);
+    TEST(config.verbose_output == FALSE);
+    TEST(config.delayed_merge == TRUE);
 })
 
 TEST_SUITE(bpt_release, {
-
+    struct bpt_t config;
+    TEST_SUCCESS(bpt_release(&config));
+    TEST(config.leaf_order == 0);
+    TEST(config.internal_order == 0);
+    TEST(config.verbose_output == FALSE);
+    TEST(config.delayed_merge == FALSE);
+    TEST(config.file == NULL);
+    TEST(config.buffers == NULL);
 })
 
 TEST_SUITE(bpt_default_config, {
-
+    struct bpt_t config;
+    TEST_SUCCESS(bpt_default_config(&config));
+    TEST(config.leaf_order == 32);
+    TEST(config.internal_order == 249);
+    TEST(config.verbose_output == FALSE);
+    TEST(config.delayed_merge == TRUE);
 })
 
 TEST_SUITE(bpt_test_config, {
-
+    struct bpt_t config;
+    TEST_SUCCESS(bpt_test_config(&config, 5, 4));
+    TEST(config.leaf_order == 5);
+    TEST(config.internal_order == 4);
+    TEST(config.verbose_output == TRUE);
+    TEST(config.delayed_merge == TRUE);
 })
 
 TEST_SUITE(queue, {
