@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "bpt.h"
+#include "utility.h"
 #include "test.h"
 
 TEST_SUITE(swap_ubuffer, {
@@ -254,7 +255,26 @@ TEST_SUITE(make_record, {
 })
 
 TEST_SUITE(make_node, {
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(buffer_manager_init(&buffers, 4));
 
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    struct bpt_t bpt;
+    TEST_SUCCESS(bpt_init(&bpt, &file, &buffers));
+
+    struct ubuffer_t buf = make_node(&bpt, TRUE);
+    struct page_header_t* header = page_header(from_ubuffer(&buf));
+    TEST(header->parent_page_number == INVALID_PAGENUM);
+    TEST(header->is_leaf == TRUE);
+    TEST(header->number_of_keys == 0);
+    TEST(header->special_page_number == INVALID_PAGENUM);
+
+    TEST_SUCCESS(bpt_release(&bpt));
+    TEST_SUCCESS(file_close(&file));
+    TEST_SUCCESS(buffer_manager_shutdown(&buffers));
+    remove("testfile");
 })
 
 TEST_SUITE(get_index, {
