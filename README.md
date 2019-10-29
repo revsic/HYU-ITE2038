@@ -16,3 +16,5 @@ Database Systems and Applications in Hanyang University
 - table, table manager test
 - buffer manager mru, lru 연산 락 거는거
 - pin atomicity
+- document 검사
+- success 리턴하는 메소드 리턴 타입 바꾸기
