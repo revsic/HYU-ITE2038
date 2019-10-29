@@ -272,8 +272,8 @@ TEST_SUITE(make_node, {
     TEST(header->special_page_number == INVALID_PAGENUM);
 
     TEST_SUCCESS(bpt_release(&bpt));
-    TEST_SUCCESS(file_close(&file));
     TEST_SUCCESS(buffer_manager_shutdown(&buffers));
+    TEST_SUCCESS(file_close(&file));
     remove("testfile");
 })
 
