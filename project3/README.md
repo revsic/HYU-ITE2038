@@ -75,7 +75,23 @@ B+Tree 구조의 인덱스 관리를 위한 레이어이다. Buffer Manager를 �
 
 ## 4. Table Manager
 
-파일 단위의 Table을 관리하는 레이어이다.
+파일 단위의 Table을 관리하는 레이어이다. 파일명을 기반으로 테이블을 열어 매니저에 추가하고, Table ID를 기반으로 테이블의 검색과 삭제를 지원한다.
+
+### 4.1. Table name hashing
+
+Table ID는 같은 테이블에 대해서 같은 값을 가져야 한다. 가장 단순히 구현할 수 있는 방법으로는 파일명을 기반으로 hash 값을 구하는 것이다.
+
+1. Disk Manager 에서 파일명의 hash 값을 구하고 이를 File ID로 이용한다. (create_filenum)
+2. Table Manager 에서는 File ID를 기반으로 Table ID를 생성한다. (table_id_from_filenum)
+3. 이 때 Table Manager 내에서의 hash collision을 방지하기 위해 double hash probing을 지원한다. (table_rehash)
+
+현재 위 방법론을 구현하고 있지만, 방법론 자체에 문제가 존재한다. Table이 종료된 후 hash table에서 해당 파일의 hash value가 삭제된다. Table을 여는 과정에서 double hashing이 진행되었다 가정할 때, 이 후 Table을 다시 열었을 때 double hashing을 진행하지 않는다면 서로 다른 Table ID를 가져 Table Manager에 두개의 같은 테이블이 올라가게 된다. 
+
+이를 방지하기 위해 파일명을 보관하고 있거나, probing 방식을 double hashing이 아닌 linked list로 나열하는 방식을 차용할 예정이다. 
+
+### 4.2. Pluggable policy
+
+Buffer 때와 마찬가지로 table searching policy를 교체할 수 있게 구현해 두었다. 현재는 linear search를 하며, 추후 테이블의 개수가 많아질 경우 hash 값에 따른 상수 시간 검색을 지원할 예정이다. 
 
 ## 5. DBMS
 
