@@ -35,7 +35,7 @@ int shutdown_db();
 /// \param value char*, value data.
 /// \return int, whether success to insert data or not.
 /// if key is duplicated, return FAILURE and do not update value.
-int insert(tablenum_t table_id, int64_t key, char* value);
+int db_insert(tablenum_t table_id, int64_t key, char* value);
 
 /// Find key from most recent table and return value.
 /// \param table_id tablenum_t, id of the table.
@@ -43,12 +43,12 @@ int insert(tablenum_t table_id, int64_t key, char* value);
 /// \param retval char*, value data, nullable.
 /// \return int, whether success to find data or not.
 /// if key is not found, return FAILURE.
-int find(tablenum_t table_id, int64_t key, char* retval);
+int db_find(tablenum_t table_id, int64_t key, char* retval);
 
 /// Delete key from table.
 /// \param table_id tablenum_t, id of the table.
 /// \param key prikey_t, key.
 /// \return int, whether success to find data or not.
-int delete(tablenum_t table_id, int64_t key);
+int db_delete(tablenum_t table_id, int64_t key);
 
 #endif

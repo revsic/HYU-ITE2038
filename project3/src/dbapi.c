@@ -22,12 +22,12 @@ int shutdown_db() {
     return dbms_shutdown(&GLOBAL_DBMS);
 }
 
-int insert(tablenum_t table_id, int64_t key, char* value) {
+int db_insert(tablenum_t table_id, int64_t key, char* value) {
     return dbms_insert(
         &GLOBAL_DBMS, table_id, key, (uint8_t*)value, strlen(value) + 1);
 }
 
-int find(tablenum_t table_id, int64_t key, char* retval) {
+int db_find(tablenum_t table_id, int64_t key, char* retval) {
     struct record_t temporal;
     CHECK_SUCCESS(dbms_find(&GLOBAL_DBMS, table_id, key, &temporal));
     if (retval != NULL) {
@@ -36,6 +36,6 @@ int find(tablenum_t table_id, int64_t key, char* retval) {
     return SUCCESS;
 }
 
-int delete(tablenum_t table_id, int64_t key) {
+int db_delete(tablenum_t table_id, int64_t key) {
     return dbms_delete(&GLOBAL_DBMS, table_id, key);
 }

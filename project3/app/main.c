@@ -32,23 +32,22 @@ int main(int argc, char ** argv) {
             break;
         case 'd':
             scanf("%d", &input);
-            delete(table_id, input);
+            db_delete(table_id, input);
             print_tree(bpt);
             break;
         case 'i':
             scanf("%d", &input);
             snprintf(value, 100, "%d value", input);
-            insert(table_id, input, value);
+            db_insert(table_id, input, value);
             print_tree(bpt);
             break;
         case 'f':
             scanf("%d", &input);
-            if (find(table_id, input, value) == SUCCESS) {
+            if (db_find(table_id, input, value) == SUCCESS) {
                 printf("Key: %d  Value: %s\n", input, value);
             } else {
                 printf("not found\n");
             }
-            find_and_print(bpt, input);
             break;
         case 'r':
             scanf("%d %d", &input, &range2);
