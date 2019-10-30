@@ -58,6 +58,7 @@ struct ubuffer_t bpt_create_page(struct bpt_t* bpt);
 /// \return int, whether success or not.
 int bpt_free_page(struct bpt_t* bpt, pagenum_t pagenum);
 
+
 // UTILITY
 
 /// Print usage1.
@@ -68,7 +69,7 @@ void usage_1(struct bpt_t* bpt);
 void usage_2(struct bpt_t* bpt);
 
 /// Initialize bpt configuration.
-/// \param bpt struct bpt_t*, B+Tree configuration.
+/// \param config struct bpt_t*, B+Tree configuration.
 /// \param file struct file_manager_t*, disk structure.
 /// \param buffers struct buffer_manager_t*, buffer manager.
 /// \return whether success to write configuration or not.
@@ -80,11 +81,11 @@ int bpt_init(struct bpt_t* config,
 /// \return whether success release configuration or not.
 int bpt_release(struct bpt_t* config);
 /// Set default bpt configuartion.
-/// \param bpt struct bpt_t*, B+Tree configuration.
+/// \param config struct bpt_t*, B+Tree configuration.
 /// \return whether success to write configuration or not.
 int bpt_default_config(struct bpt_t* config);
 /// Set test mode bpt configuartion.
-/// \param bpt struct bpt_t*, B+Tree configuration.
+/// \param config struct bpt_t*, B+Tree configuration.
 /// \param leaf_order int, leaf order.
 /// \param internal_order int, internal order.
 /// \return whether success to write configuration or not.
@@ -130,7 +131,7 @@ int height(struct bpt_t* bpt, pagenum_t pagenum);
 /// \param bpt struct bpt_t*, B+Tree configuration.
 /// \param pagenum pagenum_t, page ID.
 /// \return int, length of path to root.
-int path_to_root(struct bpt_t* table, pagenum_t pagenum);
+int path_to_root(struct bpt_t* bpt, pagenum_t pagenum);
 
 /// Return split position with given length, ceil(length / 2).
 /// \param length length of the key array.
@@ -239,7 +240,7 @@ int insert_into_leaf_after_splitting(struct bpt_t* bpt,
 /// \param node struct ubuffer_t*, target internal node.
 /// \param index int, insertion point.
 /// \param entry struct internal_t*, target entry.
-/// \return int whether success to insert entry or not.
+/// \return int, whether success to insert entry or not.
 int insert_into_node(struct bpt_t* bpt,
                      struct ubuffer_t* node,
                      int index,
@@ -250,7 +251,7 @@ int insert_into_node(struct bpt_t* bpt,
 /// \param old_node struct ubuffer_t*, target internal node.
 /// \param index int, insertion point.
 /// \param entry struct internal_t*, target entry.
-/// \return int whether success to insert entry or not.
+/// \return int, whether success to insert entry or not.
 int insert_into_node_after_splitting(struct bpt_t* bpt,
                                      struct ubuffer_t* old_node,
                                      int index,
@@ -261,7 +262,7 @@ int insert_into_node_after_splitting(struct bpt_t* bpt,
 /// \param left struct ubuffer_t*, lett child.
 /// \param key prikey_t, target key.
 /// \param right struct ubuffer_t*, right child.
-/// \return int whether success to insert key or not.
+/// \return int, whether success to insert key or not.
 int insert_into_parent(struct bpt_t* bpt,
                        struct ubuffer_t* left,
                        prikey_t key,
@@ -271,7 +272,7 @@ int insert_into_parent(struct bpt_t* bpt,
 /// \param left struct ubuffer_t*, lett child.
 /// \param key prikey_t, target key.
 /// \param right struct ubuffer_t*, right child.
-/// \return int whether success to insert key or not.
+/// \return int, whether success to insert key or not.
 int insert_into_new_root(struct bpt_t* bpt,
                          struct ubuffer_t* left,
                          prikey_t key,
@@ -374,8 +375,8 @@ int redistribute_nodes(struct bpt_t* bpt,
 int delete_entry(struct bpt_t* bpt,
                  prikey_t key,
                  struct ubuffer_t* page);
-/// \param bpt struct bpt_t*, B+Tree configuration.
 /// Mother function, delete key from tree.
+/// \param bpt struct bpt_t*, B+Tree configuration.
 /// \param key prikey_t, target key.
 /// \return int, whether success to delete key or not.
 int bpt_delete(struct bpt_t* bpt, prikey_t key);
