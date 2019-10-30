@@ -446,7 +446,28 @@ TEST_SUITE(insert_into_parent, {
 })
 
 TEST_SUITE(insert_into_new_root, {
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
+    struct ubuffer_t left = make_node(&bpt, TRUE);
+    struct ubuffer_t right = make_node(&bpt, TRUE);
+
+    TEST_SUCCESS(insert_into_new_root(&bpt, &left, 10, &right));
+    
+    struct ubuffer_t buf = bpt_buffering(&bpt, FILE_HEADER_PAGENUM);
+    pagenum_t root = file_header(from_ubuffer(&buf))->root_page_number;
+
+    buf = bpt_buffering(&bpt, root);
+    struct page_t* page = from_ubuffer(&buf);
+    TEST(page_header(page)->is_leaf == FALSE);
+    TEST(page_header(page)->number_of_keys == 1);
+    TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
+    TEST(page_header(page)->special_page_number == left.buf->pagenum);
+    TEST(entries(page)[0].pagenum == right.buf->pagenum);
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(start_new_tree, {
