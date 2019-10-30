@@ -653,7 +653,7 @@ int insert_into_leaf_after_splitting(struct bpt_t* bpt,
             leaf_header->number_of_keys++;
         }
 
-        leaf_header->special_page_number = new_page.buf->pagenum;
+        leaf_header->special_page_number = ubuffer_pagenum(&new_page);
     })
 
     BUFFER(new_page, WRITE_FLAG, {
@@ -763,7 +763,7 @@ int insert_into_node_after_splitting(struct bpt_t* bpt,
 
             temp_page = bpt_buffering(bpt, temp_pagenum);
             BUFFER(temp_page, WRITE_FLAG, {
-                page_header(from_ubuffer(&temp_page))->parent_page_number = new_node.buf->pagenum;
+                page_header(from_ubuffer(&temp_page))->parent_page_number = ubuffer_pagenum(&new_node);
             })
         }
     })
@@ -780,7 +780,7 @@ int insert_into_parent(struct bpt_t* bpt,
     struct ubuffer_t parent_page;
     pagenum_t parent, left_pagenum, right_pagenum;
     BUFFER(*left, READ_FLAG, {
-        left_pagenum = left->buf->pagenum;
+        left_pagenum = ubuffer_pagenum(left);
         parent = page_header(from_ubuffer(left))->parent_page_number;
     })
 
@@ -802,7 +802,7 @@ int insert_into_parent(struct bpt_t* bpt,
     /* Simple case: the new key fits into the node. 
      */
     BUFFER(*right, READ_FLAG, {
-        right_pagenum = right->buf->pagenum;
+        right_pagenum = ubuffer_pagenum(right);
         num_key = page_header(from_ubuffer(&parent_page))->number_of_keys;
     })
 
@@ -828,19 +828,19 @@ int insert_into_new_root(struct bpt_t* bpt,
     struct ubuffer_t fileheader, root = make_node(bpt, FALSE);
 
     BUFFER(root, WRITE_FLAG, {
-        root_pagenum = root.buf->pagenum;
+        root_pagenum = ubuffer_pagenum(&root);
 
         header = page_header(from_ubuffer(&root));
         header->number_of_keys++;
 
         BUFFER(*left, READ_FLAG, {
-            header->special_page_number = left->buf->pagenum;
+            header->special_page_number = ubuffer_pagenum(left);
         })
 
         ent = entries(from_ubuffer(&root));
         ent[0].key = key;
         BUFFER(*right, READ_FLAG, {
-            ent[0].pagenum = right->buf->pagenum;
+            ent[0].pagenum = ubuffer_pagenum(right);
         })
     })
 
@@ -868,7 +868,7 @@ int start_new_tree(struct bpt_t* bpt, struct record_t* pointer)
     struct ubuffer_t fileheader, root = make_node(bpt, TRUE);
 
     BUFFER(root, WRITE_FLAG, {
-        root_pagenum = root.buf->pagenum;
+        root_pagenum = ubuffer_pagenum(&root);
 
         header = page_header(from_ubuffer(&root));
         header->number_of_keys++;
@@ -1070,7 +1070,7 @@ int merge_nodes(struct bpt_t* bpt,
                     temp = bpt_buffering(bpt, pagenum);
                     BUFFER(temp, WRITE_FLAG, {
                         page_header(from_ubuffer(&temp))->parent_page_number =
-                            left->buf->pagenum;
+                            ubuffer_pagenum(left);
                     })
 
                     *right_num_key -= 1;
@@ -1099,7 +1099,7 @@ int merge_nodes(struct bpt_t* bpt,
 
     CHECK_SUCCESS(delete_entry(bpt, k_prime, parent));
     BUFFER(*right, READ_FLAG, {
-        pagenum = right->buf->pagenum;
+        pagenum = ubuffer_pagenum(right);
     })
     bpt_free_page(bpt, pagenum);
 
@@ -1163,7 +1163,7 @@ int rotate_to_right(struct bpt_t* bpt,
             BUFFER(*right, WRITE_FLAG, {
                 page_header(from_ubuffer(right))->special_page_number = tmp.pagenum;
                 page_header(from_ubuffer(&temp_page))->parent_page_number =
-                    right->buf->pagenum;
+                    ubuffer_pagenum(right);
             })
         })
     }
@@ -1224,13 +1224,13 @@ int rotate_to_left(struct bpt_t* bpt,
                 left_internal[num_key].pagenum =
                     page_header(from_ubuffer(right))->special_page_number;
                 
-                left_pagenum = left->buf->pagenum;
+                left_pagenum = ubuffer_pagenum(left);
                 child_pagenum = left_internal[num_key].pagenum;
             })
 
             tmp = bpt_buffering(bpt, child_pagenum);
             BUFFER(tmp, WRITE_FLAG, {
-                page_header(from_ubuffer(&tmp))->parent_page_number = left->buf->pagenum;
+                page_header(from_ubuffer(&tmp))->parent_page_number = ubuffer_pagenum(left);
             })
 
             BUFFER(*parent, WRITE_FLAG, {
@@ -1293,7 +1293,7 @@ int delete_entry(struct bpt_t* bpt,
     struct page_header_t* header;
     pagenum_t pagenum, parent_num, root_num;
     BUFFER(*page, READ_FLAG, {
-        pagenum = page->buf->pagenum;
+        pagenum = ubuffer_pagenum(page);
         header = page_header(from_ubuffer(page));
         is_leaf = header->is_leaf;
         num_key = header->number_of_keys;
