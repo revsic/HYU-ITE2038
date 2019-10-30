@@ -395,7 +395,62 @@ TEST_SUITE(insert_into_leaf, {
 })
 
 TEST_SUITE(insert_into_leaf_after_splitting, {
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    TEST_SUCCESS(bpt_test_config(&bpt, 5, 4));
 
+    struct ubuffer_t leaf = make_node(&bpt, TRUE);
+    struct page_t* page = from_ubuffer(&leaf);
+
+    int i;
+    struct record_t record;
+
+    // case 0. last one
+    const int size = 4;
+    CHECK_SUCCESS(check_ubuffer(&leaf));
+    for (i = 0; i < size; ++i) {
+        record.key = i;
+        TEST_SUCCESS(insert_into_leaf(&bpt, &leaf, &record));
+    }
+
+    record.key = size;
+    TEST_SUCCESS(insert_into_leaf_after_splitting(&bpt, &leaf, &record));
+
+    struct ubuffer_t filehdr = bpt_buffering(&bpt, FILE_HEADER_PAGENUM);
+    pagenum_t root = file_header(from_ubuffer(&filehdr))->root_page_number;
+
+    struct ubuffer_t rootpage = bpt_buffering(&bpt, root);
+    page = from_ubuffer(&rootpage);
+
+    TEST(page_header(page)->special_page_number == ubuffer_pagenum(&leaf));
+    TEST(page_header(page)->number_of_keys == 1);
+
+    int expected = cut(size);
+    TEST(entries(page)[0].key == expected);
+    pagenum_t right = entries(page)[0].pagenum;
+
+    TEST_SUCCESS(check_ubuffer(&leaf));
+    page = from_ubuffer(&leaf);
+    TEST(page_header(page)->number_of_keys == expected);
+    TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&rootpage));
+    TEST(page_header(page)->special_page_number == right);
+    for (i = 0; i < expected; ++i) {
+        TEST(records(page)[i].key == i);
+    }
+
+    struct ubuffer_t rightbuf = bpt_buffering(&bpt, right);
+    page = from_ubuffer(&rightbuf);
+    expected = size + 1 - expected;
+    TEST(page_header(page)->number_of_keys == expected);
+    TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&rootpage));
+    TEST(page_header(page)->special_page_number == INVALID_PAGENUM);
+    for (i = 0; i < expected; ++i) {
+        TEST(records(page)[i].key == i + cut(size));
+    }
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(insert_into_node, {
@@ -513,6 +568,7 @@ TEST_SUITE(insert_into_parent, {
     TEST(page_header(from_ubuffer(&right))->special_page_number == INVALID_PAGENUM);
 
     // case 2. node split
+    // TODO: impl test
 
     TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })

@@ -615,9 +615,11 @@ int insert_into_leaf_after_splitting(struct bpt_t* bpt,
     int insertion_index, split_index, i, j;
     pagenum_t next_node, parent_node;
     struct record_t *leaf_rec, *new_rec;
-    struct record_t temp_record[bpt->leaf_order];
+    struct record_t* temp_record;
     struct page_header_t *leaf_header, *new_header;
     struct ubuffer_t new_page = make_node(bpt, TRUE);
+
+    CHECK_NULL(temp_record = malloc(sizeof(struct record_t) * bpt->leaf_order));
     BUFFER(*leaf, READ_FLAG, {
         leaf_rec = records(from_ubuffer(leaf));
         leaf_header = page_header(from_ubuffer(leaf));
@@ -630,7 +632,7 @@ int insert_into_leaf_after_splitting(struct bpt_t* bpt,
                 && leaf_rec[insertion_index].key < record->key;
              ++insertion_index)
             {}
-        
+
         for (i = 0, j = 0; i < leaf_header->number_of_keys; i++, j++) {
             if (j == insertion_index) {
                 ++j;
@@ -671,6 +673,7 @@ int insert_into_leaf_after_splitting(struct bpt_t* bpt,
         key = new_rec[0].key;
     })
 
+    free(temp_record);
     return insert_into_parent(bpt, leaf, key, &new_page);
 }
 
@@ -706,10 +709,11 @@ int insert_into_node_after_splitting(struct bpt_t* bpt,
     int i, j, split_index, k_prime;
     pagenum_t temp_pagenum, parent_num;
     struct internal_t *ent, *new_entries;
-    struct internal_t temp[bpt->internal_order];
+    struct internal_t* temp;
     struct page_header_t *header, *new_header;
     struct ubuffer_t temp_page, new_node = make_node(bpt, FALSE);
 
+    CHECK_NULL(temp = malloc(sizeof(struct internal_t) * bpt->internal_order));
     BUFFER(*old_node, READ_FLAG, {
         ent = entries(from_ubuffer(old_node));
         header = page_header(from_ubuffer(old_node));
@@ -768,6 +772,7 @@ int insert_into_node_after_splitting(struct bpt_t* bpt,
         }
     })
 
+    free(temp);
     return insert_into_parent(bpt, old_node, k_prime, &new_node);
 }
 
