@@ -359,6 +359,9 @@ TEST_SUITE(insert_into_leaf, {
         TEST(records(from_ubuffer(&buf))[i].key == i);
     }
 
+    // case 0.1. overflow
+    TEST(insert_into_leaf(&bpt, &buf, &rec) == FAILURE);
+
     // case 1. reversed ordered input
     page_header(from_ubuffer(&buf))->number_of_keys = 0;
     for (i = 0; i < 5; ++i) {
@@ -396,6 +399,41 @@ TEST_SUITE(insert_into_leaf_after_splitting, {
 })
 
 TEST_SUITE(insert_into_node, {
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+
+    TEST_SUCCESS(bpt_test_config(&bpt, 5, 5));
+    struct ubuffer_t buf = make_node(&bpt, FALSE);
+
+    // case 0. ordered input
+    int i;
+    struct internal_t ent;
+    for (i = 0; i < 5; ++i) {
+        ent.key = i;
+        TEST_SUCCESS(insert_into_node(&bpt, &buf, i, &ent));
+    }
+
+    for (i = 0; i < 5; ++i) {
+        TEST(entries(from_ubuffer(&buf))[i].key == i);
+    }
+
+    // case 0.1. overflow
+    TEST(insert_into_node(&bpt, &buf, 5, &ent) == FAILURE);
+
+    // // case 1. reversed ordered input
+    page_header(from_ubuffer(&buf))->number_of_keys = 0;
+    for (i = 0; i < 5; ++i) {
+        ent.key = 5 - i;
+        TEST_SUCCESS(insert_into_node(&bpt, &buf, 0, &ent));
+    }
+
+    for (i = 0; i < 5; ++i) {
+        TEST(entries(from_ubuffer(&buf))[i].key == i + 1);
+    }
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 
 })
 
