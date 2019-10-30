@@ -28,21 +28,21 @@ int bpt_test_postprocess(struct bpt_t* bpt,
 TEST_SUITE(swap_ubuffer, {
     struct buffer_t buf1;
     struct buffer_t buf2;
-    buf1.use_count = 10;
-    buf2.use_count = 20;
+    buf1.pagenum = 10;
+    buf2.pagenum = 20;
 
     struct ubuffer_t ubuf1;
     struct ubuffer_t ubuf2;
     ubuf1.buf = &buf1;
-    ubuf1.use_count = 10;
+    ubuf1.pagenum = 10;
     ubuf2.buf = &buf2;
-    ubuf2.use_count = 20;
+    ubuf2.pagenum = 20;
 
     swap_ubuffer(&ubuf1, &ubuf2);
-    TEST(ubuf1.use_count == 20);
-    TEST(ubuf1.buf->use_count == 20);
-    TEST(ubuf2.use_count == 10);
-    TEST(ubuf2.buf->use_count == 10);
+    TEST(ubuf1.pagenum == 20);
+    TEST(ubuf1.buf->pagenum == 20);
+    TEST(ubuf2.pagenum == 10);
+    TEST(ubuf2.buf->pagenum == 10);
 })
 
 TEST_SUITE(bpt_buffering, {
@@ -466,8 +466,8 @@ TEST_SUITE(insert_into_parent, {
     TEST(page_header(page)->is_leaf == FALSE);
     TEST(page_header(page)->number_of_keys == 1);
     TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
-    TEST(page_header(page)->special_page_number == left.buf->pagenum);
-    TEST(entries(page)[0].pagenum == right.buf->pagenum);
+    TEST(page_header(page)->special_page_number == ubuffer_pagenum(&left));
+    TEST(entries(page)[0].pagenum == ubuffer_pagenum(&right));
     TEST(entries(page)[0].key == 10);
 
     // case 1. simple insert
@@ -476,23 +476,23 @@ TEST_SUITE(insert_into_parent, {
     BUFFER(parent, WRITE_FLAG, {
         page = from_ubuffer(&parent);
         page_header(page)->number_of_keys = 1;
-        page_header(page)->special_page_number = temporal.buf->pagenum;
+        page_header(page)->special_page_number = ubuffer_pagenum(&temporal);
         entries(page)[0].key = 10;
-        entries(page)[0].pagenum = left.buf->pagenum;
+        entries(page)[0].pagenum = ubuffer_pagenum(&left);
     })
     BUFFER(temporal, WRITE_FLAG, {
-        page_header(from_ubuffer(&temporal))->special_page_number = left.buf->pagenum;
+        page_header(from_ubuffer(&temporal))->special_page_number = ubuffer_pagenum(&left);
     })
     BUFFER(left, WRITE_FLAG, {
-        page_header(from_ubuffer(&left))->special_page_number = INVALID_PAGENUM;
-        page_header(from_ubuffer(&left))->parent_page_number = parent.buf->pagenum;    
+        page_header(from_ubuffer(&left))->special_page_number = ubuffer_pagenum(&right);
+        page_header(from_ubuffer(&left))->parent_page_number = ubuffer_pagenum(&parent);    
         for (i = 0; i < 3; ++i) {
             records(from_ubuffer(&left))[i].key = 10 + i;
             page_header(from_ubuffer(&left))->number_of_keys++;
         }
     })
     BUFFER(right, WRITE_FLAG, {
-        page_header(from_ubuffer(&right))->parent_page_number = parent.buf->pagenum;
+        page_header(from_ubuffer(&right))->parent_page_number = ubuffer_pagenum(&parent);
         for (i = 0; i < 3; ++i) {
             records(from_ubuffer(&right))[i].key = 13 + i;
             page_header(from_ubuffer(&right))->number_of_keys++;
@@ -503,13 +503,13 @@ TEST_SUITE(insert_into_parent, {
 
     page = from_ubuffer(&parent);
     TEST(page_header(page)->number_of_keys == 2);
-    TEST(page_header(page)->special_page_number == left.buf->pagenum);
+    TEST(page_header(page)->special_page_number == ubuffer_pagenum(&temporal));
     TEST(entries(page)[0].key == 10);
-    TEST(entries(page)[0].pagenum == left.buf->pagenum);
+    TEST(entries(page)[0].pagenum == ubuffer_pagenum(&left));
     TEST(entries(page)[1].key == 13);
-    TEST(entries(page)[1].pagenum == right.buf->pagenum);
-    TEST(page_header(from_ubuffer(&temporal))->special_page_number == left.buf->pagenum);
-    TEST(page_header(from_ubuffer(&left))->special_page_number == right.buf->pagenum);
+    TEST(entries(page)[1].pagenum == ubuffer_pagenum(&right));
+    TEST(page_header(from_ubuffer(&temporal))->special_page_number == ubuffer_pagenum(&left));
+    TEST(page_header(from_ubuffer(&left))->special_page_number == ubuffer_pagenum(&right));
     TEST(page_header(from_ubuffer(&right))->special_page_number == INVALID_PAGENUM);
 
     // case 2. node split
@@ -537,11 +537,11 @@ TEST_SUITE(insert_into_new_root, {
     TEST(page_header(page)->number_of_keys == 1);
     TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
     
-    TEST(page_header(page)->special_page_number == left.buf->pagenum);
-    TEST(entries(page)[0].pagenum == right.buf->pagenum);
+    TEST(page_header(page)->special_page_number == ubuffer_pagenum(&left));
+    TEST(entries(page)[0].pagenum == ubuffer_pagenum(&right));
 
-    TEST(page_header(from_ubuffer(&left))->parent_page_number == buf.buf->pagenum);
-    TEST(page_header(from_ubuffer(&right))->parent_page_number == buf.buf->pagenum);
+    TEST(page_header(from_ubuffer(&left))->parent_page_number == ubuffer_pagenum(&buf));
+    TEST(page_header(from_ubuffer(&right))->parent_page_number == ubuffer_pagenum(&buf));
 
     TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
