@@ -68,4 +68,5 @@ library: $(OBJS_FOR_LIB)
 	gcc -shared -Wl,-soname,libbpt.so -o $(LIBS)libbpt.so $(OBJS_FOR_LIB)
 
 static_library: $(OBJS_FOR_LIB)
+	if [ ! -e "$(LIBS)" ]; then mkdir $(LIBS); fi;
 	ar cr $(LIBS)libbpt.a $(OBJS_FOR_LIB)
