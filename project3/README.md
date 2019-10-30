@@ -10,8 +10,8 @@ On-Disk B+ Tree의 operation 가속화를 위한 Buffer Management Layer 구현.
 
 | name | function | source | methods |
 | ---- | -------- | ------ | ------- |
-| [Application](5-application) | User IO | [main.c](./app/main.c) | main |
-| [Table Manager](4-table-manager) | Table API | [table.h](./include/table.h), [table_manager.h](./include/table_manager.h) | load, find, close |
+| [Application](#5-application) | User IO | [main.c](./app/main.c) | main |
+| [Table Manager](#4-table-manager) | Table API | [table.h](./include/table.h), [table_manager.h](./include/table_manager.h) | load, find, close |
 | [B+ Tree](#3-b-tree) | Index API | [bpt.h](./include/bpt.h) | find, insert, delete |
 | [Buffer Manager](#2-buffer-manager) | Buffer API | [buffer_manager.h](./include/buffer_manager.h) | buffering, alloc buffer, free buffer |
 | [Disk Manager](#1-disk-manager) | Disk API | [disk_manager.h](./include/disk_manager.h) | create, close, pagination, alloc page, free page |
