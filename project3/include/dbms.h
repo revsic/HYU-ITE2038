@@ -12,6 +12,9 @@ struct dbms_t {
     struct table_manager_t tables;      /// table manager.
 };
 
+
+// Procedure definition
+
 /// Initialize database system.
 /// \param dbms struct dbms_t*, database management system.
 /// \param num_buffer int, the number of the buffer.
@@ -40,6 +43,7 @@ int dbms_close_table(struct dbms_t* dbms, tablenum_t table_id);
 /// \param dbms struct dbms_t*, database management system.
 /// \param table_id tablenum_t, table ID.
 /// \param key prikey_t, target key.
+/// \param record struct record_t*, write record to given memory.
 /// \return int, whether success or not.
 int dbms_find(struct dbms_t* dbms,
               tablenum_t table_id,

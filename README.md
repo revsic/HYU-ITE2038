@@ -22,3 +22,4 @@ Database Systems and Applications in Hanyang University
 - success 리턴하는 메소드 리턴 타입 바꾸기
 - ubuffer 값으로만 전달하기
 - table id, file id 분리, file id는 파일 구분용, filename은 파일 서칭용
+- table load buffer manager NULL 처리
