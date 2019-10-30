@@ -1,10 +1,10 @@
 # [WIP] Buffer management system
 
-- 본 프로젝트는 개발이 진행중인 프로젝트입니다. 진행 사항은 [0. Works](#0-works)에서 확인해 주세요.
+- 본 프로젝트는 개발이 진행중인 프로젝트입니다. 진행 사항은 [Works](#works)에서 확인해 주세요.
 
 On-Disk B+ Tree의 operation 가속화를 위한 Buffer Management Layer 구현.
 
-## 1. Layered Architecture
+## 0. Layered Architecture
 
 [이전](../project2) 프로젝트에서는 Layered Architecture 설계에 따라 On-Disk B+ Tree를 구현하였다. 이번 프로젝트는 On-Disk B+Tree 가속화를 위한 Buffer Management Layer 구현을 목적으로 한다.
 
@@ -16,7 +16,17 @@ On-Disk B+ Tree의 operation 가속화를 위한 Buffer Management Layer 구현.
 | Buffer Manager | Buffer API | [buffer_manager.h](./include/buffer_manager.h) | buffering, alloc buffer, free buffer |
 | Disk Manager | Disk API | [disk_manager.h](./include/disk_manager.h) | create, close, pagination, alloc page, free page |
 
-## 0. Works
+## 1. Disk Manager
+
+## 2. Buffer Manager
+
+## 3. B+ Tree
+
+## 4. Table Manager
+
+## 5. Application
+
+## Works
 
 ### TODO
 - file manager
