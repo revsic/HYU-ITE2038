@@ -450,7 +450,30 @@ TEST_SUITE(insert_into_new_root, {
 })
 
 TEST_SUITE(start_new_tree, {
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
+    struct record_t rec;
+    rec.key = 10;
+    *(int*)rec.value = 20;
+
+    TEST_SUCCESS(start_new_tree(&bpt, &rec));
+
+    struct ubuffer_t ubuf = bpt_buffering(&bpt, FILE_HEADER_PAGENUM);
+    pagenum_t root = file_header(from_ubuffer(&ubuf))->root_page_number;
+    TEST(root != INVALID_PAGENUM);
+
+    ubuf = bpt_buffering(&bpt, root);
+    struct page_t* page = from_ubuffer(&ubuf);
+    TEST(page_header(page)->is_leaf == TRUE);
+    TEST(page_header(page)->number_of_keys == 1);
+    TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
+    TEST(records(page)[0].key == 10);
+    TEST(*(int*)records(page)[0].value == 20);
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(bpt_insert, {
