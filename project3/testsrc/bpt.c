@@ -339,7 +339,56 @@ TEST_SUITE(get_index, {
 })
 
 TEST_SUITE(insert_into_leaf, {
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
+    TEST_SUCCESS(bpt_test_config(&bpt, 5, 5));
+    struct ubuffer_t buf = make_node(&bpt, TRUE);
+
+    // case 0. ordered input
+    int i;
+    struct record_t rec;
+    for (i = 0; i < 5; ++i) {
+        rec.key = i;
+        TEST_SUCCESS(insert_into_leaf(&bpt, &buf, &rec));
+    }
+
+    for (i = 0; i < 5; ++i) {
+        TEST(records(from_ubuffer(&buf))[i].key == i);
+    }
+
+    // case 1. reversed ordered input
+    page_header(from_ubuffer(&buf))->number_of_keys = 0;
+    for (i = 0; i < 5; ++i) {
+        rec.key = 5 - i;
+        TEST_SUCCESS(insert_into_leaf(&bpt, &buf, &rec));
+    }
+
+    for (i = 0; i < 5; ++i) {
+        TEST(records(from_ubuffer(&buf))[i].key == i + 1);
+    }
+
+    // case 2. random input
+    int arr[5];
+    arr[0] = 1;
+    arr[1] = 3;
+    arr[2] = 2;
+    arr[3] = 5;
+    arr[4] = 4;
+
+    page_header(from_ubuffer(&buf))->number_of_keys = 0;
+    for (i = 0; i < 5; ++i) {
+        rec.key = arr[i];
+        TEST_SUCCESS(insert_into_leaf(&bpt, &buf, &rec));
+    }
+
+    for (i = 0; i < 5; ++i) {
+        TEST(records(from_ubuffer(&buf))[i].key == i + 1);
+    }
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(insert_into_leaf_after_splitting, {
