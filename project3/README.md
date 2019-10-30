@@ -51,7 +51,7 @@ struct release_policy_t {
 
 ### 2.2. BUFFER macro
 
-현재 버퍼 매니저는 버퍼의 사용과 시작에 `pin` 변수를 통해 Rwlock 기능을 지원한다. 이를 단순화한 매크로가 `BUFFER` 매크로이다. 
+현재 버퍼 매니저는 버퍼의 사용 시작과 끝에 `pin` 변수를 통한 Rwlock 기능을 지원한다. 이를 단순화한 매크로가 `BUFFER` 매크로이다. 
 
 ```c
 BUFFER(buffer, WRITE_FLAG, { 
@@ -62,6 +62,17 @@ BUFFER(buffer, WRITE_FLAG, {
 ```
 
 다음과 같이 버퍼, RW_FLAG, statements를 통해 버퍼의 사용을 조정한다. 다른 스레드에서 버퍼를 읽고 있을 경우, 현재 스레드에서 버퍼를 읽을 수는 있지만, 쓰기 위해서는 다른 스레드가 버퍼를 반환하기까지 기다려야 한다. 반면에 버퍼를 쓰고 있을 경우에는 읽기와 쓰기가 모두 지연된다.
+
+```c
+BUFFER(buffer, WRITE_FLAG, {
+    if (condition) {
+        BUFFER_INTERCEPT(buffer, WRITE_FLAG, return FAILURE);
+    }
+    contents;
+})
+```
+
+버퍼 사용 중 이용을 조기 종료하기 위해서 INTERCEPT 매크로를 추가하였다. 이는 버퍼 사용을 종료하고 주어진 컨텐츠를 실행하는 역할을 한다.
 
 ### 2.3. Buffer for user provision
 
