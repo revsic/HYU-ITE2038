@@ -218,10 +218,12 @@ struct ubuffer_t make_node(struct bpt_t* bpt, uint32_t leaf);
 int get_index(struct ubuffer_t* parent, pagenum_t pagenum);
 
 /// Insert record into the leaf page without any balancing policy.
+/// \param bpt struct bpt_t*, B+Tree configuration.
 /// \param leaf struct ubuffer_t*, leaf page.
 /// \param pointer struct record_t*, target record.
 /// \return int, whether success to insert record or not.
-int insert_into_leaf(struct ubuffer_t* leaf,
+int insert_into_leaf(struct bpt_t* bpt,
+                     struct ubuffer_t* leaf,
                      struct record_t* pointer);
 /// Insert record into the leaf page with splitting given leaf node.
 /// \param bpt struct bpt_t*, B+Tree configuration.
@@ -233,11 +235,13 @@ int insert_into_leaf_after_splitting(struct bpt_t* bpt,
                                      struct record_t* record);
 
 /// Insert entry into the internal page without any balancing policy.
+/// \param bpt struct bpt_t*, B+Tree configuration.
 /// \param node struct ubuffer_t*, target internal node.
 /// \param index int, insertion point.
 /// \param entry struct internal_t*, target entry.
 /// \return int whether success to insert entry or not.
-int insert_into_node(struct ubuffer_t* node,
+int insert_into_node(struct bpt_t* bpt,
+                     struct ubuffer_t* node,
                      int index,
                      struct internal_t* entry);
 

@@ -578,7 +578,8 @@ int get_index(struct ubuffer_t* parent, pagenum_t pagenum) {
     return index;
 }
 
-int insert_into_leaf(struct ubuffer_t* leaf,
+int insert_into_leaf(struct bpt_t* bpt,
+                     struct ubuffer_t* leaf,
                      struct record_t* pointer)
 {
     int i, insertion_point;
@@ -586,8 +587,11 @@ int insert_into_leaf(struct ubuffer_t* leaf,
     struct record_t* rec; 
     BUFFER(*leaf, WRITE_FLAG, {
         num_key = page_header(from_ubuffer(leaf))->number_of_keys;
-        rec = records(from_ubuffer(leaf));
+        if (num_key >= bpt->leaf_order) {
+            BUFFER_INTERCEPT(*leaf, WRITE_FLAG, return FAILURE);
+        }
 
+        rec = records(from_ubuffer(leaf));
         for (insertion_point = 0;
             insertion_point < num_key && rec[insertion_point].key < pointer->key;
             ++insertion_point)
@@ -670,7 +674,8 @@ int insert_into_leaf_after_splitting(struct bpt_t* bpt,
     return insert_into_parent(bpt, leaf, key, &new_page);
 }
 
-int insert_into_node(struct ubuffer_t* node,
+int insert_into_node(struct bpt_t* bpt,
+                     struct ubuffer_t* node,
                      int index,
                      struct internal_t* entry)
 {
@@ -678,8 +683,12 @@ int insert_into_node(struct ubuffer_t* node,
     struct internal_t* ent;
     struct page_header_t* header;
     BUFFER(*node, WRITE_FLAG, {
-        ent = entries(from_ubuffer(node));
         header = page_header(from_ubuffer(node));
+        if (header->number_of_keys >= bpt->internal_order) {
+            BUFFER_INTERCEPT(*node, WRITE_FLAG, return FAILURE);
+        }
+
+        ent = entries(from_ubuffer(node));
         for (i = header->number_of_keys; i > index; --i) {
             ent[i] = ent[i - 1];
         }
@@ -799,7 +808,7 @@ int insert_into_parent(struct bpt_t* bpt,
 
     struct internal_t entry = { key, right_pagenum };
     if (num_key < bpt->internal_order - 1) {
-        return insert_into_node(&parent_page, index, &entry);
+        return insert_into_node(bpt, &parent_page, index, &entry);
     }
 
     /* Harder case:  split a node in order 
@@ -925,7 +934,7 @@ int bpt_insert(struct bpt_t* bpt,
     })
 
     if (num_key < bpt->leaf_order - 1) {
-        return insert_into_leaf(&leaf_page, &record);
+        return insert_into_leaf(bpt, &leaf_page, &record);
     }
 
     /* Case:  leaf must be split.
