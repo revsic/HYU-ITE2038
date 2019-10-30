@@ -18,6 +18,9 @@ struct table_manager_t {
     struct table_vec_t vec;     /// table vector.
 };
 
+
+// Procedure definition.
+
 /// Search table from table vector with ID.
 /// \param table_vec struct table_vec_t*, table vector.
 /// \param table_id tablenum_t, table ID.
