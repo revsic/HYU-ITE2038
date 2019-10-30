@@ -24,9 +24,12 @@ const struct release_policy_t RELEASE_LRU = { get_lru, next_lru };
 const struct release_policy_t RELEASE_MRU = { get_mru, next_mru };
 
 int reload_ubuffer(struct ubuffer_t* buffer) {
-    return buffer_load(buffer->buf,
-                       buffer->buf->file,
-                       buffer->buf->pagenum);
+    CHECK_SUCCESS(
+        buffer_load(buffer->buf,
+                    buffer->buf->file,
+                    buffer->buf->pagenum));
+    buffer->use_count = buffer->buf->use_count;
+    return SUCCESS;
 }
 
 int check_ubuffer(struct ubuffer_t* buffer) {
