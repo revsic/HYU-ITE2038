@@ -199,12 +199,12 @@ TEST_SUITE(find_key_from_leaf, {
         records(page)[i].key = i * 10;
     }
 
-    TEST_SUCCESS(!find_key_from_leaf(10, node, NULL));
+    TEST(find_key_from_leaf(10, node, NULL) == FAILURE);
 
     // case 1. cannot find
     page_header(page)->is_leaf = TRUE;
     records(page)[1].key = 15;
-    TEST_SUCCESS(!find_key_from_leaf(10, node, NULL));
+    TEST(find_key_from_leaf(10, node, NULL) == FAILURE);
 
     // case 2. find and record=NULL
     records(page)[1].key = 10;
@@ -304,7 +304,38 @@ TEST_SUITE(make_node, {
 })
 
 TEST_SUITE(get_index, {
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(buffer_manager_init(&buffers, 4));
 
+    struct file_manager_t file;
+    TEST_SUCCESS(file_open(&file, "testfile"));
+
+    struct bpt_t bpt;
+    TEST_SUCCESS(bpt_init(&bpt, &file, &buffers));
+
+    struct ubuffer_t buf = make_node(&bpt, FALSE);
+    struct page_header_t* header = page_header(from_ubuffer(&buf));
+    header->number_of_keys = min(5, bpt.internal_order - 1);
+    header->special_page_number = 10;
+
+    int i;
+    for (i = 0; i < header->number_of_keys; ++i) {
+        entries(from_ubuffer(&buf))[i].pagenum = (i + 2) * 10;
+    }
+
+    TEST(get_index(&buf, 5) == header->number_of_keys);
+    TEST(get_index(&buf, 10 * (header->number_of_keys + 3))
+        == header->number_of_keys);
+
+    TEST(get_index(&buf, 10) == -1);
+    for (i = 0; i < header->number_of_keys; ++i) {
+        TEST(get_index(&buf, (i + 2) * 10) == i);
+    }
+
+    TEST_SUCCESS(bpt_release(&bpt));
+    TEST_SUCCESS(buffer_manager_shutdown(&buffers));
+    TEST_SUCCESS(file_close(&file));
+    remove("testfile");
 })
 
 TEST_SUITE(insert_into_leaf, {

@@ -566,7 +566,7 @@ int get_index(struct ubuffer_t* parent, pagenum_t pagenum) {
     BUFFER(*parent, READ_FLAG, {
         page = from_ubuffer(parent);
         if (page_header(page)->special_page_number == pagenum) {
-            return -1;
+            BUFFER_INTERCEPT(*parent, READ_FLAG, return -1);
         }
 
         num_key = page_header(page)->number_of_keys;
