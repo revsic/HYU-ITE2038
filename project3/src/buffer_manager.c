@@ -24,17 +24,16 @@ const struct release_policy_t RELEASE_LRU = { get_lru, next_lru };
 const struct release_policy_t RELEASE_MRU = { get_mru, next_mru };
 
 int reload_ubuffer(struct ubuffer_t* buffer) {
-    CHECK_SUCCESS(
-        buffer_load(buffer->buf,
-                    buffer->buf->file,
-                    buffer->buf->pagenum));
-    buffer->use_count = buffer->buf->use_count;
+    *buffer = buffer_manager_buffering(
+        buffer->buf->manager, buffer->file, buffer->pagenum);
+    CHECK_NULL(buffer->buf);
     return SUCCESS;
 }
 
 int check_ubuffer(struct ubuffer_t* buffer) {
-    CHECK_NULL(buffer);
-    if (buffer->use_count == buffer->buf->use_count) {
+    if (buffer->file->id == buffer->buf->file->id
+        && buffer->pagenum == buffer->buf->pagenum)
+    {
         return SUCCESS;
     }
     return reload_ubuffer(buffer);
@@ -49,7 +48,6 @@ struct page_t* from_ubuffer(struct ubuffer_t* buffer) {
 }
 
 int buffer_init(struct buffer_t* buffer,
-                int count,
                 int block_idx,
                 struct buffer_manager_t* manager)
 {
@@ -58,7 +56,6 @@ int buffer_init(struct buffer_t* buffer,
     buffer->pin = 0;
     buffer->prev_use = -1;
     buffer->next_use = -1;
-    buffer->use_count = count ? (buffer->use_count + 1) % (1 << 20) : 0;
     buffer->block_idx = block_idx;
     buffer->file = NULL;
     buffer->manager = manager;
@@ -138,7 +135,7 @@ int buffer_release(struct buffer_t* buffer) {
                 buffer->pagenum,
                 &buffer->frame));
     }
-    return buffer_init(buffer, TRUE, buffer->block_idx, buffer->manager);
+    return buffer_init(buffer, buffer->block_idx, buffer->manager);
 }
 
 int buffer_start_read(struct buffer_t* buffer) {
@@ -194,7 +191,7 @@ int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
     }
     
     for (i = 0; i < manager->capacity; ++i) {
-        CHECK_SUCCESS(buffer_init(&manager->buffers[i], FALSE, i, manager));
+        CHECK_SUCCESS(buffer_init(&manager->buffers[i], i, manager));
     }
     return SUCCESS;
 }
@@ -243,7 +240,7 @@ int buffer_manager_load(struct buffer_manager_t* manager,
     buffer = &manager->buffers[idx];
     if (buffer_load(buffer, file, pagenum) == FAILURE) {
         --manager->num_buffer;
-        buffer_init(buffer, TRUE, idx, manager);    
+        buffer_init(buffer, idx, manager);    
         return -1;
     }
 
@@ -316,7 +313,7 @@ struct ubuffer_t buffer_manager_buffering(struct buffer_manager_t* manager,
                                           struct file_manager_t* file,
                                           pagenum_t pagenum)
 {
-    struct ubuffer_t ubuf = { NULL, 0 };
+    struct ubuffer_t ubuf = { NULL, INVALID_PAGENUM, NULL };
     int idx = buffer_manager_find(manager, file->id, pagenum);
     if (idx == -1) {
         idx = buffer_manager_load(manager, file, pagenum);
@@ -325,14 +322,15 @@ struct ubuffer_t buffer_manager_buffering(struct buffer_manager_t* manager,
         }
     }
     ubuf.buf = &manager->buffers[idx];
-    ubuf.use_count = ubuf.buf->use_count;
+    ubuf.pagenum = pagenum;
+    ubuf.file = file;
     return ubuf;
 }
 
 struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
                                          struct file_manager_t* file)
 {
-    struct ubuffer_t ubuf = { NULL, 0 };
+    struct ubuffer_t ubuf = { NULL, INVALID_PAGENUM, NULL };
     int idx = buffer_manager_alloc(manager);
     if (idx == -1) {
         return ubuf;
@@ -341,7 +339,7 @@ struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
     struct buffer_t* buffer = &manager->buffers[idx];
     if (buffer_new_page(buffer, file) == FAILURE) {
         --manager->num_buffer;
-        buffer_init(buffer, TRUE, idx, manager);
+        buffer_init(buffer, idx, manager);
         return ubuf;
     }
 
@@ -350,7 +348,8 @@ struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
     }
 
     ubuf.buf = buffer;
-    ubuf.use_count = buffer->use_count;
+    ubuf.file = file;
+    ubuf.pagenum = buffer->pagenum;
     return ubuf;
 }
 

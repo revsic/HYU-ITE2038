@@ -26,7 +26,6 @@ struct buffer_t {
     uint32_t pin;
     int prev_use;
     int next_use;
-    int use_count;
     int block_idx;
     struct file_manager_t* file;
     struct buffer_manager_t* manager;
@@ -34,7 +33,8 @@ struct buffer_t {
 
 struct ubuffer_t {
     struct buffer_t* buf;
-    int use_count;
+    pagenum_t pagenum;
+    struct file_manager_t* file;
 };
 
 struct buffer_manager_t {
@@ -68,7 +68,6 @@ struct page_t* from_buffer(struct buffer_t* buffer);
 struct page_t* from_ubuffer(struct ubuffer_t* buffer);
 
 int buffer_init(struct buffer_t* buffer,
-                int count,
                 int block_idx,
                 struct buffer_manager_t* manager);
 
