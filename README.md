@@ -11,15 +11,23 @@ Database Systems and Applications in Hanyang University
 
 ## TODO
 
-3. project3: Buffer management system
-- lock: 트리 전체 락 걸고 propagation 계산해서 다시 부분에 거는거
-- buffer manager: searching policy
-- bpt bug fix, bpt test
-- table, table manager test
-- buffer manager mru, lru 연산 락 거는거
-- pin atomicity
-- document 검사
-- success 리턴하는 메소드 리턴 타입 바꾸기
-- ubuffer 값으로만 전달하기
-- table id, file id 분리, file id는 파일 구분용, filename은 파일 서칭용
-- table load buffer manager NULL 처리
+- file manager
+    - filename as searching, file id as identification
+- bpt
+    - estimate propagatino + partial lock
+    - bug fix
+    - unit test
+- buffer manager
+    - split searching policy
+    - some unimplemented unit tests
+    - lock metadata (ex mru lru pin)
+- table
+    - unit test
+    - seperate table id and file id
+    - table_load: Nullability of argument buffer manager
+- table manager
+    - unit test
+- all
+    - replace return type of procedure which use SUCCESS
+    - ubuffer: only pass by value
+
