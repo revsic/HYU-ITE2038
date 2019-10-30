@@ -1,6 +1,6 @@
 # [WIP] Buffer management system
 
-- 본 프로젝트는 개발이 진행중인 프로젝트입니다. 진행 사항은 [0. Works](0-works)에서 확인해 주세요.
+- 본 프로젝트는 개발이 진행중인 프로젝트입니다. 진행 사항은 [0. Works](#0-works)에서 확인해 주세요.
 
 On-Disk B+ Tree의 operation 가속화를 위한 Buffer Management Layer 구현.
 
