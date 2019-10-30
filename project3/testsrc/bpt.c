@@ -4,6 +4,27 @@
 #include "utility.h"
 #include "test.h"
 
+int bpt_test_preprocess(struct bpt_t* bpt,
+                        struct file_manager_t* file,
+                        struct buffer_manager_t* buffers)
+{
+    TEST_SUCCESS(buffer_manager_init(buffers, 4));
+    TEST_SUCCESS(file_open(file, "testfile"));
+    TEST_SUCCESS(bpt_init(bpt, file, buffers));
+    return SUCCESS;
+}
+
+int bpt_test_postprocess(struct bpt_t* bpt,
+                         struct file_manager_t* file,
+                         struct buffer_manager_t* buffers)
+{
+    TEST_SUCCESS(bpt_release(bpt));
+    TEST_SUCCESS(buffer_manager_shutdown(buffers));
+    TEST_SUCCESS(file_close(file));
+    remove("testfile");
+    return SUCCESS;
+}
+
 TEST_SUITE(swap_ubuffer, {
     struct buffer_t buf1;
     struct buffer_t buf2;
@@ -182,14 +203,10 @@ TEST_SUITE(find_leaf, {
 TEST_SUITE(find_key_from_leaf, {
     // preproc
     int i;
-    struct buffer_manager_t buffers;
-    TEST_SUCCESS(buffer_manager_init(&buffers, 4));
-
-    struct file_manager_t file;
-    TEST_SUCCESS(file_open(&file, "testfile"));
-
     struct bpt_t bpt;
-    TEST_SUCCESS(bpt_init(&bpt, &file, &buffers));
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
     // case 0. leaf validation
     struct ubuffer_t node = make_node(&bpt, FALSE);
@@ -227,10 +244,7 @@ TEST_SUITE(find_key_from_leaf, {
     TEST(*(int*)rec.value == 40);
 
     // postproc
-    TEST_SUCCESS(bpt_release(&bpt));
-    TEST_SUCCESS(buffer_manager_shutdown(&buffers));
-    TEST_SUCCESS(file_close(&file));
-    remove("testfile");
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(bpt_find, {
@@ -281,14 +295,10 @@ TEST_SUITE(make_record, {
 })
 
 TEST_SUITE(make_node, {
-    struct buffer_manager_t buffers;
-    TEST_SUCCESS(buffer_manager_init(&buffers, 4));
-
-    struct file_manager_t file;
-    TEST_SUCCESS(file_open(&file, "testfile"));
-
     struct bpt_t bpt;
-    TEST_SUCCESS(bpt_init(&bpt, &file, &buffers));
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
     struct ubuffer_t buf = make_node(&bpt, TRUE);
     struct page_header_t* header = page_header(from_ubuffer(&buf));
@@ -297,21 +307,14 @@ TEST_SUITE(make_node, {
     TEST(header->number_of_keys == 0);
     TEST(header->special_page_number == INVALID_PAGENUM);
 
-    TEST_SUCCESS(bpt_release(&bpt));
-    TEST_SUCCESS(buffer_manager_shutdown(&buffers));
-    TEST_SUCCESS(file_close(&file));
-    remove("testfile");
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(get_index, {
-    struct buffer_manager_t buffers;
-    TEST_SUCCESS(buffer_manager_init(&buffers, 4));
-
-    struct file_manager_t file;
-    TEST_SUCCESS(file_open(&file, "testfile"));
-
     struct bpt_t bpt;
-    TEST_SUCCESS(bpt_init(&bpt, &file, &buffers));
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
     struct ubuffer_t buf = make_node(&bpt, FALSE);
     struct page_header_t* header = page_header(from_ubuffer(&buf));
@@ -332,10 +335,7 @@ TEST_SUITE(get_index, {
         TEST(get_index(&buf, (i + 2) * 10) == i);
     }
 
-    TEST_SUCCESS(bpt_release(&bpt));
-    TEST_SUCCESS(buffer_manager_shutdown(&buffers));
-    TEST_SUCCESS(file_close(&file));
-    remove("testfile");
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(insert_into_leaf, {
