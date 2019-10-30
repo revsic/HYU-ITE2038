@@ -783,7 +783,7 @@ int insert_into_parent(struct bpt_t* bpt,
         left_pagenum = left->buf->pagenum;
         parent = page_header(from_ubuffer(left))->parent_page_number;
     })
- 
+
     /* Case: new root. */
     if (parent == INVALID_PAGENUM) {
         return insert_into_new_root(bpt, left, key, right);
