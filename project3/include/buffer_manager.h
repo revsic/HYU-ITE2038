@@ -67,6 +67,8 @@ struct page_t* from_buffer(struct buffer_t* buffer);
 
 struct page_t* from_ubuffer(struct ubuffer_t* buffer);
 
+pagenum_t ubuffer_pagenum(struct ubuffer_t* buffer);
+
 int buffer_init(struct buffer_t* buffer,
                 int block_idx,
                 struct buffer_manager_t* manager);

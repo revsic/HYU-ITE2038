@@ -47,6 +47,11 @@ struct page_t* from_ubuffer(struct ubuffer_t* buffer) {
     return from_buffer(buffer->buf);
 }
 
+pagenum_t ubuffer_pagenum(struct ubuffer_t* buffer) {
+    EXIT_ON_FAILURE(check_ubuffer(buffer));
+    return buffer->buf->pagenum;
+}
+
 int buffer_init(struct buffer_t* buffer,
                 int block_idx,
                 struct buffer_manager_t* manager)

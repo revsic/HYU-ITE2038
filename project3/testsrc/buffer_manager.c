@@ -4,6 +4,10 @@
 #include "utility.h"
 #include "test.h"
 
+TEST_SUITE(reload_ubuffer, {
+    // TODO: impl test
+})
+
 TEST_SUITE(check_ubuffer, {
     struct buffer_t buf;
     struct ubuffer_t ubuf;
@@ -30,6 +34,10 @@ TEST_SUITE(from_ubuffer, {
     struct ubuffer_t ubuf;
     ubuf.buf = &buf;
     TEST(from_ubuffer(&ubuf) == from_buffer(&buf));
+})
+
+TEST_SUITE(ubuffer_pagenum, {
+    // TODO
 })
 
 TEST_SUITE(buffer_init, {
@@ -666,9 +674,11 @@ TEST_SUITE(buffer_manager_free_page, {
 })
 
 int buffer_manager_test() {
-    return check_ubuffer_test()
+    return reload_ubuffer_test()
+        && check_ubuffer_test()
         && from_buffer_test()
         && from_ubuffer_test()
+        && ubuffer_pagenum_test()
         && buffer_init_test()
         && buffer_load_test()
         && buffer_new_page_test()
