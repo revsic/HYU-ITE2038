@@ -123,6 +123,7 @@ Buffer Manager과 Table Manager를 합쳐 Database Management System을 구현�
     - some unimplemented unit tests
     - lock metadata (ex mru lru pin)
     - try lock
+    - create, new method run on buffer (not primitive api)
 - bpt
     - estimate propagation + partial lock
     - bug fix
