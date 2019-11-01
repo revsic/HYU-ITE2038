@@ -937,10 +937,87 @@ TEST_SUITE(bpt_insert, {
 })
 
 TEST_SUITE(remove_record_from_leaf, {
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
+    struct ubuffer_t buf = make_node(&bpt, TRUE);
+    struct page_t* page = from_ubuffer(&buf);
+
+    int i;
+    page_header(page)->number_of_keys = 5;
+    for (i = 0; i < 5; ++i) {
+        records(page)[i].key = i;
+    }
+
+    TEST_SUCCESS(remove_record_from_leaf(0, &buf));
+    TEST(page_header(page)->number_of_keys == 4);
+    for (i = 0; i < 4; ++i) {
+        TEST(records(page)[i].key == i + 1);
+    }
+
+    TEST_SUCCESS(remove_record_from_leaf(4, &buf));
+    TEST(page_header(page)->number_of_keys == 3);
+    for (i = 0; i < 3; ++i) {
+        TEST(records(page)[i].key == i + 1);
+    }
+    
+    TEST_SUCCESS(remove_record_from_leaf(2, &buf));
+    TEST(page_header(page)->number_of_keys == 2);
+    TEST(records(page)[0].key == 1);
+    TEST(records(page)[1].key == 3);
+
+    TEST_SUCCESS(remove_record_from_leaf(1, &buf));
+    TEST(page_header(page)->number_of_keys == 1);
+    TEST(records(page)[0].key == 3);
+
+    TEST_SUCCESS(remove_record_from_leaf(3, &buf));
+    TEST(page_header(page)->number_of_keys == 0);
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
-TEST_SUITE(remove_entry_from_leaf, {
+TEST_SUITE(remove_entry_from_internal, {
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+
+    struct ubuffer_t buf = make_node(&bpt, FALSE);
+    struct page_t* page = from_ubuffer(&buf);
+
+    int i;
+    page_header(page)->number_of_keys = 5;
+    for (i = 0; i < 5; ++i) {
+        entries(page)[i].key = i;
+    }
+
+    TEST_SUCCESS(remove_entry_from_internal(0, &buf));
+    TEST(page_header(page)->number_of_keys == 4);
+    for (i = 0; i < 4; ++i) {
+        TEST(entries(page)[i].key == i + 1);
+    }
+
+    TEST_SUCCESS(remove_entry_from_internal(4, &buf));
+    TEST(page_header(page)->number_of_keys == 3);
+    for (i = 0; i < 3; ++i) {
+        TEST(entries(page)[i].key == i + 1);
+    }
+    
+    TEST_SUCCESS(remove_entry_from_internal(2, &buf));
+    TEST(page_header(page)->number_of_keys == 2);
+    TEST(entries(page)[0].key == 1);
+    TEST(entries(page)[1].key == 3);
+
+    TEST_SUCCESS(remove_entry_from_internal(1, &buf));
+    TEST(page_header(page)->number_of_keys == 1);
+    TEST(entries(page)[0].key == 3);
+
+    TEST_SUCCESS(remove_entry_from_internal(3, &buf));
+    TEST(page_header(page)->number_of_keys == 0);
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 
 })
 
@@ -1013,7 +1090,7 @@ int bpt_test() {
         && start_new_tree_test()
         && bpt_insert_test()
         && remove_record_from_leaf_test()
-        && remove_entry_from_leaf_test()
+        && remove_entry_from_internal_test()
         && shrink_root_test()
         && merge_nodes_test()
         && rotate_to_left_test()
