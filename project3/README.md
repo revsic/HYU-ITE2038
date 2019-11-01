@@ -124,9 +124,9 @@ Buffer Manager과 Table Manager를 합쳐 Database Management System을 구현�
     - lock metadata (ex mru lru pin)
     - try lock
 - bpt
-    - estimate propagatino + partial lock
+    - estimate propagation + partial lock
     - bug fix
-    - unit test
+    - some unimplemented unit tests
     - ubuffer: only pass by value
 - table
     - unit test
