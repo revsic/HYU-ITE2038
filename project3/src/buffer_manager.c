@@ -382,5 +382,9 @@ int buffer_manager_free_page(struct buffer_manager_t* manager,
         CHECK_SUCCESS(buffer_manager_release_block(manager, idx));
     }
 
+    idx = buffer_manager_find(manager, file->id, FILE_HEADER_PAGENUM);
+    if (idx != -1) {
+        CHECK_SUCCESS(buffer_manager_release_block(manager, idx));
+    }
     return page_free(file, pagenum);
 }
