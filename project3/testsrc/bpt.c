@@ -184,12 +184,8 @@ TEST_SUITE(record_vec_append, {
     TEST_SUCCESS(record_vec_free(&vec));
 })
 
-TEST_SUITE(height, {
-
-})
-
 TEST_SUITE(path_to_root, {
-
+    // print method
 })
 
 TEST_SUITE(cut, {
@@ -198,7 +194,46 @@ TEST_SUITE(cut, {
 })
 
 TEST_SUITE(find_leaf, {
+    int i;
+    char str[] = "00";
+    const int leaf_order = 4;
+    const int internal_order = 5;
 
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
+    bpt.verbose_output = FALSE;
+    for (i = 0; i < 40; ++i) {
+        str[0] = '0' + i / 10;
+        str[1] = '0' + i % 10;
+        TEST_SUCCESS(bpt_insert(&bpt, i, (uint8_t*)str, 3));
+    }
+
+    struct ubuffer_t buf = bpt_buffering(&bpt, FILE_HEADER_PAGENUM);
+    pagenum_t pagenum = file_header(from_ubuffer(&buf))->root_page_number;
+    while (TRUE) {
+        buf = bpt_buffering(&bpt, pagenum);
+        if (page_header(from_ubuffer(&buf))->is_leaf) {
+            break;
+        }
+    
+        pagenum = page_header(from_ubuffer(&buf))->special_page_number;
+    }
+
+    for (i = 0; i < 40; ++i) {
+        if (i && i % 2 == 0) {
+            BUFFER(buf, READ_FLAG, {
+                pagenum = page_header(from_ubuffer(&buf))->special_page_number;
+            })
+            buf = bpt_buffering(&bpt, pagenum);
+        }
+
+        TEST(pagenum == find_leaf(&bpt, i, NULL));
+    }
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(find_key_from_leaf, {
@@ -860,7 +895,6 @@ int bpt_test() {
         && record_vec_free_test()
         && record_vec_expand_test()
         && record_vec_append_test()
-        && height_test()
         && path_to_root_test()
         && cut_test()
         && find_leaf_test()
