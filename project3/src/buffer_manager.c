@@ -31,7 +31,8 @@ int reload_ubuffer(struct ubuffer_t* buffer) {
 }
 
 int check_ubuffer(struct ubuffer_t* buffer) {
-    if (buffer->file->id == buffer->buf->file->id
+    if (buffer->buf->file != NULL
+        && buffer->file->id == buffer->buf->file->id
         && buffer->pagenum == buffer->buf->pagenum)
     {
         return SUCCESS;
