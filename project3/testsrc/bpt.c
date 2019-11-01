@@ -313,7 +313,62 @@ TEST_SUITE(bpt_find, {
 })
 
 TEST_SUITE(bpt_find_range, {
+    int i;
+    char str[] = "00";
+    const int leaf_order = 4;
+    const int internal_order = 5;
 
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
+    bpt.verbose_output = FALSE;
+    for (i = 0; i < 40; ++i) {
+        str[0] = '0' + i / 10;
+        str[1] = '0' + i % 10;
+        TEST_SUCCESS(bpt_insert(&bpt, i, (uint8_t*)str, 3));
+    }
+
+    struct record_vec_t vec;
+
+    // case 0. whole range
+    TEST_SUCCESS(record_vec_init(&vec, 50));
+    TEST(bpt_find_range(&bpt, -100, 100, &vec) == 40);
+    TEST(vec.size == 40);
+    for (i = 0; i < 40; ++i) {
+        TEST(vec.rec[i].key == i);
+    }
+    TEST_SUCCESS(record_vec_free(&vec));
+
+    // case 1. half range
+    TEST_SUCCESS(record_vec_init(&vec, 50));
+    TEST(bpt_find_range(&bpt, -100, 20, &vec) == 21);
+    TEST(vec.size == 21);
+    for (i = 0; i < 21; ++i) {
+        TEST(vec.rec[i].key == i);
+    }
+    TEST_SUCCESS(record_vec_free(&vec));
+
+    TEST_SUCCESS(record_vec_init(&vec, 50));
+    TEST(bpt_find_range(&bpt, 20, 100, &vec) == 20);
+    TEST(vec.size == 20);
+    for (i = 0; i < 20; ++i) {
+        TEST(vec.rec[i].key == i + 20);
+    }
+    TEST_SUCCESS(record_vec_free(&vec));
+
+    // case 2. in range
+    TEST_SUCCESS(record_vec_init(&vec, 50));
+    TEST(bpt_find_range(&bpt, 10, 23, &vec) == 14);
+    TEST(vec.size == 14);
+    for (i = 0; i < 14; ++i) {
+        TEST(vec.rec[i].key == i + 10);
+    }
+    TEST_SUCCESS(record_vec_free(&vec));
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(print_leaves, {
