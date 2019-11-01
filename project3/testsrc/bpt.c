@@ -506,12 +506,15 @@ TEST_SUITE(insert_into_node_after_splitting, {
     struct ubuffer_t leaf;
     struct ubuffer_t node = make_node(&bpt, FALSE);
     pagenum_t nodenum = ubuffer_pagenum(&node);
+    page_header(from_ubuffer(&node))->number_of_keys = internal_order - 1;
 
     int i;
+    pagenum_t pages[5 + 1];
     struct page_t* page;
     struct internal_t* ent;
     for (i = -1; i < internal_order - 1; ++i) {
         tmp = make_node(&bpt, TRUE);
+        pages[i + 1] = ubuffer_pagenum(&tmp);
         BUFFER(tmp, WRITE_FLAG, {
             page_header(from_ubuffer(&tmp))->parent_page_number = nodenum;
             page_header(from_ubuffer(&tmp))->number_of_keys = leaf_order - 1;
@@ -526,7 +529,6 @@ TEST_SUITE(insert_into_node_after_splitting, {
 
         BUFFER(node, WRITE_FLAG, {
             page = from_ubuffer(&node);
-            page_header(page)->number_of_keys++;
 
             if (i == -1) {
                 page_header(page)->special_page_number = ubuffer_pagenum(&leaf);
@@ -538,16 +540,91 @@ TEST_SUITE(insert_into_node_after_splitting, {
         })
     }
 
+    TEST_SUCCESS(check_ubuffer(&node));
+    page = from_ubuffer(&node);
+    for (i = -1; i < internal_order - 1; ++i) {
+        if (i == -1) {
+            TEST(pages[i + 1] == page_header(page)->special_page_number);
+        } else {
+            TEST(pages[i + 1] == entries(page)[i].pagenum);
+        }
+    }
+
     leaf = make_node(&bpt, TRUE);
+    pages[internal_order] = ubuffer_pagenum(&leaf);
     BUFFER(leaf, WRITE_FLAG, {
         page_header(from_ubuffer(&leaf))->parent_page_number = nodenum;
         page_header(from_ubuffer(&leaf))->number_of_keys = leaf_order - 1;
     })
 
     struct internal_t val;
-    val.key = internal_order * leaf_order;
+    val.key = (internal_order - 1) * leaf_order;
     val.pagenum = ubuffer_pagenum(&leaf);
     TEST_SUCCESS(insert_into_node_after_splitting(&bpt, &node, internal_order - 1, &val));
+
+    struct ubuffer_t filehdr = bpt_buffering(&bpt, FILE_HEADER_PAGENUM);
+    pagenum_t root = file_header(from_ubuffer(&filehdr))->root_page_number;
+
+    struct ubuffer_t rootpage = bpt_buffering(&bpt, root);
+    page = from_ubuffer(&rootpage);
+
+    TEST(page_header(page)->is_leaf == FALSE);
+    TEST(page_header(page)->number_of_keys == 1);
+    TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
+    TEST(page_header(page)->special_page_number == nodenum);
+
+    const int split = cut(internal_order);
+    TEST(entries(page)[0].key == (split - 1) * leaf_order);
+    pagenum_t rightnum = entries(page)[0].pagenum;
+
+    TEST_SUCCESS(check_ubuffer(&node));
+    
+    page = from_ubuffer(&node);
+    TEST(page_header(page)->is_leaf == FALSE);
+    TEST(page_header(page)->number_of_keys == split - 1);
+    TEST(page_header(page)->parent_page_number == root);
+
+    for (i = -1; i < split - 1; ++i) {
+        BUFFER(node, READ_FLAG, {
+            page = from_ubuffer(&node);
+            if (i == -1) {
+                TEST(page_header(page)->special_page_number == pages[0]);
+            } else {
+                TEST(entries(page)[i].key == i * leaf_order);
+                TEST(entries(page)[i].pagenum == pages[i + 1]);
+            }
+        })
+
+        tmp = bpt_buffering(&bpt, pages[i + 1]);
+        BUFFER(tmp, READ_FLAG, {
+            TEST(page_header(from_ubuffer(&tmp))->parent_page_number == nodenum);
+        })
+    }
+
+    const int expected = internal_order - split;
+    struct ubuffer_t right = bpt_buffering(&bpt, rightnum);
+
+    page = from_ubuffer(&right);
+    TEST(page_header(page)->is_leaf == FALSE);
+    TEST(page_header(page)->number_of_keys == expected);
+    TEST(page_header(page)->parent_page_number == root);
+
+    for (i = -1; i < expected; ++i) {
+        BUFFER(right, READ_FLAG, {
+            page = from_ubuffer(&right);
+            if (i == -1) {
+                TEST(page_header(page)->special_page_number == pages[split + i + 1]);
+            } else {
+                TEST(entries(page)[i].key == (split + i) * leaf_order);
+                TEST(entries(page)[i].pagenum == pages[split + 1 + i]);
+            }
+        })
+
+        tmp = bpt_buffering(&bpt, pages[split + 1 + i]);
+        BUFFER(tmp, READ_FLAG, {
+            TEST(page_header(from_ubuffer(&tmp))->parent_page_number == rightnum);
+        })
+    }
 
     TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
