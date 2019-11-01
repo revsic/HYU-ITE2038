@@ -284,7 +284,32 @@ TEST_SUITE(find_key_from_leaf, {
 })
 
 TEST_SUITE(bpt_find, {
+    int i;
+    char str[] = "00";
+    const int leaf_order = 4;
+    const int internal_order = 5;
 
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
+    bpt.verbose_output = FALSE;
+    for (i = 0; i < 40; ++i) {
+        str[0] = '0' + i / 10;
+        str[1] = '0' + i % 10;
+        TEST_SUCCESS(bpt_insert(&bpt, i, (uint8_t*)str, 3));
+    }
+
+    struct record_t rec;
+    for (i = 0; i < 40; ++i) {
+        TEST_SUCCESS(bpt_find(&bpt, i, &rec));
+        TEST(rec.value[0] == '0' + i / 10);
+        TEST(rec.value[1] == '0' + i % 10);
+    }
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(bpt_find_range, {
