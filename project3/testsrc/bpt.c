@@ -936,11 +936,27 @@ TEST_SUITE(bpt_insert, {
     TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
+TEST_SUITE(remove_record_from_leaf, {
+
+})
+
+TEST_SUITE(remove_entry_from_leaf, {
+
+})
+
 TEST_SUITE(shrink_root, {
 
 })
 
 TEST_SUITE(merge_nodes, {
+
+})
+
+TEST_SUITE(rotate_to_right, {
+
+})
+
+TEST_SUITE(rotate_to_left, {
 
 })
 
@@ -996,8 +1012,12 @@ int bpt_test() {
         && insert_into_new_root_test()
         && start_new_tree_test()
         && bpt_insert_test()
+        && remove_record_from_leaf_test()
+        && remove_entry_from_leaf_test()
         && shrink_root_test()
         && merge_nodes_test()
+        && rotate_to_left_test()
+        && rotate_to_right_test()
         && redistribute_nodes_test()
         && delete_entry_test()
         && bpt_delete_test()
