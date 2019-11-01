@@ -220,6 +220,9 @@ int buffer_manager_alloc(struct buffer_manager_t* manager) {
                 && manager->buffers[idx].file != NULL;
              ++idx)
             {}
+        if (idx == manager->capacity) {
+            return -1;
+        }
     } else {
         idx = buffer_manager_release(manager, &RELEASE_LRU);
         if (idx == -1) {
@@ -335,6 +338,7 @@ struct ubuffer_t buffer_manager_buffering(struct buffer_manager_t* manager,
 struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
                                          struct file_manager_t* file)
 {
+    int allocated = FALSE;
     struct ubuffer_t ubuf = { NULL, INVALID_PAGENUM, NULL };
     int idx = buffer_manager_find(manager, file->id, FILE_HEADER_PAGENUM);
     if (idx == -1) {
@@ -342,16 +346,20 @@ struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
         if (idx == -1) {
             return ubuf;
         }
+        allocated = TRUE;
     } else {
         if (buffer_manager_release_block(manager, idx) == FAILURE) {
             return ubuf;
         }
+        ++manager->num_buffer;
     }
 
     struct buffer_t* buffer = &manager->buffers[idx];
     if (buffer_new_page(buffer, file) == FAILURE) {
-        --manager->num_buffer;
-        buffer_init(buffer, idx, manager);
+        if (allocated) {
+            --manager->num_buffer;
+            buffer_init(buffer, idx, manager);
+        }
         return ubuf;
     }
 
