@@ -158,21 +158,6 @@ int record_vec_append(struct record_vec_t* vec, struct record_t* rec) {
     return SUCCESS;
 }
 
-int height(struct bpt_t* bpt, pagenum_t pagenum) {
-    int h, is_leaf;
-    struct ubuffer_t buffer;
-
-    for (h = 0, is_leaf = FALSE; !is_leaf; ++h) {
-        buffer = bpt_buffering(bpt, pagenum);
-        BUFFER(buffer, READ_FLAG, {
-            is_leaf = page_header(from_ubuffer(&buffer))->is_leaf;
-            pagenum = page_header(from_ubuffer(&buffer))->special_page_number;
-        })
-    }
-
-    return h;
-}
-
 int path_to_root(struct bpt_t* bpt, pagenum_t pagenum) {
     int length;
     pagenum_t root;

@@ -122,11 +122,6 @@ int record_vec_expand(struct record_vec_t* vec);
 /// \return int, whether appension success or not.
 int record_vec_append(struct record_vec_t* vec, struct record_t* rec);
 
-/// Height of the node.
-/// \param bpt struct bpt_t*, B+Tree configuration.
-/// \param pagenum pagenum_t, page ID.
-/// \return int, height of the node.
-int height(struct bpt_t* bpt, pagenum_t pagenum);
 /// Length of path to root.
 /// \param bpt struct bpt_t*, B+Tree configuration.
 /// \param pagenum pagenum_t, page ID.
