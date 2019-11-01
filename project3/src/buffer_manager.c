@@ -336,9 +336,16 @@ struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
                                          struct file_manager_t* file)
 {
     struct ubuffer_t ubuf = { NULL, INVALID_PAGENUM, NULL };
-    int idx = buffer_manager_alloc(manager);
+    int idx = buffer_manager_find(manager, file->id, FILE_HEADER_PAGENUM);
     if (idx == -1) {
-        return ubuf;
+        idx = buffer_manager_alloc(manager);
+        if (idx == -1) {
+            return ubuf;
+        }
+    } else {
+        if (buffer_manager_release_block(manager, idx) == FAILURE) {
+            return ubuf;
+        }
     }
 
     struct buffer_t* buffer = &manager->buffers[idx];
