@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <time.h>
 
 #include "bpt.h"
 #include "utility.h"
@@ -763,7 +764,61 @@ TEST_SUITE(start_new_tree, {
 })
 
 TEST_SUITE(bpt_insert, {
+    int i;
+    int j;
+    int idx;
+    int arr[40];
+    char str[] = "00";
+    const int leaf_order = 4;
+    const int internal_order = 5;
 
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
+    bpt.verbose_output = FALSE;
+    for (i = 0; i < 40; ++i) {
+        str[0] = '0' + i / 10;
+        str[1] = '0' + i % 10;
+        TEST_SUCCESS(bpt_insert(&bpt, i, (uint8_t*)str, 3));
+    }
+    print_tree(&bpt);
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
+
+
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
+    bpt.verbose_output = FALSE;
+    for (i = 40; i > 0; --i) {
+        str[0] = '0' + i / 10;
+        str[1] = '0' + i % 10;
+        TEST_SUCCESS(bpt_insert(&bpt, i, (uint8_t*)str, 3));
+    }
+    print_tree(&bpt);
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
+
+
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
+    bpt.verbose_output = FALSE;
+    for (i = 0; i < 40; ++i) {
+        arr[i] = i;
+    }
+    for (i = 40; i > 0; --i) {
+        idx = rand() % i;
+        j = arr[idx];
+        str[0] = '0' + j / 10;
+        str[1] = '0' + j % 10;
+        TEST_SUCCESS(bpt_insert(&bpt, j, (uint8_t*)str, 3));
+
+        for (j = idx; j < i - 1; ++j) {
+            arr[j] = arr[j + 1];
+        }
+    }
+    print_tree(&bpt);
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(shrink_root, {
@@ -791,6 +846,7 @@ TEST_SUITE(destroy_tree, {
 })
 
 int bpt_test() {
+    srand(time(NULL));
     return swap_ubuffer_test()
         && bpt_buffering_test()
         && bpt_create_page_test()
