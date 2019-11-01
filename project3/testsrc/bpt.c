@@ -493,65 +493,63 @@ TEST_SUITE(insert_into_node, {
 })
 
 TEST_SUITE(insert_into_node_after_splitting, {
-    // struct bpt_t bpt;
-    // struct file_manager_t file;
-    // struct buffer_manager_t buffers;
-    // TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
-    // const int leaf_order = 4;
-    // const int internal_order = 5;
-    // TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
+    const int leaf_order = 4;
+    const int internal_order = 5;
+    TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
 
-    // struct ubuffer_t tmp;
-    // struct ubuffer_t leaf;
-    // struct ubuffer_t node = make_node(&bpt, FALSE);
-    // pagenum_t nodenum = ubuffer_pagenum(&node);
+    struct ubuffer_t tmp;
+    struct ubuffer_t leaf;
+    struct ubuffer_t node = make_node(&bpt, FALSE);
+    pagenum_t nodenum = ubuffer_pagenum(&node);
 
-    // int i;
-    // struct page_t* page;
-    // struct internal_t* ent;
-    // for (i = -1; i < internal_order - 1; ++i) {
-        // tmp = make_node(&bpt, TRUE);
-        // BUFFER(tmp, WRITE_FLAG, {
-        //     page_header(from_ubuffer(&tmp))->parent_page_number = nodenum;
-        //     page_header(from_ubuffer(&tmp))->number_of_keys = leaf_order - 1;
-        // })
-        // if (i != -1) {
-        //     BUFFER(leaf, WRITE_FLAG, {
-        //         page_header(from_ubuffer(&leaf))->special_page_number
-        //             = ubuffer_pagenum(&tmp);
-        //     })
-        // }
-        // leaf = tmp;
+    int i;
+    struct page_t* page;
+    struct internal_t* ent;
+    for (i = -1; i < internal_order - 1; ++i) {
+        tmp = make_node(&bpt, TRUE);
+        BUFFER(tmp, WRITE_FLAG, {
+            page_header(from_ubuffer(&tmp))->parent_page_number = nodenum;
+            page_header(from_ubuffer(&tmp))->number_of_keys = leaf_order - 1;
+        })
+        if (i != -1) {
+            BUFFER(leaf, WRITE_FLAG, {
+                page_header(from_ubuffer(&leaf))->special_page_number
+                    = ubuffer_pagenum(&tmp);
+            })
+        }
+        leaf = tmp;
 
-        // BUFFER(node, WRITE_FLAG, {
-        //     page = from_ubuffer(&node);
-        //     page_header(page)->number_of_keys++;
+        BUFFER(node, WRITE_FLAG, {
+            page = from_ubuffer(&node);
+            page_header(page)->number_of_keys++;
 
-        //     if (i == -1) {
-        //         page_header(page)->special_page_number = ubuffer_pagenum(&leaf);
-        //     } else {
-        //         ent = &entries(page)[i];
-        //         ent->key = i * leaf_order;
-        //         ent->pagenum = ubuffer_pagenum(&leaf);
-        //     }
-        // })
-    // }
+            if (i == -1) {
+                page_header(page)->special_page_number = ubuffer_pagenum(&leaf);
+            } else {
+                ent = &entries(page)[i];
+                ent->key = i * leaf_order;
+                ent->pagenum = ubuffer_pagenum(&leaf);
+            }
+        })
+    }
 
-    // leaf = make_node(&bpt, TRUE);
-    // BUFFER(leaf, WRITE_FLAG, {
-    //     page_header(from_ubuffer(&leaf))->parent_page_number = nodenum;
-    //     page_header(from_ubuffer(&leaf))->number_of_keys = leaf_order - 1;
-    // })
+    leaf = make_node(&bpt, TRUE);
+    BUFFER(leaf, WRITE_FLAG, {
+        page_header(from_ubuffer(&leaf))->parent_page_number = nodenum;
+        page_header(from_ubuffer(&leaf))->number_of_keys = leaf_order - 1;
+    })
 
-    // struct internal_t val;
-    // val.key = internal_order * leaf_order;
-    // val.pagenum = ubuffer_pagenum(&leaf);
-    // TEST_SUCCESS(insert_into_node_after_splitting(&bpt, &node, internal_order, &val));
+    struct internal_t val;
+    val.key = internal_order * leaf_order;
+    val.pagenum = ubuffer_pagenum(&leaf);
+    TEST_SUCCESS(insert_into_node_after_splitting(&bpt, &node, internal_order - 1, &val));
 
-
-
-    // TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(insert_into_parent, {
