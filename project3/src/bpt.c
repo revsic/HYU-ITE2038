@@ -317,7 +317,7 @@ int bpt_find_range(struct bpt_t* bpt,
     struct ubuffer_t buffer, tmp;
     pagenum_t n = find_leaf(bpt, start, &buffer);
     if (n == INVALID_PAGENUM) {
-        return FAILURE;
+        return -1;
     }
 
     BUFFER(buffer, READ_FLAG, {
@@ -328,7 +328,7 @@ int bpt_find_range(struct bpt_t* bpt,
     })
 
     if (i == num_key) {
-        return 0;
+        return -1;
     }
 
     while (TRUE) {
@@ -337,7 +337,9 @@ int bpt_find_range(struct bpt_t* bpt,
             num_key = page_header(from_ubuffer(&buffer))->number_of_keys;
 
             for (; i < num_key && rec[i].key <= end; i++) {
-                BUFFER_CHECK_SUCCESS(buffer, READ_FLAG, record_vec_append(retval, &rec[i]));
+                if (record_vec_append(retval, &rec[i]) == FAILURE) {
+                    BUFFER_INTERCEPT(buffer, READ_FLAG, return -1);
+                }
             }
 
             n = page_header(from_ubuffer(&buffer))->special_page_number;
@@ -346,7 +348,9 @@ int bpt_find_range(struct bpt_t* bpt,
             }
 
             tmp = bpt_buffering(bpt, n);
-            BUFFER_CHECK_NULL(buffer, READ_FLAG, tmp.buf);
+            if (tmp.buf == NULL) {
+                BUFFER_INTERCEPT(buffer, READ_FLAG, return -1);
+            }
         })
         i = 0;
         buffer = tmp;
