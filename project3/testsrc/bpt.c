@@ -1085,7 +1085,160 @@ TEST_SUITE(shrink_root, {
 })
 
 TEST_SUITE(merge_nodes, {
+    int i;
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
+    // case 0. leaf node
+    struct ubuffer_t parent = make_node(&bpt, FALSE);
+    struct ubuffer_t left = make_node(&bpt, TRUE);
+    struct ubuffer_t right = make_node(&bpt, TRUE);
+    struct ubuffer_t rightmost = make_node(&bpt, TRUE);
+
+    pagenum_t parentnum; 
+    struct page_t* page; 
+    BUFFER(parent, WRITE_FLAG, {
+        parentnum = ubuffer_pagenum(&parent);
+        page = from_ubuffer(&parent);
+        page_header(page)->number_of_keys = 2;
+        page_header(page)->special_page_number = ubuffer_pagenum(&left);
+        entries(page)[0].key = 2;
+        entries(page)[0].pagenum = ubuffer_pagenum(&right);
+        entries(page)[1].key = 10;
+        entries(page)[1].pagenum = ubuffer_pagenum(&rightmost);
+    })
+    BUFFER(left, WRITE_FLAG, {
+        page = from_ubuffer(&left);
+        page_header(page)->number_of_keys = 2;
+        page_header(page)->parent_page_number = parentnum;
+        page_header(page)->special_page_number = ubuffer_pagenum(&right);
+        for (i = 0; i < 2; ++i) {
+            records(page)[i].key = i;
+        }
+    })
+    TEST_SUCCESS(check_ubuffer(&right));
+    BUFFER(right, WRITE_FLAG, {
+        page = from_ubuffer(&right);
+        page_header(page)->number_of_keys = 3;
+        page_header(page)->parent_page_number = parentnum;
+        page_header(page)->special_page_number = ubuffer_pagenum(&rightmost);
+        for (i = 0; i < 3; ++i) {
+            records(page)[i].key = 2 + i;
+        }
+    })
+    
+    TEST_SUCCESS(merge_nodes(&bpt, &left, 2, &right, &parent));
+    BUFFER(parent, READ_FLAG, {
+        page = from_ubuffer(&parent);
+        TEST(page_header(page)->number_of_keys == 1)
+        TEST(page_header(page)->special_page_number == ubuffer_pagenum(&left));
+        TEST(entries(page)[0].key == 10);
+        TEST(entries(page)[0].pagenum == ubuffer_pagenum(&rightmost))
+    })
+
+    BUFFER(left, READ_FLAG, {
+        page = from_ubuffer(&left);
+        TEST(page_header(page)->number_of_keys == 5);
+        TEST(page_header(page)->parent_page_number == parentnum);
+        TEST(page_header(page)->special_page_number == ubuffer_pagenum(&rightmost));
+        for (i = 0; i < 5; ++i) {
+            TEST(records(page)[i].key == i);
+        }
+    })
+
+    // case 1. internal node
+    parent = make_node(&bpt, FALSE);
+    left = make_node(&bpt, FALSE);
+    right = make_node(&bpt, FALSE);
+    rightmost = make_node(&bpt, FALSE);
+
+    BUFFER(parent, WRITE_FLAG, {
+        page = from_ubuffer(&parent);
+        page_header(page)->number_of_keys = 2;
+        page_header(page)->parent_page_number = INVALID_PAGENUM;
+        page_header(page)->special_page_number = ubuffer_pagenum(&left);
+        entries(page)[0].key = 3;
+        entries(page)[0].pagenum = ubuffer_pagenum(&right);
+        entries(page)[1].key = 10;
+        entries(page)[1].pagenum = ubuffer_pagenum(&rightmost);
+    })
+    struct ubuffer_t tmp;
+    pagenum_t tmpnum;
+    pagenum_t pagenums[7];
+    BUFFER(left, WRITE_FLAG, {
+        tmpnum = ubuffer_pagenum(&left);
+        page = from_ubuffer(&left);
+        page_header(page)->number_of_keys = 2;
+        page_header(page)->parent_page_number = ubuffer_pagenum(&parent);
+        for (i = 0; i < 3; ++i) {
+            tmp = make_node(&bpt, TRUE);
+            pagenums[i] = ubuffer_pagenum(&tmp);
+            if (i == 0) {
+                page_header(page)->special_page_number = pagenums[i];
+            } else {
+                entries(page)[i - 1].key = i;
+                entries(page)[i - 1].pagenum = pagenums[i];
+            }
+
+            BUFFER(tmp, WRITE_FLAG, {
+                page_header(from_ubuffer(&tmp))->parent_page_number = tmpnum;
+            })
+        }
+    })
+    BUFFER(right, WRITE_FLAG, {
+        tmpnum = ubuffer_pagenum(&right);
+        page = from_ubuffer(&right);
+        page_header(page)->number_of_keys = 3;
+        page_header(page)->parent_page_number = ubuffer_pagenum(&parent);
+        for (i = 0; i < 4; ++i) {
+            tmp = make_node(&bpt, TRUE);
+            pagenums[3 + i] = ubuffer_pagenum(&tmp);
+            if (i == 0) {
+                page_header(page)->special_page_number = pagenums[3 + i];
+            } else {
+                entries(page)[i - 1].key = 3 + i;
+                entries(page)[i - 1].pagenum = pagenums[3 + i];
+            }
+
+            BUFFER(tmp, WRITE_FLAG, {
+                page_header(from_ubuffer(&tmp))->parent_page_number = tmpnum;
+            })
+        }
+    })
+    TEST_SUCCESS(merge_nodes(&bpt, &left, 3, &right, &parent));
+
+    BUFFER(parent, READ_FLAG, {
+        page = from_ubuffer(&parent);
+        TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
+        TEST(page_header(page)->number_of_keys == 1);
+        TEST(page_header(page)->special_page_number == ubuffer_pagenum(&left));
+        TEST(entries(page)[0].key == 10);
+        TEST(entries(page)[0].pagenum == ubuffer_pagenum(&rightmost));
+    })
+
+    BUFFER(left, READ_FLAG, {
+        tmpnum = ubuffer_pagenum(&left);
+        page = from_ubuffer(&left);
+        TEST(page_header(page)->number_of_keys == 6);
+        TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&parent));
+        for (i = 0; i < 7; ++i) {
+            if (i == 0) {
+                TEST(page_header(page)->special_page_number == pagenums[i]);
+            } else {
+                TEST(entries(page)[i - 1].key == i);
+                TEST(entries(page)[i - 1].pagenum == pagenums[i]);
+            }
+
+            tmp = bpt_buffering(&bpt, pagenums[i]);
+            BUFFER(tmp, READ_FLAG, {
+                TEST(page_header(from_ubuffer(&tmp))->parent_page_number == tmpnum);
+            })
+        }
+    })
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(rotate_to_right, {
