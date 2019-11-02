@@ -10,15 +10,9 @@ int main(int argc, char ** argv) {
     char instruction;
     char value[1024];
 
-    // init_db(4);
-    // tablenum_t table_id = open_table("datafile");
-    struct record_t rec;
-    struct table_manager_t tables;
-    struct buffer_manager_t buffers;
-    buffer_manager_init(&buffers, 10);
-    table_manager_init(&tables, 10);
-    tablenum_t tid = table_manager_load(&tables, "datafile", &buffers);
-    struct table_t* table = table_manager_find(&tables, tid);
+    init_db(4);
+    tablenum_t tid = open_table("datafile");
+    struct table_t* table = table_manager_find(&GLOBAL_DBMS.tables, tid);
 
     usage_1(&table->bpt);
     usage_2(&table->bpt);
@@ -28,31 +22,32 @@ int main(int argc, char ** argv) {
         switch (instruction) {
         case 'o':
             // open table
-            // scanf("%1023s", value);
-            // input = open_table(value);
+            scanf("%1023s", value);
+            input = open_table(value);
             // table id validation
-            // if (input == -1) {
-            //     printf("cannot open file %s\n", value);
-            // } else {
-            //     close_table(table_id);
-            //     table_id = input;
-            // }
+            if (input == -1) {
+                printf("cannot open file %s\n", value);
+            } else {
+                close_table(tid);
+                tid = input;
+                table = table_manager_find(&GLOBAL_DBMS.tables, tid);
+            }
             break;
         case 'd':
             scanf("%d", &input);
-            table_delete(table, input);
+            db_delete(tid, input);
             print_tree(&table->bpt);
             break;
         case 'i':
             scanf("%d", &input);
             snprintf(value, 100, "%d value", input);
-            table_insert(table, input, value, strlen(value) + 1);
+            db_insert(tid, input, value);
             print_tree(&table->bpt);
             break;
         case 'f':
             scanf("%d", &input);
-            if (table_find(table, input, &rec) == SUCCESS) {
-                printf("Key: %d  Value: %s\n", input, rec.value);
+            if (db_find(tid, input, value) == SUCCESS) {
+                printf("Key: %d  Value: %s\n", input, value);
             } else {
                 printf("not found\n");
             }
@@ -71,8 +66,7 @@ int main(int argc, char ** argv) {
             break;
         case 'q':
             while (getchar() != (int)'\n');
-            buffer_manager_shutdown(&buffers);
-            table_manager_release(&tables);
+            shutdown_db();
             return 0;
             break;
         case 't':
