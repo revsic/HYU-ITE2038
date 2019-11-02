@@ -52,7 +52,7 @@ int table_vec_append(struct table_vec_t* table_vec, struct table_t* table) {
     table_vec->array[table_vec->size] = malloc(sizeof(struct table_t));
     CHECK_NULL(table_vec->array[table_vec->size]);
 
-    *table_vec->array[table_vec->size++] = *table;
+    CHECK_SUCCESS(table_copy(table_vec->array[table_vec->size++], table));
     memset(table, 0, sizeof(struct table_t));
     return SUCCESS;
 }
