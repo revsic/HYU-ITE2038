@@ -118,21 +118,20 @@ Buffer Manager과 Table Manager를 합쳐 Database Management System을 구현�
 - file manager
     - filename as searching, file id as identification
 - buffer manager
-    - split searching policy
-    - parametrize searching policy
+    - searching policy: searching, parameterize
     - some unimplemented unit tests
     - lock metadata (ex mru lru pin)
     - try lock
     - create, new method run on buffer (not primitive api)
+    - fix ubuffer relative method prefix
 - bpt
     - estimate propagation + partial lock
-    - bug fix
     - some unimplemented unit tests
     - ubuffer: only pass by value
 - table
     - unit test
     - seperate table id and file id
-    - table_load: Nullability of argument buffer manager
+    - table_load: nullability of argument buffer manager
 - table manager
     - unit test
 - all
@@ -153,4 +152,7 @@ Buffer Manager과 Table Manager를 합쳐 Database Management System을 구현�
     - unit test (all pass)
 - buffer manager
     - buffer manager
+    - unit test (all pass)
+- bpt
+    - on-disk b+tree
     - unit test (all pass)
