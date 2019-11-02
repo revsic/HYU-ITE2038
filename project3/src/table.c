@@ -17,8 +17,8 @@ int table_load(struct table_t* table,
 
 int table_release(struct table_t* table) {
     table->id = INVALID_TABLENUM;
-    CHECK_SUCCESS(file_close(&table->file));
     CHECK_SUCCESS(bpt_release(&table->bpt));
+    CHECK_SUCCESS(file_close(&table->file));
     return SUCCESS;
 }
 
