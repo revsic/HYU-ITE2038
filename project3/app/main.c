@@ -1,5 +1,4 @@
 #include <string.h>
-#include "utility.h"
 
 #include "bpt.h"
 #include "dbapi.h"
@@ -41,18 +40,15 @@ int main(int argc, char ** argv) {
             scanf("%d", &input);
             table_delete(&table, input);
             print_tree(&table.bpt);
-            // db_delete(table_id, input);
             break;
         case 'i':
             scanf("%d", &input);
             snprintf(value, 100, "%d value", input);
             table_insert(&table, input, value, strlen(value) + 1);
             print_tree(&table.bpt);
-            // db_insert(table_id, input, value);bpt);
             break;
         case 'f':
             scanf("%d", &input);
-            // if (db_find(table_id, input, value) == SUCCESS) {
             if (table_find(&table, input, &rec) == SUCCESS) {
                 printf("Key: %d  Value: %s\n", input, rec.value);
             } else {
@@ -73,7 +69,6 @@ int main(int argc, char ** argv) {
             break;
         case 'q':
             while (getchar() != (int)'\n');
-            // shutdown_db();
             buffer_manager_shutdown(&buffers);
             table_release(&table);
             return 0;
