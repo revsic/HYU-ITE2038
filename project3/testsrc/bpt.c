@@ -1513,11 +1513,74 @@ TEST_SUITE(redistribute_nodes_internal, {
 })
 
 TEST_SUITE(delete_entry, {
-
+    // TODO
 })
 
 TEST_SUITE(bpt_delete, {
+    int i;
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
 
+    const int leaf_order = 4;
+    const int internal_order = 5;
+    TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
+    bpt.verbose_output = FALSE;
+
+    // case root
+    char str[] = "00";
+    for (i = 0; i < leaf_order - 1; ++i) {
+        TEST_SUCCESS(bpt_insert(&bpt, i * 10, str, sizeof(str)));
+    }
+    print_tree(&bpt);
+    for (i = 0; i < leaf_order - 1; ++i) {
+        TEST_SUCCESS(bpt_delete(&bpt, i * 10));
+        print_tree(&bpt);
+    }
+    struct ubuffer_t buffer = bpt_buffering(&bpt, FILE_HEADER_PAGENUM);
+    TEST(file_header(from_ubuffer(&buffer))->root_page_number == INVALID_PAGENUM);
+
+    // case simple delete
+    for (i = 0; i < leaf_order * internal_order; ++i) {
+        TEST_SUCCESS(bpt_insert(&bpt, i, str, sizeof(str)));
+    }
+    print_tree(&bpt);
+
+    for (i = 10; i <= 11; ++i) {
+        TEST_SUCCESS(bpt_delete(&bpt, i));
+    }
+    print_tree(&bpt);
+
+    // case merge
+    for (i = 8; i <= 9; ++i) {
+        TEST_SUCCESS(bpt_delete(&bpt, i));
+    }
+    print_tree(&bpt);
+
+    // case rotate to right
+    for (i = -1; i >= -2; --i) {
+        TEST_SUCCESS(bpt_insert(&bpt, i, str, sizeof(str)));
+    }
+    print_tree(&bpt);
+
+    for (i = 14; i <= 19; ++i) {
+        TEST_SUCCESS(bpt_delete(&bpt, i));
+    }
+    print_tree(&bpt);
+
+    // case left distribute
+    for (i = 14; i <= 19; ++i) {
+        TEST_SUCCESS(bpt_insert(&bpt, i, str, sizeof(str)));
+    }
+    print_tree(&bpt);
+
+    for (i = -2; i <= 3; ++i) {
+        TEST_SUCCESS(bpt_delete(&bpt, i));
+    }
+    print_tree(&bpt);
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 TEST_SUITE(destroy_tree, {
