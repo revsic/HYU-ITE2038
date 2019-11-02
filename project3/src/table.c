@@ -5,6 +5,12 @@ int table_init(struct table_t* table) {
     return SUCCESS;
 }
 
+int table_copy(struct table_t* dst, struct table_t* src) {
+    *dst = *src;
+    dst->bpt.file = &dst->file;
+    return SUCCESS;
+}
+
 int table_load(struct table_t* table,
                const char* filename,
                struct buffer_manager_t* buffers)

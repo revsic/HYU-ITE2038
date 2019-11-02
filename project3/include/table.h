@@ -22,6 +22,11 @@ struct table_t {
 /// \return int, whether success or not.
 int table_init(struct table_t* table);
 
+/// Copy table.
+/// \param dst struct table_t*, destinated table.
+/// \param src struct table_t*, source table.
+int table_copy(struct table_t* dst, struct table_t* src);
+
 /// Load table from given filename.
 /// \param table struct table_t*, table.
 /// \param filename const char*, name of the file.
