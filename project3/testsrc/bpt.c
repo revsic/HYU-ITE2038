@@ -1584,46 +1584,66 @@ TEST_SUITE(bpt_delete, {
 })
 
 TEST_SUITE(destroy_tree, {
+    int i;
+    struct bpt_t bpt;
+    struct file_manager_t file;
+    struct buffer_manager_t buffers;
+    TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+
+    const int leaf_order = 4;
+    const int internal_order = 5;
+    TEST_SUCCESS(bpt_test_config(&bpt, leaf_order, internal_order));
+    bpt.verbose_output = FALSE;
     
+    char str[] = "00";
+    for (i = 0; i < leaf_order * internal_order; ++i) {
+        TEST_SUCCESS(bpt_insert(&bpt, i, str, sizeof(str)));
+    }
+
+    TEST_SUCCESS(destroy_tree(&bpt));
+    struct ubuffer_t buffer = bpt_buffering(&bpt, FILE_HEADER_PAGENUM);
+    TEST(file_header(from_ubuffer(&buffer))->root_page_number == INVALID_PAGENUM);
+
+    TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
 })
 
 int bpt_test() {
     srand(time(NULL));
-    // return swap_ubuffer_test()
-    //     && bpt_buffering_test()
-    //     && bpt_create_page_test()
-    //     && bpt_free_page_test()
-    //     && bpt_init_test()
-    //     && bpt_release_test()
-    //     && bpt_default_config_test()
-    //     && bpt_test_config_test()
-    //     && queue_test()
-    //     && record_vec_init_test()
-    //     && record_vec_free_test()
-    //     && record_vec_expand_test()
-    //     && record_vec_append_test()
-    //     && path_to_root_test()
-    //     && cut_test()
-    //     && find_leaf_test()
-    //     && find_key_from_leaf_test()
-    //     && bpt_find_test()
-    //     && bpt_find_range_test()
-    //     && print_leaves_test()
-    //     && print_tree_test()
-    //     && find_and_print_test()
-    //     && find_and_print_range_test()
-    //     && make_record_test()
-    //     && make_node_test()
-    //     && get_index_test()
-    //     && insert_into_leaf_test()
-    //     && insert_into_leaf_after_splitting_test()
-    //     && insert_into_node_test()
-    //     && insert_into_node_after_splitting_test()
-    //     && insert_into_parent_test()
-    //     && insert_into_new_root_test()
-    //     && start_new_tree_test()
-    //     && bpt_insert_test()
-    return remove_record_from_leaf_test()
+    return swap_ubuffer_test()
+        && bpt_buffering_test()
+        && bpt_create_page_test()
+        && bpt_free_page_test()
+        && bpt_init_test()
+        && bpt_release_test()
+        && bpt_default_config_test()
+        && bpt_test_config_test()
+        && queue_test()
+        && record_vec_init_test()
+        && record_vec_free_test()
+        && record_vec_expand_test()
+        && record_vec_append_test()
+        && path_to_root_test()
+        && cut_test()
+        && find_leaf_test()
+        && find_key_from_leaf_test()
+        && bpt_find_test()
+        && bpt_find_range_test()
+        && print_leaves_test()
+        && print_tree_test()
+        && find_and_print_test()
+        && find_and_print_range_test()
+        && make_record_test()
+        && make_node_test()
+        && get_index_test()
+        && insert_into_leaf_test()
+        && insert_into_leaf_after_splitting_test()
+        && insert_into_node_test()
+        && insert_into_node_after_splitting_test()
+        && insert_into_parent_test()
+        && insert_into_new_root_test()
+        && start_new_tree_test()
+        && bpt_insert_test()
+        && remove_record_from_leaf_test()
         && remove_entry_from_internal_test()
         && shrink_root_test()
         && merge_nodes_test()
