@@ -1331,7 +1331,7 @@ int delete_entry(struct bpt_t* bpt,
     /* Case:  node stays at or above minimum.
      * (The simple case.)
      */
-    if (num_key >= min_keys) {
+    if (num_key - 1 >= min_keys) {
         return SUCCESS;
     }
 
