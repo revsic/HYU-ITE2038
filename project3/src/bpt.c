@@ -1108,6 +1108,7 @@ int rotate_to_right(struct bpt_t* bpt,
                     struct ubuffer_t* parent)
 {
     int i, num_key, is_leaf;
+    pagenum_t rightnum;
     struct ubuffer_t temp_page;
     struct record_t *right_record, *left_record;
     struct internal_t *right_internal, *left_internal, tmp;
@@ -1155,9 +1156,11 @@ int rotate_to_right(struct bpt_t* bpt,
                 entries(from_ubuffer(parent))[k_prime_index].key = tmp.key;
             })
             BUFFER(*right, WRITE_FLAG, {
+                rightnum = ubuffer_pagenum(right);
                 page_header(from_ubuffer(right))->special_page_number = tmp.pagenum;
-                page_header(from_ubuffer(&temp_page))->parent_page_number =
-                    ubuffer_pagenum(right);
+            })
+            BUFFER(temp_page, WRITE_FLAG, {
+                page_header(from_ubuffer(&temp_page))->parent_page_number = rightnum;
             })
         })
     }
