@@ -7,6 +7,7 @@ int table_init(struct table_t* table) {
 
 int table_copy(struct table_t* dst, struct table_t* src) {
     *dst = *src;
+    // retarget file pointer
     dst->bpt.file = &dst->file;
     return SUCCESS;
 }
@@ -49,6 +50,7 @@ tablenum_t table_id_from_filenum(filenum_t filenum) {
 }
 
 tablenum_t table_rehash(struct table_t* table, int update_id) {
+    // sdbm function
     int i;
     unsigned long hash = 0;
     uint8_t* bytes = (uint8_t*)&table->id;

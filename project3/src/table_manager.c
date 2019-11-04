@@ -5,6 +5,7 @@
 
 int table_searching_policy(struct table_vec_t* table_vec, tablenum_t table_id) {
     int i;
+    // linear search
     for (i = 0; i < table_vec->size; ++i) {
         if (table_vec->array[i]->id == table_id) {
             return i;
@@ -27,14 +28,14 @@ int table_vec_init(struct table_vec_t* table_vec, int capacity) {
 int table_vec_extend(struct table_vec_t* table_vec) {
     int i;
     struct table_t** vec;
-
+    // double capacity
     table_vec->capacity *= 2;
     vec = malloc(sizeof(struct table_t*) * table_vec->capacity);
     if (vec == NULL) {
         table_vec->capacity /= 2;
         return FAILURE;
     }
-
+    // copy array
     for (i = 0; i < table_vec->size; ++i) {
         vec[i] = table_vec->array[i];
     }
@@ -73,8 +74,10 @@ int table_vec_remove(struct table_vec_t* table_vec, tablenum_t table_id) {
         return FAILURE;
     }
 
+    // release and free table
     CHECK_SUCCESS(table_release(table_vec->array[idx]));
     free(table_vec->array[idx]);
+    // compact vector
     for (; idx < table_vec->size - 1; ++idx) {
         table_vec->array[idx] = table_vec->array[idx + 1];
     }
@@ -91,7 +94,7 @@ int table_vec_shrink(struct table_vec_t* table_vec) {
 
     vec = malloc(sizeof(struct table_t*) * table_vec->size);
     CHECK_NULL(vec);
-
+    // copy table
     for (i = 0; i < table_vec->size; ++i) {
         vec[i] = table_vec->array[i];
     }
@@ -129,7 +132,7 @@ tablenum_t table_manager_load(struct table_manager_t* manager,
     if (table_load(&table, filename, buffers) == FAILURE) {
         return INVALID_TABLENUM;
     }
-
+    // rehash id until it doesn't colide
     while (table_vec_find(&manager->vec, table.id) != NULL) {
         if (table_rehash(&table, TRUE) == INVALID_TABLENUM) {
             table_release(&table);
