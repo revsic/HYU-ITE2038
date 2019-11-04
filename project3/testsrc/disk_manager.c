@@ -55,6 +55,7 @@ TEST_SUITE(file_open, {
     struct padded_file_header_t padded;
 
     TEST_SUCCESS(file_open(&manager, "testfile"));
+    TEST(!strncmp(manager.filename, "testfile", sizeof("testfile")));
     fpread(&padded, PAGE_SIZE, 0, manager.fp);
 
     struct file_header_t* file_header = &padded.header;
