@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 
 #include "dbapi.h"
 #include "headers.h"
@@ -10,14 +11,19 @@ int main() {
     int table_size = 0;
     char value[1024];
     tablenum_t tables[100];
+    FILE* fp = fopen("input.txt", "r");
 
     const int buf_size = 100000;
     init_db(buf_size);
 
     int count = 0;
-    FILE* fp = fopen("input.txt", "r");
+    double start_time = (double)clock() / CLOCKS_PER_SEC;
     while (fscanf(fp, "%d", &instruction) != EOF) {
-        printf("\r%d", ++count);
+        ++count;
+        if (count % 100 == 0) {
+            printf("\r%d", count);
+        }
+
         switch (instruction) {
         case 0:
             fscanf(fp, "%s", value);
@@ -44,4 +50,6 @@ int main() {
             return 0;
         }
     }
+    double end_time = (double)clock() / CLOCKS_PER_SEC;
+    printf(" / %lf sec elapsed\n", end_time - start_time);
 }
