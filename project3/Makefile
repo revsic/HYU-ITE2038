@@ -61,6 +61,9 @@ $(TARGET_TEST): $(TARGET_TEST_SRC)
 	make static_library
 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
+perf:
+	$(CC) $(CFLAGS) -o perf ./app/perf.c -L $(LIBS) -lbpt
+
 clean:
 	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(OBJS_FOR_LIB) $(LIBS)*
 
