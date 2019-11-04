@@ -20,9 +20,7 @@ int main() {
     double start_time = (double)clock() / CLOCKS_PER_SEC;
     while (fscanf(fp, "%d", &instruction) != EOF) {
         ++count;
-        if (count % 100 == 0) {
-            printf("\r%d", count);
-        }
+        printf("\r%d", count);
 
         switch (instruction) {
         case 0:
