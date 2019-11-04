@@ -115,14 +115,14 @@ Buffer Manager과 Table Manager를 합쳐 Database Management System을 구현�
 ## Works
 
 ### TODO
-- file manager
-    - filename as searching, file id as identification
 - buffer manager
-    - searching policy: searching, parameterize
+    - searching policy
     - create, new method run on buffer (not primitive api)
+- bpt:
+    - ubuffer: only pass by value
 - table
-    - unit test
     - seperate table id and file id
+    - unit test
 - table manager
     - unit test
 - all
@@ -153,5 +153,4 @@ Buffer Manager과 Table Manager를 합쳐 Database Management System을 구현�
     - lock metadata (ex mru lru pin)
     - try lock
 - bpt:
-    - ubuffer: only pass by value
     - estimate propagation + partial lock
