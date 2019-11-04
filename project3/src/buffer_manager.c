@@ -24,6 +24,7 @@ const struct release_policy_t RELEASE_LRU = { get_lru, next_lru };
 const struct release_policy_t RELEASE_MRU = { get_mru, next_mru };
 
 int reload_ubuffer(struct ubuffer_t* buffer) {
+    // rebuffering
     *buffer = buffer_manager_buffering(
         buffer->buf->manager, buffer->file, buffer->pagenum);
     CHECK_NULL(buffer->buf);
@@ -49,6 +50,7 @@ struct page_t* from_ubuffer(struct ubuffer_t* buffer) {
 }
 
 pagenum_t ubuffer_pagenum(struct ubuffer_t* buffer) {
+    // check buffer validation
     EXIT_ON_FAILURE(check_ubuffer(buffer));
     return buffer->buf->pagenum;
 }
@@ -80,6 +82,7 @@ int buffer_load(struct buffer_t* buffer,
 }
 
 int buffer_new_page(struct buffer_t* buffer, struct file_manager_t* file) {
+    // primitive page creattion
     pagenum_t res = page_create(file);
     if (res == INVALID_PAGENUM) {
         return FAILURE;
@@ -91,13 +94,13 @@ int buffer_link_neighbor(struct buffer_t* buffer) {
     // don't use unconnected node from lru to mru.
     struct buffer_manager_t* manager;
     CHECK_NULL(manager = buffer->manager);
-
+    // if mru buffer
     if (buffer->next_use == -1) {
         manager->mru = buffer->prev_use;
     } else {
         manager->buffers[buffer->next_use].prev_use = buffer->prev_use;
     }
-
+    // if lru buffer
     if (buffer->prev_use == -1) {
         manager->lru = buffer->next_use;
     } else {
@@ -159,6 +162,7 @@ int buffer_start_write(struct buffer_t* buffer) {
 }
 
 int buffer_start(struct buffer_t* buffer, enum RW_FLAG rw_flag) {
+    // acquire pin based rwlock
     return rw_flag == READ_FLAG
         ? buffer_start_read(buffer)
         : buffer_start_write(buffer);
@@ -178,6 +182,7 @@ int buffer_end_write(struct buffer_t* buffer) {
 }
 
 int buffer_end(struct buffer_t* buffer, enum RW_FLAG rw_flag) {
+    // release pin and update mru
     return rw_flag == READ_FLAG
         ? buffer_end_read(buffer)
         : buffer_end_write(buffer);
@@ -189,13 +194,13 @@ int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
     manager->num_buffer = 0;
     manager->lru = -1;
     manager->mru = -1;
-    
+
     manager->buffers = malloc(sizeof(struct buffer_t) * num_buffer);
     if (manager->buffers == NULL) {
         manager->capacity = 0;
         return FAILURE;
     }
-    
+    // initialize buffer
     for (i = 0; i < manager->capacity; ++i) {
         CHECK_SUCCESS(buffer_init(&manager->buffers[i], i, manager));
     }
@@ -204,6 +209,7 @@ int buffer_manager_init(struct buffer_manager_t* manager, int num_buffer) {
 
 int buffer_manager_shutdown(struct buffer_manager_t* manager) {
     int i;
+    // release all blocks
     for (i = 0; i < manager->capacity; ++i) {
         buffer_manager_release_block(manager, i);
     }
@@ -215,7 +221,9 @@ int buffer_manager_shutdown(struct buffer_manager_t* manager) {
 
 int buffer_manager_alloc(struct buffer_manager_t* manager) {
     int idx;
+    // if extra page exist
     if (manager->num_buffer < manager->capacity) {
+        // searching page (linear)
         for (idx = 0;
              idx < manager->capacity
                 && manager->buffers[idx].file != NULL;
@@ -225,6 +233,7 @@ int buffer_manager_alloc(struct buffer_manager_t* manager) {
             return -1;
         }
     } else {
+        // release LRU page
         idx = buffer_manager_release(manager, &RELEASE_LRU);
         if (idx == -1) {
             return -1;
@@ -240,19 +249,19 @@ int buffer_manager_load(struct buffer_manager_t* manager,
 {
     int idx;
     struct buffer_t* buffer;
-
+    // alloc buffer
     idx = buffer_manager_alloc(manager);
     if (idx == -1) {
         return -1;
     }
-
+    // load page
     buffer = &manager->buffers[idx];
     if (buffer_load(buffer, file, pagenum) == FAILURE) {
         --manager->num_buffer;
         buffer_init(buffer, idx, manager);    
         return -1;
     }
-
+    // append loaded to mru
     CHECK_SUCCESS(buffer_append_mru(buffer, FALSE));
     return idx;
 }
@@ -286,6 +295,7 @@ int buffer_manager_release_file(struct buffer_manager_t* manager,
 int buffer_manager_release(struct buffer_manager_t* manager,
                            const struct release_policy_t* policy)
 {
+    // search block with release policy
     int idx = policy->initial_search(manager);
     while (idx != -1 && manager->buffers[idx].pin) {
         idx = policy->next_search(&manager->buffers[idx]);
@@ -293,6 +303,7 @@ int buffer_manager_release(struct buffer_manager_t* manager,
     if (idx == -1) {
         return -1;
     }
+    // release block
     if (buffer_manager_release_block(manager, idx) == FAILURE) {
         return -1;
     }
@@ -305,6 +316,7 @@ int buffer_manager_find(struct buffer_manager_t* manager,
 {
     int i;
     struct buffer_t* buffer;
+    // linear search
     for (i = 0; i < manager->capacity; ++i) {
         buffer = &manager->buffers[i];
         if (buffer->file != NULL
@@ -339,7 +351,6 @@ struct ubuffer_t buffer_manager_buffering(struct buffer_manager_t* manager,
 struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
                                          struct file_manager_t* file)
 {
-    int allocated = FALSE;
     struct ubuffer_t ubuf = { NULL, INVALID_PAGENUM, NULL };
     int idx = buffer_manager_find(manager, file->id, FILE_HEADER_PAGENUM);
     if (idx == -1) {
@@ -347,7 +358,6 @@ struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
         if (idx == -1) {
             return ubuf;
         }
-        allocated = TRUE;
     } else {
         if (buffer_manager_release_block(manager, idx) == FAILURE) {
             return ubuf;
@@ -357,10 +367,8 @@ struct ubuffer_t buffer_manager_new_page(struct buffer_manager_t* manager,
 
     struct buffer_t* buffer = &manager->buffers[idx];
     if (buffer_new_page(buffer, file) == FAILURE) {
-        if (allocated) {
-            --manager->num_buffer;
-            buffer_init(buffer, idx, manager);
-        }
+        --manager->num_buffer;
+        buffer_init(buffer, idx, manager);
         return ubuf;
     }
 
