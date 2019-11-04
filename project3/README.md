@@ -110,6 +110,19 @@ Buffer Manager과 Table Manager를 합쳐 Database Management System을 구현�
 
 사용자와 상호작용을 하는 레이어이다. 사용자의 입력을 받아 테이블을 DBMS에 올리고, Key의 삽입, 삭제, 검색 기능을 지원한다.
 
+## 7. Performance
+
+간단한 퍼포먼스 관련 실험을 진행하였다.
+
+2017 MacBook Pro (2.3GHz Intel i5, 8GB DDR3)에서 10만 개 버퍼와 300만 개 쿼리에 대해 360초의 시간이 소요되었다.
+
+```
+revsicui-MacBookPro:project3 revsic$ ./perf
+3000000 / 380.455995 sec elapsed
+```
+
+초기 증가 속도는 굉장했으나, 버퍼가 다 채워진 시점 이후로는 쿼리 실행 시간이 확연히 느려진 것을 확인할 수 있었다. 소스 코드는 [perf.c](./app/perf.c)에, 쿼리는 [input.txt](https://github.com/revsic/HYU-ITE2038/releases/tag/v1.0) 에 덧붙여 놓았다.
+
 ## Works
 
 ### TODO
