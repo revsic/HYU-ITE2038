@@ -10,6 +10,7 @@
 # executable files
 main
 test
+perf
 
 # mac files
 .DS_Store
@@ -21,3 +22,6 @@ test.dSYM
 # db file
 datafile
 testfile
+
+# input file
+input.txt
