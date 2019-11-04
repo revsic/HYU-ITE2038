@@ -10,7 +10,6 @@
 /// File level disk manager.
 struct file_manager_t {
     filenum_t id;               /// file ID
-    char* filename;             /// the name of the file.
     FILE* fp;                   /// file pointer.
 };
 

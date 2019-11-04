@@ -51,19 +51,12 @@ int file_open(struct file_manager_t* manager, const char* filename) {
         // create file
         CHECK_SUCCESS(file_create(manager, filename));
     }
-
-    int size = strlen(filename) + 1;
-    manager->filename = malloc(sizeof(char) * size);
-    CHECK_NULL(manager->filename);
-
-    strncpy(manager->filename, filename, size);
     return SUCCESS;
 }
 
 int file_close(struct file_manager_t* manager) {
     // close
     fclose(manager->fp);
-    free(manager->filename);
     memset(manager, 0, sizeof(struct file_manager_t));
     return SUCCESS;
 }
