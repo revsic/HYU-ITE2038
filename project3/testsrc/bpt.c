@@ -525,7 +525,7 @@ TEST_SUITE(insert_into_leaf_after_splitting, {
 
     // case 0. last one
     const int size = 4;
-    CHECK_SUCCESS(check_ubuffer(&leaf));
+    CHECK_SUCCESS(ubuffer_check(&leaf));
     for (i = 0; i < size; ++i) {
         record.key = i;
         TEST_SUCCESS(insert_into_leaf(&bpt, &leaf, &record));
@@ -547,7 +547,7 @@ TEST_SUITE(insert_into_leaf_after_splitting, {
     TEST(entries(page)[0].key == expected);
     pagenum_t right = entries(page)[0].pagenum;
 
-    TEST_SUCCESS(check_ubuffer(&leaf));
+    TEST_SUCCESS(ubuffer_check(&leaf));
     page = from_ubuffer(&leaf);
     TEST(page_header(page)->number_of_keys == expected);
     TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&rootpage));
@@ -656,7 +656,7 @@ TEST_SUITE(insert_into_node_after_splitting, {
         })
     }
 
-    TEST_SUCCESS(check_ubuffer(&node));
+    TEST_SUCCESS(ubuffer_check(&node));
     page = from_ubuffer(&node);
     for (i = -1; i < internal_order - 1; ++i) {
         if (i == -1) {
@@ -693,7 +693,7 @@ TEST_SUITE(insert_into_node_after_splitting, {
     TEST(entries(page)[0].key == (split - 1) * leaf_order);
     pagenum_t rightnum = entries(page)[0].pagenum;
 
-    TEST_SUCCESS(check_ubuffer(&node));
+    TEST_SUCCESS(ubuffer_check(&node));
     
     page = from_ubuffer(&node);
     TEST(page_header(page)->is_leaf == FALSE);
@@ -1118,7 +1118,7 @@ TEST_SUITE(merge_nodes, {
             records(page)[i].key = i;
         }
     })
-    TEST_SUCCESS(check_ubuffer(&right));
+    TEST_SUCCESS(ubuffer_check(&right));
     BUFFER(right, WRITE_FLAG, {
         page = from_ubuffer(&right);
         page_header(page)->number_of_keys = 3;

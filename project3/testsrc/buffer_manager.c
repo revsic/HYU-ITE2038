@@ -4,11 +4,11 @@
 #include "utility.h"
 #include "test.h"
 
-TEST_SUITE(reload_ubuffer, {
+TEST_SUITE(ubuffer_reload, {
     // TODO: impl test
 })
 
-TEST_SUITE(check_ubuffer, {
+TEST_SUITE(ubuffer_check, {
     struct buffer_t buf;
     struct ubuffer_t ubuf;
     struct file_manager_t file;
@@ -18,10 +18,10 @@ TEST_SUITE(check_ubuffer, {
 
     ubuf.pagenum = 10;
     ubuf.file = &file;
-    TEST_SUCCESS(check_ubuffer(&ubuf));
+    TEST_SUCCESS(ubuffer_check(&ubuf));
 
     ubuf.pagenum = 20;
-    // TEST(check_ubuffer(&ubuf) == FAILURE);
+    // TEST(ubuffer_check(&ubuf) == FAILURE);
 })
 
 TEST_SUITE(from_buffer, {
@@ -674,8 +674,8 @@ TEST_SUITE(buffer_manager_free_page, {
 })
 
 int buffer_manager_test() {
-    return reload_ubuffer_test()
-        && check_ubuffer_test()
+    return ubuffer_reload_test()
+        && ubuffer_check_test()
         && from_buffer_test()
         && from_ubuffer_test()
         && ubuffer_pagenum_test()

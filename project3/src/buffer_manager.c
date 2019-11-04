@@ -23,7 +23,7 @@ const struct release_policy_t RELEASE_LRU = { get_lru, next_lru };
 
 const struct release_policy_t RELEASE_MRU = { get_mru, next_mru };
 
-int reload_ubuffer(struct ubuffer_t* buffer) {
+int ubuffer_reload(struct ubuffer_t* buffer) {
     // rebuffering
     *buffer = buffer_manager_buffering(
         buffer->buf->manager, buffer->file, buffer->pagenum);
@@ -31,14 +31,14 @@ int reload_ubuffer(struct ubuffer_t* buffer) {
     return SUCCESS;
 }
 
-int check_ubuffer(struct ubuffer_t* buffer) {
+int ubuffer_check(struct ubuffer_t* buffer) {
     if (buffer->buf->file != NULL
         && buffer->file->id == buffer->buf->file->id
         && buffer->pagenum == buffer->buf->pagenum)
     {
         return SUCCESS;
     }
-    return reload_ubuffer(buffer);
+    return ubuffer_reload(buffer);
 }
 
 struct page_t* from_buffer(struct buffer_t* buffer) {
@@ -51,7 +51,7 @@ struct page_t* from_ubuffer(struct ubuffer_t* buffer) {
 
 pagenum_t ubuffer_pagenum(struct ubuffer_t* buffer) {
     // check buffer validation
-    EXIT_ON_FAILURE(check_ubuffer(buffer));
+    EXIT_ON_FAILURE(ubuffer_check(buffer));
     return buffer->buf->pagenum;
 }
 

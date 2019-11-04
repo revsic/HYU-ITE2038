@@ -8,7 +8,7 @@
 
 /// Buffer block for save block access, buffer validation, pre, post process macro.
 #define BUFFER(var, flag, cont) {           \
-    EXIT_ON_FAILURE(check_ubuffer(&(var))); \
+    EXIT_ON_FAILURE(ubuffer_check(&(var))); \
     buffer_start((var).buf, flag);          \
     cont;                                   \
     buffer_end((var).buf, flag);            \
@@ -85,12 +85,17 @@ extern const struct release_policy_t RELEASE_MRU;
 /// Reload ubuffer.
 /// \param buffer struct ubuffer_t*, buffer for user provision.
 /// \return int, whether success or not.
-int reload_ubuffer(struct ubuffer_t* buffer);
+int ubuffer_reload(struct ubuffer_t* buffer);
 
 /// Validate ubuffer consistency, if invalid, reload buffer based on metadata.
 /// \param buffer struct ubuffer_t*, buffer for user provision.
 /// \return int, whether usccess or not.
-int check_ubuffer(struct ubuffer_t* buffer);
+int ubuffer_check(struct ubuffer_t* buffer);
+
+/// Get page ID from ubuffer with buffer validation.
+/// \param buffer struct ubuffer_t*, buffer for user provision.
+/// \return pagenum_t, page ID.
+pagenum_t ubuffer_pagenum(struct ubuffer_t* buffer);
 
 /// Get page frame pointer for buffer.
 /// \param buffer struct buffer_t*, buffer.
@@ -101,11 +106,6 @@ struct page_t* from_buffer(struct buffer_t* buffer);
 /// \param buffer struct ubuffer_t*, buffer for user provision.
 /// \return struct page_t*, page frame pointer.
 struct page_t* from_ubuffer(struct ubuffer_t* buffer);
-
-/// Get page ID from ubuffer with buffer validation.
-/// \param buffer struct ubuffer_t*, buffer for user provision.
-/// \return pagenum_t, page ID.
-pagenum_t ubuffer_pagenum(struct ubuffer_t* buffer);
 
 /// Initialize buffer with default value.
 /// \param buffer struct buffer_t*, buffer.
