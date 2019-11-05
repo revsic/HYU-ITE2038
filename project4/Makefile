@@ -1,8 +1,9 @@
-.SUFFIXES: .c .o
+.SUFFIXES: .cpp .o
 
-# gcc 5.4.0
-CC=gcc
+# g++ std11
+CXX=g++
 
+# directories
 SRCDIR=src/
 APPDIR=app/
 TESTSRC=testsrc/
@@ -10,25 +11,33 @@ INC=include/
 LIBS=lib/
 
 # main source file
-TARGET_SRC:=$(APPDIR)main.c
+TARGET_SRC:=$(APPDIR)main.cpp
 TARGET_OBJ:=$(APPDIR)main.o
 
 # test source file
-TARGET_TEST_SRC:=$(TESTSRC)*.c
+TARGET_TEST_SRC:=$(TESTSRC)*.cpp
 
 # perf source file
-TARGET_PERF_SRC:=$(APPDIR)perf.c
+TARGET_PERF_SRC:=$(APPDIR)perf.cpp
 
-SRCS_FOR_LIB:=$(wildcard $(SRCDIR)*.c)
-OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.c=.o)
+SRCS_FOR_LIB:=$(wildcard $(SRCDIR)*.cpp)
+OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.cpp=.o)
 
-CFLAGS+= -g -fPIC -I $(INC) -Wno-format
+# -g: source level debug info
+# -fPIC: position independent code
+# -I: include path
+# -std=c++11: c++ standard 11
+CFLAGS+= -g -fPIC -I $(INC) -std=c++11
 
+# target file
 TARGET=main
 TARGET_TEST=test
 TARGET_PERF=perf
 
 all: $(TARGET)
+
+$(SRCDIR)headers.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)headers.o -c $(SRCDIR)headers.cpp
 
 # $(SRCDIR)fileio.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.c
@@ -57,9 +66,9 @@ all: $(TARGET)
 # $(SRCDIR)bpt.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
 
-# $(TARGET): $(TARGET_OBJ)
-# 	make static_library
-# 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
+$(TARGET): $(TARGET_OBJ)
+	make static_library
+	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
 # $(TARGET_TEST): $(TARGET_TEST_SRC)
 # 	make static_library
@@ -73,7 +82,7 @@ clean:
 	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(TARGET_PERF) $(OBJS_FOR_LIB) $(LIBS)* *.db
 
 library: $(OBJS_FOR_LIB)
-	gcc -shared -Wl,-soname,libbpt.so -o $(LIBS)libbpt.so $(OBJS_FOR_LIB)
+	g++ -shared -Wl,-soname,libbpt.so -o $(LIBS)libbpt.so $(OBJS_FOR_LIB)
 
 static_library: $(OBJS_FOR_LIB)
 	if [ ! -e "$(LIBS)" ]; then mkdir $(LIBS); fi;
