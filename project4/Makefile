@@ -70,9 +70,9 @@ $(TARGET): $(TARGET_OBJ)
 	make static_library
 	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
-# $(TARGET_TEST): $(TARGET_TEST_SRC)
-# 	make static_library
-# 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
+$(TARGET_TEST): $(TARGET_TEST_SRC)
+	make static_library
+	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
 # $(TARGET_PERF): $(TARGET_PERF_SRC)
 # 	make static_library
