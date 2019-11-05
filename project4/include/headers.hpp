@@ -12,6 +12,9 @@ using pagenum_t = uint64_t;
 /// Type for primary key.
 using prikey_t = int64_t;
 
+/// Either Success or Failure
+enum class result_t { SUCCESS = 0, FAILURE = 1 };
+
 /// File header.
 struct file_header_t {
     pagenum_t free_page_number;     /// 0~8, ID of first free page.
