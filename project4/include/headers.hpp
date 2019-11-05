@@ -3,17 +3,24 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 
+#include "status.hpp"
+
+/// Size of the page.
 constexpr size_t PAGE_SIZE = 4096;
 
 /// Type for page ID.
 using pagenum_t = uint64_t;
 
+/// Value for pointing null page.
+constexpr pagenum_t INVALID_PAGENUM = 0;
+
+/// Value for header page number.
+constexpr pagenum_t FILE_HEADER_PAGENUM = 0;
+
 /// Type for primary key.
 using prikey_t = int64_t;
-
-/// Either Success or Failure
-enum class result_t { SUCCESS = 0, FAILURE = 1 };
 
 /// File header.
 struct file_header_t {
@@ -63,6 +70,76 @@ struct internal_t {
 /// Page structure.
 class page_t {
 public:
+    /// Release page.
+    /// \param T callback type, status_t(pagenum_t, status_t(page_t*)).
+    /// \param page_proc T, callback for writing other relative pages
+    /// with pagenum.
+    /// \param self pagenum_t, self pagenumber.
+    /// \return status_t, whether success or not.
+    template <typename T>
+    static status_t release(T&& page_proc, pagenum_t self) {
+        pagenumt_t last_free;
+        CHECK_SUCCESS(page_proc(
+            FILE_HEADER_PAGENUM,
+            [&last_free, self](page_t* page) {
+                file_header_t* filehdr = page->file_header();
+                last_free = filehdr->free_page_number;
+                filehdr->free_page_number = self;
+                return status_t::SUCCESS;
+            }
+        ))
+
+        CHECK_SUCCESS(page_proc(self, [last_free](page_t* page) {
+            page->free_page()->next_page_number = last_free;
+            return status_t::SUCCESS;
+        }))
+        
+        return status_t::SUCCESS;
+    }
+
+    /// Create page.
+    /// \param T callback type, status_t(pagenum_t, status_t(page_t*)).
+    /// \param page_proc T, callback for writing other relative pages.
+    /// with pagenum.
+    /// \return pagenum_t, created page number.
+    template <typename T>
+    static pagenum_t create(T&& page_proc) {
+        CHECK_SUCCESS(page_proc(
+            FILE_HEADER_PAGENUM,
+            [](page_t* page) {
+                file_header_t* filehdr = page->file_header();
+                pagenum_t pagenum = filehdr->free_page_number;
+                if (pagenum == 0) {
+                    CHECK_SUCCESS(extend_free(
+                        page_proc,
+                        filehdr,
+                        std::max(1, filehdr->number_of_pages)));
+                }
+            }
+        ))
+    }
+
+    /// Extend free page list.
+    /// \param T callback type, status_t(pagenum_t, status_t(page_t*)).
+    /// \param page_proc T, callback for writing other relative pages
+    /// with pagenum.
+    /// \param filehdr file_header_t*, file header.
+    /// \param num int, the number of requested free pages.
+    /// \return pagenum_t created page number.
+    template <typename T>
+    static pagenum_t extend_free(T&& page_proc, file_header_t* filehdr, int num) {
+        if (num < 1) {
+            return status_t::FAILURE;
+        }
+
+        
+    }
+
+    /// Initialize page.
+    /// \param leaf uint32_t, is leaf or not.
+    /// \return status_t, whether success or not.
+    status_t init(uint32_t leaf);
+
     /// Get file header.
     /// \return file_header_t*, file header.
     file_header_t* file_header();
@@ -120,5 +197,8 @@ private:
         struct padded_file_header_t file;
     } impl;
 };
+
+/// Assertion for page size 
+static_assert(sizeof(page_t) == PAGE_SIZE);
 
 #endif
