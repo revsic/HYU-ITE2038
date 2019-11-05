@@ -45,9 +45,9 @@ int main() {
             break;
         case 10:
             shutdown_db();
+            double end_time = (double)clock() / CLOCKS_PER_SEC;
+            printf(" / %lf sec elapsed\n", end_time - start_time);
             return 0;
         }
     }
-    double end_time = (double)clock() / CLOCKS_PER_SEC;
-    printf(" / %lf sec elapsed\n", end_time - start_time);
 }
