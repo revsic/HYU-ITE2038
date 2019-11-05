@@ -39,14 +39,14 @@ all: $(TARGET)
 $(SRCDIR)headers.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)headers.o -c $(SRCDIR)headers.cpp
 
+$(SRCDIR)disk_manager.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
+
 # $(SRCDIR)fileio.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.c
 
 # $(SRCDIR)utility.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)utility.o -c $(SRCDIR)utility.c
-
-# $(SRCDIR)disk_manager.o:
-# 	$(CC) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
 
 # $(SRCDIR)buffer_manager.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.c
