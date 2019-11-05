@@ -16,6 +16,9 @@ TARGET_OBJ:=$(APPDIR)main.o
 # test source file
 TARGET_TEST_SRC:=$(TESTSRC)*.c
 
+# perf source file
+TARGET_PERF_SRC:=$(APPDIR)perf.c
+
 SRCS_FOR_LIB:=$(wildcard $(SRCDIR)*.c)
 OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.c=.o)
 
@@ -23,49 +26,51 @@ CFLAGS+= -g -fPIC -I $(INC) -Wno-format
 
 TARGET=main
 TARGET_TEST=test
+TARGET_PERF=perf
 
 all: $(TARGET)
 
-$(SRCDIR)fileio.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.c
+# $(SRCDIR)fileio.o:
+# 	$(CC) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.c
 
-$(SRCDIR)utility.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)utility.o -c $(SRCDIR)utility.c
+# $(SRCDIR)utility.o:
+# 	$(CC) $(CFLAGS) -o $(SRCDIR)utility.o -c $(SRCDIR)utility.c
 
-$(SRCDIR)disk_manager.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
+# $(SRCDIR)disk_manager.o:
+# 	$(CC) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
 
-$(SRCDIR)buffer_manager.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.c
+# $(SRCDIR)buffer_manager.o:
+# 	$(CC) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.c
 
-$(SRCDIR)table.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)table.o -c $(SRCDIR)table.c
+# $(SRCDIR)table.o:
+# 	$(CC) $(CFLAGS) -o $(SRCDIR)table.o -c $(SRCDIR)table.c
 
-$(SRCDIR)table_manager.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)table_manager.o -c $(SRCDIR)table_manager.c
+# $(SRCDIR)table_manager.o:
+# 	$(CC) $(CFLAGS) -o $(SRCDIR)table_manager.o -c $(SRCDIR)table_manager.c
 
-$(SRCDIR)dbms.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)dbms.o -c $(SRCDIR)dbms.c
+# $(SRCDIR)dbms.o:
+# 	$(CC) $(CFLAGS) -o $(SRCDIR)dbms.o -c $(SRCDIR)dbms.c
 
-$(SRCDIR)dbapi.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.c
+# $(SRCDIR)dbapi.o:
+# 	$(CC) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.c
 
-$(SRCDIR)bpt.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
+# $(SRCDIR)bpt.o:
+# 	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
 
-$(TARGET): $(TARGET_OBJ)
-	make static_library
-	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
+# $(TARGET): $(TARGET_OBJ)
+# 	make static_library
+# 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
-$(TARGET_TEST): $(TARGET_TEST_SRC)
-	make static_library
-	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
+# $(TARGET_TEST): $(TARGET_TEST_SRC)
+# 	make static_library
+# 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
-perf:
-	$(CC) $(CFLAGS) -o perf ./app/perf.c -L $(LIBS) -lbpt
+# $(TARGET_PERF): $(TARGET_PERF_SRC)
+# 	make static_library
+# 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
 clean:
-	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(OBJS_FOR_LIB) $(LIBS)* perf
+	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(TARGET_PERF) $(OBJS_FOR_LIB) $(LIBS)* *.db
 
 library: $(OBJS_FOR_LIB)
 	gcc -shared -Wl,-soname,libbpt.so -o $(LIBS)libbpt.so $(OBJS_FOR_LIB)
