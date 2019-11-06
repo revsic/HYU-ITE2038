@@ -49,11 +49,23 @@ private:
 
     friend class ReleaseMRU;
 
+    friend class Ubuffer;
+
+    friend class BufferManager;
+
+    Status start_read();
+
+    Status start_write();
+
+    Status end_read();
+    
+    Status end_write();
+
     Status init(int block_idx, BufferManager* manager);
 
-    Status load(FileManager* file, pagenum_t pagenum);
+    Status load(FileManager& file, pagenum_t pagenum);
 
-    Status new_page(FileManager* file);
+    Status new_page(FileManager& file);
 
     Status link_neighbor();
 
@@ -68,11 +80,11 @@ public:
 
     ~Ubuffer() = default;
 
-    Ubuffer(Ubuffer const& ubuffer);
+    Ubuffer(Ubuffer const& ubuffer) = delete;
 
     Ubuffer(Ubuffer&& ubuffer);
 
-    Ubuffer& operator=(Ubuffer const& ubuffer);
+    Ubuffer& operator=(Ubuffer const& ubuffer) = delete;
 
     Ubuffer& operator=(Ubuffer&& ubuffer);
 
@@ -91,13 +103,13 @@ private:
 };
 
 struct ReleasePolicy {
-    virtual int init(BufferManager const& manager) = 0;
-    virtual int next(Buffer const& buffer) = 0;
+    virtual int init(BufferManager const& manager) const = 0;
+    virtual int next(Buffer const& buffer) const = 0;
 };
 
 struct ReleaseLRU : ReleasePolicy {
-    int init(BufferManager const& manager) override;
-    int next(Buffer const& buffer) override;
+    int init(BufferManager const& manager) const override;
+    int next(Buffer const& buffer) const override;
 
     static ReleaseLRU& inst() {
         static ReleaseLRU lru;
@@ -106,8 +118,8 @@ struct ReleaseLRU : ReleasePolicy {
 };
 
 struct ReleaseMRU : ReleasePolicy {
-    int init(BufferManager const& manager) override;
-    int next(Buffer const& buffer) override;
+    int init(BufferManager const& manager) const override;
+    int next(Buffer const& buffer) const override;
 
     static ReleaseMRU& inst() {
         static ReleaseMRU mru;
@@ -117,7 +129,7 @@ struct ReleaseMRU : ReleasePolicy {
 
 class BufferManager {
 public:
-    BufferManager();
+    BufferManager(int num_buffer);
 
     ~BufferManager();
 
@@ -131,32 +143,32 @@ public:
 
     Status shutdown();
 
-    Ubuffer buffering(FileManager* file, pagenum_t pagenum);
+    Ubuffer buffering(FileManager& file, pagenum_t pagenum);
 
-    Ubuffer new_page(FileManager* file);
+    Ubuffer new_page(FileManager& file);
 
-    Status free_page(FileManager* file, pagenum_t pagenum);
+    Status free_page(FileManager& file, pagenum_t pagenum);
 
 private:
     int capacity;
     int num_buffer;
     int lru;
     int mru;
-    std::unique_ptr<Buffer> buffers;
+    std::unique_ptr<Buffer[]> buffers;
 
     friend class ReleaseLRU;
 
     friend class ReleaseMRU;
 
-    Status init(int num_buffer);
+    friend class Buffer;
 
-    Status alloc();
+    int alloc();
 
-    int load(FileManager* file, pagenum_t pagenum);
+    int load(FileManager& file, pagenum_t pagenum);
 
-    int release_block(int idx);
+    Status release_block(int idx);
 
-    int release_file(filenum_t fileid);
+    Status release_file(filenum_t fileid);
 
     int release(ReleasePolicy const& policy);
 
