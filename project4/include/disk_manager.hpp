@@ -10,6 +10,8 @@
 
 using filenum_t = int32_t;
 
+constexpr filenum_t INVALID_FILENUM = -1;
+
 /// File level disk manager.
 class FileManager {
 public:
@@ -34,6 +36,9 @@ public:
 
     /// Default move assignment, deleted.
     FileManager& operator=(FileManager&&) = delete;
+
+    /// Get file id.
+    filenum_t get_id() const;
 
     /// Hashing file name with sdbm.
     /// \param filename std::string const&, the name of the file.

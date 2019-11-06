@@ -31,6 +31,10 @@ FileManager::~FileManager() {
     fclose(fp);
 }
 
+filenum_t FileManager::get_id() const {
+    return id;
+}
+
 Status FileManager::file_init() {
     CHECK_TRUE(fresize(fp, PAGE_SIZE));
     // zero-initialization
