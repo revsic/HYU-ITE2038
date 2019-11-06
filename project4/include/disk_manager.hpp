@@ -45,10 +45,19 @@ private:
     /// File pointer.
     FILE* fp;
 
+    /// Initialize file.
+    /// \return Status, whether success or not.
     Status file_init();
 
+    /// Create file with given filename.
+    /// \return Status, whether success or not.
     Status file_create(std::string const& filename);
 
+    /// Read-write callback for abstracted page api.
+    /// \param T callback type, Status(Page*).
+    /// \param pagenum pagenum_t, page ID.
+    /// \param func T, callback.
+    /// \return Status, whether success or not.
     template <typename T>
     Status rwcallback(pagenum_t pagenum, T&& func) const {
         Page page;
