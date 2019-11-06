@@ -7,6 +7,10 @@
 #include "headers.hpp"
 #include "status.hpp"
 
+#ifdef TEST_MODULE
+#include "test.hpp"
+#endif
+
 class BufferManager;
 
 enum class RWFlag {
@@ -72,6 +76,10 @@ private:
     Status append_mru(bool link);
 
     Status release();
+
+#ifdef TEST_MODULE
+    friend struct BufferTest;
+#endif
 };
 
 class Ubuffer {
