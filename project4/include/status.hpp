@@ -11,9 +11,9 @@ enum class status_t { SUCCESS = 0, FAILURE = 1 };
 #define EXIT_ON_FAILURE(x) if ((x) == status_t::FAILURE) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(1); }
 
 /// Return FAILURE if given is false or 0.
-#define CHECK_TRUE(x) if (!(x)) { return FAILURE; }
+#define CHECK_TRUE(x) if (!(x)) { return status_t::FAILURE; }
 
 /// Return FAILURE if given is NULL.
-#define CHECK_NULL(x) if ((x) == NULL) { return FAILURE; }
+#define CHECK_NULL(x) if ((x) == NULL) { return status_t::FAILURE; }
 
 #endif

@@ -1,12 +1,12 @@
 #include "headers.hpp"
 
-result_t page_t::init(uint32_t leaf) {
+status_t page_t::init(uint32_t leaf) {
     page_header_t* header = page_header();
     header->is_leaf = leaf;
     header->number_of_keys = 0;
     header->parent_page_number = INVALID_PAGENUM;
     header->special_page_number = INVALID_PAGENUM;
-    return result_t::SUCCESS;
+    return status_t::SUCCESS;
 }
 
 file_header_t* page_t::file_header() {

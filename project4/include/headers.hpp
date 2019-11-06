@@ -3,8 +3,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <algorithm>
 #include <functional>
 
+#include "fileio.hpp"
 #include "status.hpp"
 
 /// Size of the page.
@@ -78,7 +80,7 @@ public:
     /// \return status_t, whether success or not.
     template <typename T>
     static status_t release(T&& page_proc, pagenum_t self) {
-        pagenumt_t last_free;
+        pagenum_t last_free;
         CHECK_SUCCESS(page_proc(
             FILE_HEADER_PAGENUM,
             [&last_free, self](page_t* page) {
@@ -101,16 +103,17 @@ public:
     /// \param T callback type, status_t(pagenum_t, status_t(page_t*)).
     /// \param page_proc T, callback for writing other relative pages.
     /// with pagenum.
+    /// \param fp FILE*, file pointer for extending free pages if there is no more free pages.
     /// \return pagenum_t, created page number.
     template <typename T>
-    static pagenum_t create(T&& page_proc) {
+    static pagenum_t create(T&& page_proc, FILE* fp) {
         status_t res;
-        res = page_proc(FILE_HEADER_PAGENUM, [&page_proc](page_t* page) {
+        res = page_proc(FILE_HEADER_PAGENUM, [fp, &page_proc](page_t* page) {
             file_header_t* filehdr = page->file_header();
             if (filehdr->free_page_number == 0) {
                 CHECK_SUCCESS(extend_free(
                     page_proc, fp,
-                    std::max(1, filehdr->number_of_pages)));
+                    std::max(1ULL, filehdr->number_of_pages)));
             }
         });
 
@@ -119,7 +122,7 @@ public:
         }
 
         pagenum_t freepage;
-        res = page_proc(FILE_HEADER_PAGENUM, [&freepage](page_t* page) {
+        res = page_proc(FILE_HEADER_PAGENUM, [&freepage, &page_proc](page_t* page) {
             file_header_t* filehdr = page->file_header();
             freepage = filehdr->free_page_number;
             CHECK_SUCCESS(page_proc(freepage, [filehdr](page_t* freep) {
@@ -149,17 +152,17 @@ public:
 
         long size = fsize(fp);
         pagenum_t last = fsize(fp) / PAGE_SIZE - 1;
-        CHECK_TRUE(fresize(manager->fp, size + num * PAGE_SIZE));
+        CHECK_TRUE(fresize(fp, size + num * PAGE_SIZE));
 
-        CHECK_SUCCESS(page_proc(FILE_HEADER_PAGENUM, [](page_t* page) {
+        CHECK_SUCCESS(page_proc(FILE_HEADER_PAGENUM, [last, num, &page_proc](page_t* page) {
             file_header_t* header = page->file_header();
             pagenum_t prev = header->free_page_number;
 
             for (int i = 1; i <= num; ++i) {
-                CHECK_SUCCESS(page_proc(last + i, [](page_t* page) {
+                CHECK_SUCCESS(page_proc(last + i, [prev](page_t* page) {
                     page->free_page()->next_page_number = prev;
-                    prev = last + i;
                 }));
+                prev = last + i;
             }
 
             header->free_page_number = last + num;
@@ -233,6 +236,6 @@ private:
 };
 
 /// Assertion for page size 
-static_assert(sizeof(page_t) == PAGE_SIZE);
+static_assert(sizeof(page_t) == PAGE_SIZE, "the size of page_t is not PAGE_SIZE");
 
 #endif

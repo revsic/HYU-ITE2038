@@ -43,7 +43,7 @@ $(SRCDIR)headers.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)headers.o -c $(SRCDIR)headers.cpp
 
 $(SRCDIR)disk_manager.o:
-	$(CXX) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
+	$(CXX) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.cpp
 
 # $(SRCDIR)utility.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)utility.o -c $(SRCDIR)utility.c
