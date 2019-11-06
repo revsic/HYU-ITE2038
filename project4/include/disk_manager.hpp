@@ -1,38 +1,44 @@
-// #ifndef DISK_MANAGER_HPP
-// #define DISK_MANAGER_HPP
+#ifndef DISK_MANAGER_HPP
+#define DISK_MANAGER_HPP
 
-// #include <cstdio>
-// #include <cstdint>
-// #include <string>
+#include <cstdio>
+#include <cstdint>
+#include <string>
 
-// #include "headers.hpp"
-// #include "status.hpp"
+#include "headers.hpp"
+#include "status.hpp"
 
-// using filenum_t = int32_t;
+class FileManager {
+public:
+    FileManager();
 
-// constexpr filenum_t INVALID_FILENUM = -1;
+    FileManager(std::string const& filename);
 
-// class FileManager {
-// public:
-//     file_manager_t();
+    ~FileManager();
 
-//     file_manager_t(std::string const& filename);
+    pagenum_t page_create() const;
 
-//     ~file_manager_t();
+    Status page_free(pagenum_t pagenum) const;
 
-//     pagenum_t page_create() const;
+    Status page_read(pagenum_t pagenum, Page* dst) const;
 
-//     status_t page_free(pagenum_t pagenum) const;
+    Status page_write(pagenum_t pagenum, Page* src) const;
 
-//     status_t page_read(pagenum_t pagenum, Page* dst) const;
+private:
+    FILE* fp;
 
-//     status_t page_write(pagenum_t pagenum, Page* src) const;
+    Status file_init();
 
-// private:
-//     FILE* fp;
-//     filenum_t id;
+    Status file_create(std::string const& filename);
 
-//     status_t file_create(std::string const& filename);
-// };
+    template <typename T>
+    Status rwcallback(pagenum_t pagenum, T&& func) const {
+        Page page;
+        CHECK_SUCCESS(page_read(pagenum, &page));
+        CHECK_SUCCESS(func(&page));
+        CHECK_SUCCESS(page_write(pagenum, &page));
+        return Status::SUCCESS;
+    }
+};
 
-// #endif
+#endif

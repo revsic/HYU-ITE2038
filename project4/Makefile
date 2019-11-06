@@ -26,8 +26,8 @@ OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.cpp=.o)
 # -g: source level debug info
 # -fPIC: position independent code
 # -I: include path
-# -std=c++11: c++ standard 11
-CFLAGS+= -g -fPIC -I $(INC) -std=c++11
+# -std=c++11: c++ standard 14
+CFLAGS+= -g -fPIC -I $(INC) -std=c++14
 
 # target file
 TARGET=main
