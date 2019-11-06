@@ -17,6 +17,9 @@ enum class Status { SUCCESS = 0, FAILURE = 1 };
 #define EXIT_ON_FALSE(x) if (!(x)) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(1); }
 
 /// Return FAILURE if given is NULL.
-#define CHECK_NULL(x) if ((x) == NULL) { return Status::FAILURE; }
+#define CHECK_NULL(x) if ((x) == nullptr) { return Status::FAILURE; }
+
+/// Exit process if given is NULL.
+#define EXIT_ON_NULL(x) if ((x) == nullptr) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(1); }
 
 #endif
