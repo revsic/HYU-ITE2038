@@ -73,7 +73,7 @@ struct Internal {
 class Page {
 public:
     /// Release page.
-    /// \param T callback type, Status(pagenum_t, Status(Page*)).
+    /// \param T callback type, Status(pagenum_t, Status(Page&)).
     /// \param page_proc T, callback for writing other relative pages
     /// with pagenum.
     /// \param self pagenum_t, self pagenumber.
@@ -83,16 +83,16 @@ public:
         pagenum_t last_free;
         CHECK_SUCCESS(page_proc(
             FILE_HEADER_PAGENUM,
-            [&last_free, self](Page* page) {
-                FileHeader* filehdr = page->file_header();
-                last_free = filehdr->free_page_number;
-                filehdr->free_page_number = self;
+            [&last_free, self](Page& page) {
+                FileHeader& filehdr = page.file_header();
+                last_free = filehdr.free_page_number;
+                filehdr.free_page_number = self;
                 return Status::SUCCESS;
             }
         ));
 
-        CHECK_SUCCESS(page_proc(self, [last_free](Page* page) {
-            page->free_page()->next_page_number = last_free;
+        CHECK_SUCCESS(page_proc(self, [last_free](Page& page) {
+            page.free_page().next_page_number = last_free;
             return Status::SUCCESS;
         }));
 
@@ -100,7 +100,7 @@ public:
     }
 
     /// Create page.
-    /// \param T callback type, Status(pagenum_t, Status(Page*)).
+    /// \param T callback type, Status(pagenum_t, Status(Page&)).
     /// \param page_proc T, callback for writing other relative pages
     /// with pagenum.
     /// \param fp FILE*, file pointer for extending free pages if there is no more free pages.
@@ -108,12 +108,12 @@ public:
     template <typename T>
     static pagenum_t create(T&& page_proc, FILE* fp) {
         Status res;
-        res = page_proc(FILE_HEADER_PAGENUM, [fp, &page_proc](Page* page) {
-            FileHeader* filehdr = page->file_header();
-            if (filehdr->free_page_number == 0) {
+        res = page_proc(FILE_HEADER_PAGENUM, [fp, &page_proc](Page& page) {
+            FileHeader& filehdr = page.file_header();
+            if (filehdr.free_page_number == 0) {
                 CHECK_SUCCESS(extend_free(
                     page_proc, fp,
-                    std::max(1ULL, filehdr->number_of_pages)));
+                    std::max(1ULL, filehdr.number_of_pages)));
             }
             return Status::SUCCESS;
         });
@@ -123,11 +123,11 @@ public:
         }
 
         pagenum_t freepage;
-        res = page_proc(FILE_HEADER_PAGENUM, [&freepage, &page_proc](Page* page) {
-            FileHeader* filehdr = page->file_header();
-            freepage = filehdr->free_page_number;
-            CHECK_SUCCESS(page_proc(freepage, [filehdr](Page* freep) {
-                filehdr->free_page_number = freep->free_page()->next_page_number;
+        res = page_proc(FILE_HEADER_PAGENUM, [&freepage, &page_proc](Page& page) {
+            FileHeader& filehdr = page.file_header();
+            freepage = filehdr.free_page_number;
+            CHECK_SUCCESS(page_proc(freepage, [filehdr](Page& freep) {
+                filehdr.free_page_number = freep.free_page().next_page_number;
                 return Status::SUCCESS;
             }));
             return Status::SUCCESS;
@@ -141,7 +141,7 @@ public:
     }
 
     /// Extend free page list.
-    /// \param T callback type, Status(pagenum_t, Status(Page*)).
+    /// \param T callback type, Status(pagenum_t, Status(Page&)).
     /// \param page_proc T, callback for writing other relative pages
     /// with pagenum.
     /// \param fp FILE*, file pointer.
@@ -157,20 +157,20 @@ public:
         pagenum_t last = fsize(fp) / PAGE_SIZE - 1;
         CHECK_TRUE(fresize(fp, size + num * PAGE_SIZE));
 
-        CHECK_SUCCESS(page_proc(FILE_HEADER_PAGENUM, [last, num, &page_proc](Page* page) {
-            FileHeader* header = page->file_header();
-            pagenum_t prev = header->free_page_number;
+        CHECK_SUCCESS(page_proc(FILE_HEADER_PAGENUM, [last, num, &page_proc](Page& page) {
+            FileHeader& header = page.file_header();
+            pagenum_t prev = header.free_page_number;
 
             for (int i = 1; i <= num; ++i) {
-                CHECK_SUCCESS(page_proc(last + i, [prev](Page* page) {
-                    page->free_page()->next_page_number = prev;
+                CHECK_SUCCESS(page_proc(last + i, [prev](Page& page) {
+                    page.free_page().next_page_number = prev;
                     return Status::SUCCESS;
                 }));
                 prev = last + i;
             }
 
-            header->free_page_number = last + num;
-            header->number_of_pages += num;
+            header.free_page_number = last + num;
+            header.number_of_pages += num;
             return Status::SUCCESS;
         }));
 
@@ -183,44 +183,44 @@ public:
     Status init(uint32_t leaf);
 
     /// Get file header.
-    /// \return FileHeader*, file header.
-    FileHeader* file_header();
+    /// \return FileHeader&, file header.
+    FileHeader& file_header();
 
     /// Get file header.
-    /// \return const FileHeader*, file header.
-    const FileHeader* file_header() const;
+    /// \return FileHeader const&, file header.
+    FileHeader const& file_header() const;
 
     /// Get page header.
-    /// \return PageHeader*, page header.
-    PageHeader* page_header();
+    /// \return PageHeader&, page header.
+    PageHeader& page_header();
 
     /// Get page header.
-    /// \return const PageHeader*, page header.
-    const PageHeader* page_header() const;
+    /// \return PageHeader const&, page header.
+    PageHeader const& page_header() const;
 
     /// Get free page header.
-    /// \return FreePageHeader*, free page header.
-    FreePageHeader* free_page();
+    /// \return FreePageHeader&, free page header.
+    FreePageHeader& free_page();
 
     /// Get free page header.
-    /// \return const FreePageHeader*, free page header.
-    const FreePageHeader* free_page() const;
+    /// \return FreePageHeader const&, free page header.
+    FreePageHeader const& free_page() const;
 
     /// Get records from leaf node.
-    /// \return Record*, record array.
-    Record* records();
+    /// \return Record&, record array.
+    Record& records();
 
     /// Get records from leaf node.
-    /// \return const Record*, record array.
-    const Record* records() const;
+    /// \return Record const&, record array.
+    Record const& records() const;
 
     /// Get entries from internal node.
-    /// \return Internal*, entry array.
-    Internal* entries();
+    /// \return Internal&, entry array.
+    Internal& entries();
 
     /// Get entries from internal node.
-    /// \return const Internal*, entry array.
-    const Internal* entries() const;
+    /// \return Internal const&, entry array.
+    Internal const& entries() const;
 
 private:
     union {
