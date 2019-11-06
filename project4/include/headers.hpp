@@ -87,13 +87,13 @@ public:
                 filehdr->free_page_number = self;
                 return status_t::SUCCESS;
             }
-        ))
+        ));
 
         CHECK_SUCCESS(page_proc(self, [last_free](page_t* page) {
             page->free_page()->next_page_number = last_free;
             return status_t::SUCCESS;
-        }))
-        
+        }));
+
         return status_t::SUCCESS;
     }
 
@@ -104,35 +104,69 @@ public:
     /// \return pagenum_t, created page number.
     template <typename T>
     static pagenum_t create(T&& page_proc) {
-        CHECK_SUCCESS(page_proc(
-            FILE_HEADER_PAGENUM,
-            [](page_t* page) {
-                file_header_t* filehdr = page->file_header();
-                pagenum_t pagenum = filehdr->free_page_number;
-                if (pagenum == 0) {
-                    CHECK_SUCCESS(extend_free(
-                        page_proc,
-                        filehdr,
-                        std::max(1, filehdr->number_of_pages)));
-                }
+        status_t res;
+        res = page_proc(FILE_HEADER_PAGENUM, [&page_proc](page_t* page) {
+            file_header_t* filehdr = page->file_header();
+            if (filehdr->free_page_number == 0) {
+                CHECK_SUCCESS(extend_free(
+                    page_proc, fp,
+                    std::max(1, filehdr->number_of_pages)));
             }
-        ))
+        });
+
+        if (res == status_t::FAILURE) {
+            return INVALID_PAGENUM;
+        }
+
+        pagenum_t freepage;
+        res = page_proc(FILE_HEADER_PAGENUM, [&freepage](page_t* page) {
+            file_header_t* filehdr = page->file_header();
+            freepage = filehdr->free_page_number;
+            CHECK_SUCCESS(page_proc(freepage, [filehdr](page_t* freep) {
+                filehdr->free_page_number = freep->free_page()->next_page_number;
+            }));
+        });
+
+        if (res == status_t::FAILURE) {
+            return INVALID_PAGENUM;
+        }
+
+        return freepage;
     }
 
     /// Extend free page list.
     /// \param T callback type, status_t(pagenum_t, status_t(page_t*)).
     /// \param page_proc T, callback for writing other relative pages
     /// with pagenum.
-    /// \param filehdr file_header_t*, file header.
+    /// \param fp FILE*, file pointer.
     /// \param num int, the number of requested free pages.
-    /// \return pagenum_t created page number.
+    /// \return status_t, whether success or failure.
     template <typename T>
-    static pagenum_t extend_free(T&& page_proc, file_header_t* filehdr, int num) {
+    static status_t extend_free(T&& page_proc, FILE* fp, int num) {
         if (num < 1) {
             return status_t::FAILURE;
         }
 
-        
+        long size = fsize(fp);
+        pagenum_t last = fsize(fp) / PAGE_SIZE - 1;
+        CHECK_TRUE(fresize(manager->fp, size + num * PAGE_SIZE));
+
+        CHECK_SUCCESS(page_proc(FILE_HEADER_PAGENUM, [](page_t* page) {
+            file_header_t* header = page->file_header();
+            pagenum_t prev = header->free_page_number;
+
+            for (int i = 1; i <= num; ++i) {
+                CHECK_SUCCESS(page_proc(last + i, [](page_t* page) {
+                    page->free_page()->next_page_number = prev;
+                    prev = last + i;
+                }));
+            }
+
+            header->free_page_number = last + num;
+            header->number_of_pages += num;
+        }));
+
+        return status_t::SUCCESS;
     }
 
     /// Initialize page.
