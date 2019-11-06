@@ -49,12 +49,12 @@ Status FileManager::page_free(pagenum_t pagenum) const {
         }, pagenum);
 }
 
-Status FileManager::page_read(pagenum_t pagenum, Page* dst) const {
-    CHECK_TRUE(fpread(dst, sizeof(Page), pagenum * PAGE_SIZE, fp));
+Status FileManager::page_read(pagenum_t pagenum, Page& dst) const {
+    CHECK_TRUE(fpread(&dst, sizeof(Page), pagenum * PAGE_SIZE, fp));
     return Status::SUCCESS;
 }
 
-Status FileManager::page_write(pagenum_t pagenum, Page const* src) const {
-    CHECK_TRUE(fpwrite(src, sizeof(Page), pagenum * PAGE_SIZE, fp));
+Status FileManager::page_write(pagenum_t pagenum, Page const& src) const {
+    CHECK_TRUE(fpwrite(&src, sizeof(Page), pagenum * PAGE_SIZE, fp));
     return Status::SUCCESS;
 }

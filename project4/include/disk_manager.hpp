@@ -31,15 +31,15 @@ public:
 
     /// Read page from file.
     /// \param pagenum pagenum_t, page ID.
-    /// \param dst Page*, pointer to write read page.
+    /// \param dst Page&, pointer to write read page.
     /// \return Status, whether success or not.
-    Status page_read(pagenum_t pagenum, Page* dst) const;
+    Status page_read(pagenum_t pagenum, Page& dst) const;
 
     /// Write page to file.
     /// \param pagenum pagenum_t, page ID.
-    /// \param src Page const*, target page.
+    /// \param src Page const&, target page.
     /// \return Status, whether success or not.
-    Status page_write(pagenum_t pagenum, Page const* src) const;
+    Status page_write(pagenum_t pagenum, Page const& src) const;
 
 private:
     /// File pointer.
@@ -61,9 +61,9 @@ private:
     template <typename T>
     Status rwcallback(pagenum_t pagenum, T&& func) const {
         Page page;
-        CHECK_SUCCESS(page_read(pagenum, &page));
-        CHECK_SUCCESS(func(&page));
-        CHECK_SUCCESS(page_write(pagenum, &page));
+        CHECK_SUCCESS(page_read(pagenum, page));
+        CHECK_SUCCESS(func(page));
+        CHECK_SUCCESS(page_write(pagenum, page));
         return Status::SUCCESS;
     }
 };

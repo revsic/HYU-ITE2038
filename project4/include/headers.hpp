@@ -126,7 +126,7 @@ public:
         res = page_proc(FILE_HEADER_PAGENUM, [&freepage, &page_proc](Page& page) {
             FileHeader& filehdr = page.file_header();
             freepage = filehdr.free_page_number;
-            CHECK_SUCCESS(page_proc(freepage, [filehdr](Page& freep) {
+            CHECK_SUCCESS(page_proc(freepage, [&filehdr](Page& freep) {
                 filehdr.free_page_number = freep.free_page().next_page_number;
                 return Status::SUCCESS;
             }));
@@ -207,20 +207,20 @@ public:
     FreePageHeader const& free_page() const;
 
     /// Get records from leaf node.
-    /// \return Record&, record array.
-    Record& records();
+    /// \return Record*, record array.
+    Record* records();
 
     /// Get records from leaf node.
-    /// \return Record const&, record array.
-    Record const& records() const;
+    /// \return Record const*, record array.
+    Record const* records() const;
 
     /// Get entries from internal node.
-    /// \return Internal&, entry array.
-    Internal& entries();
+    /// \return Internal*, entry array.
+    Internal* entries();
 
     /// Get entries from internal node.
-    /// \return Internal const&, entry array.
-    Internal const& entries() const;
+    /// \return Internal const*, entry array.
+    Internal const* entries() const;
 
 private:
     union {
