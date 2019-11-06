@@ -101,7 +101,7 @@ public:
 
     /// Create page.
     /// \param T callback type, Status(pagenum_t, Status(Page*)).
-    /// \param page_proc T, callback for writing other relative pages.
+    /// \param page_proc T, callback for writing other relative pages
     /// with pagenum.
     /// \param fp FILE*, file pointer for extending free pages if there is no more free pages.
     /// \return pagenum_t, created page number.
