@@ -45,11 +45,8 @@ $(SRCDIR)headers.o:
 $(SRCDIR)disk_manager.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.cpp
 
-# $(SRCDIR)utility.o:
-# 	$(CC) $(CFLAGS) -o $(SRCDIR)utility.o -c $(SRCDIR)utility.c
-
-# $(SRCDIR)buffer_manager.o:
-# 	$(CC) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.c
+$(SRCDIR)buffer_manager.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.cpp
 
 # $(SRCDIR)table.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)table.o -c $(SRCDIR)table.c
@@ -72,7 +69,7 @@ $(TARGET): $(TARGET_OBJ)
 
 $(TARGET_TEST): $(TARGET_TEST_SRC)
 	make static_library
-	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt -lc++
+	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
 # $(TARGET_PERF): $(TARGET_PERF_SRC)
 # 	make static_library
