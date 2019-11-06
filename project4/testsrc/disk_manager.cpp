@@ -29,119 +29,103 @@ TEST_SUITE(file_constructor, {
     remove("testfile");
 })
 
-// TEST_SUITE(file_destructor, {
-//     FileManager manager;
-//     TEST_SUCCESS(file_open(&manager, "testfile"));
+TEST_SUITE(file_destructor, {
+    // Just free fp
+})
 
-//     TEST_SUCCESS(file_close(&manager));
-//     TEST(manager.fp == NULL);
+TEST_SUITE(page_create, {
+    FileManager manager("testfile");
 
-//     remove("testfile");
-// })
+    pagenum_t pagenum = manager.page_create();
+    TEST(pagenum == 1);
 
-// TEST_SUITE(page_create, {
-//     FileManager manager;
-//     TEST_SUCCESS(file_open( &manager, "testfile"));
+    Page page;
+    TEST_SUCCESS(manager.page_read(FILE_HEADER_PAGENUM, &page));
+    TEST(page.file_header()->free_page_number == 0);
+    TEST(page.file_header()->number_of_pages == 1);
 
-//     pagenum_t pagenum = page_create(&manager);
-//     TEST(pagenum == 1);
+    pagenum = manager.page_create();
+    TEST_SUCCESS(manager.page_read(FILE_HEADER_PAGENUM, &page));
+    TEST(pagenum == 2);
+    TEST(page.file_header()->free_page_number == 0);
+    TEST(page.file_header()->number_of_pages == 2);
 
-//     PaddedFileHeader padded;
-//     fpread(&padded, PAGE_SIZE, 0, manager.fp);
-//     TEST(padded.header.free_page_number == 0);
-//     TEST(padded.header.number_of_pages == 1);
+    pagenum = manager.page_create();
+    TEST_SUCCESS(manager.page_read(FILE_HEADER_PAGENUM, &page));
+    TEST(pagenum == 4);
+    TEST(page.file_header()->free_page_number == 3);
+    TEST(page.file_header()->number_of_pages == 4);
 
-//     TEST(fsize(manager.fp) == PAGE_SIZE * 2);
+    manager.~FileManager();
+    remove("testfile");
+})
 
-//     pagenum = page_create(&manager);
-//     fpread(&padded, PAGE_SIZE, 0, manager.fp);
-//     TEST(pagenum == 2);
-//     TEST(padded.header.free_page_number == 0);
-//     TEST(padded.header.number_of_pages == 2);
+TEST_SUITE(page_free, {
+    FileManager manager("testfile");
+    pagenum_t pagenum = manager.page_create();
+    TEST(pagenum == 1);
 
-//     TEST(fsize(manager.fp) == PAGE_SIZE * 3);
+    Page page;
+    TEST_SUCCESS(manager.page_read(FILE_HEADER_PAGENUM, &page));
+    TEST(page.file_header()->free_page_number == 0);
 
-//     pagenum = page_create(&manager);
-//     fpread(&padded, PAGE_SIZE, 0, manager.fp);
-//     TEST(pagenum == 4);
-//     TEST(padded.header.free_page_number == 3);
-//     TEST(padded.header.number_of_pages == 4);
+    TEST(manager.page_create() != INVALID_PAGENUM);
 
-//     TEST_SUCCESS(file_close(&manager));
-//     remove("testfile");
-// })
+    TEST_SUCCESS(manager.page_free(pagenum));
+    TEST_SUCCESS(manager.page_read(FILE_HEADER_PAGENUM, &page));
+    TEST(page.file_header()->free_page_number == pagenum);
 
-// TEST_SUITE(page_free, {
-//     FileManager manager;
-//     TEST_SUCCESS(file_open(&manager, "testfile"));
+    TEST_SUCCESS(manager.page_read(pagenum, &page));
+    TEST(page.free_page()->next_page_number == 0);
 
-//     pagenum_t pagenum = page_create(&manager);
-//     TEST(pagenum == 1);
+    manager.~FileManager();
+    remove("testfile");
+})
 
-//     PaddedFileHeader padded;
-//     fpread(&padded, PAGE_SIZE, 0, manager.fp);
-//     TEST(padded.header.free_page_number == 0);
+TEST_SUITE(page_read_write, {
+    FileManager manager("testfile");
 
-//     TEST(page_create(&manager) != INVALID_PAGENUM);
+    pagenum_t pagenum = manager.page_create();
 
-//     TEST_SUCCESS(page_free(&manager, pagenum));
-//     fpread(&padded, PAGE_SIZE, 0, manager.fp);
-//     TEST(padded.header.free_page_number == pagenum);
+    Page page;
+    TEST_SUCCESS(manager.page_read(pagenum, &page));
 
-//     struct page_t page;
-//     TEST_SUCCESS(page_read(&manager, pagenum, &page));
-//     TEST(free_page(&page)->next_page_number == 0);
+    PageHeader* pheader = page.page_header();
+    pheader->parent_page_number = 0;
+    pheader->is_leaf = 0;
+    pheader->number_of_keys = 0;
 
-//     TEST_SUCCESS(file_close(&manager));
-//     remove("testfile");
-// })
+    TEST_SUCCESS(manager.page_write(pagenum, &page));
 
-// TEST_SUITE(page_read_write, {
-//     FileManager manager;
-//     TEST_SUCCESS(file_open(&manager, "testfile"));
+    TEST_SUCCESS(manager.page_read(1, &page));
+    TEST(pheader->parent_page_number == 0);
+    TEST(pheader->is_leaf == 0);
+    TEST(pheader->number_of_keys == 0);
 
-//     pagenum_t pagenum = page_create(&manager);
+    pagenum = manager.page_create();
 
-//     struct page_t page;
-//     TEST_SUCCESS(page_read(&manager, pagenum, &page));
+    pheader->parent_page_number = 1;
+    pheader->is_leaf = 1;
+    pheader->number_of_keys = 1;
 
-//     struct page_header_t* pheader = page_header(&page);
-//     pheader->parent_page_number = 0;
-//     pheader->is_leaf = 0;
-//     pheader->number_of_keys = 0;
+    TEST_SUCCESS(manager.page_write(pagenum, &page));
 
-//     TEST_SUCCESS(page_write(&manager, pagenum, &page));
+    Page page2;
+    TEST_SUCCESS(manager.page_read(pagenum, &page2));
 
-//     TEST_SUCCESS(page_read(&manager, 1, &page));
-//     TEST(pheader->parent_page_number == 0);
-//     TEST(pheader->is_leaf == 0);
-//     TEST(pheader->number_of_keys == 0);
+    pheader = page2.page_header();
+    TEST(pheader->parent_page_number == 1);
+    TEST(pheader->is_leaf == 1);
+    TEST(pheader->number_of_keys == 1);
 
-//     fresize(manager.fp, PAGE_SIZE * 3);
-
-//     pheader->parent_page_number = 1;
-//     pheader->is_leaf = 1;
-//     pheader->number_of_keys = 1;
-
-//     TEST_SUCCESS(page_write(&manager, 2, &page));
-
-//     struct page_t page2;
-//     TEST_SUCCESS(page_read(&manager, 2, &page2));
-
-//     pheader = page_header(&page2);
-//     TEST(pheader->parent_page_number == 1);
-//     TEST(pheader->is_leaf == 1);
-//     TEST(pheader->number_of_keys == 1);
-
-//     TEST_SUCCESS(file_close(&manager));
-//     remove("testfile");
-// })
+    manager.~FileManager();
+    remove("testfile");
+})
 
 int disk_manager_test() {
     return file_constructor_test()
-        // && file_destructor_test()
-        // && page_create_test()
-        // && page_free_test()
-        // && page_read_write_test();
-        ;
+        && file_destructor_test()
+        && page_create_test()
+        && page_free_test()
+        && page_read_write_test();
 }
