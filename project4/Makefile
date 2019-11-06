@@ -36,14 +36,14 @@ TARGET_PERF=perf
 
 all: $(TARGET)
 
+$(SRCDIR)fileio.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.cpp
+
 $(SRCDIR)headers.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)headers.o -c $(SRCDIR)headers.cpp
 
 $(SRCDIR)disk_manager.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)disk_manager.o -c $(SRCDIR)disk_manager.c
-
-# $(SRCDIR)fileio.o:
-# 	$(CC) $(CFLAGS) -o $(SRCDIR)fileio.o -c $(SRCDIR)fileio.c
 
 # $(SRCDIR)utility.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)utility.o -c $(SRCDIR)utility.c
