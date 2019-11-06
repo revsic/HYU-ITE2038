@@ -5,12 +5,15 @@
 
 #include "disk_manager.hpp"
 #include "headers.hpp"
+#include "status.hpp"
 
 class BufferManager;
 
 class Buffer {
 public:
+    Status init(int block_idx, BufferManager* manager);
 
+    Page& page();
 
 private:
     Page frame;
@@ -26,6 +29,13 @@ private:
 
 class Ubuffer {
 public:
+    Status reload();
+
+    Status check();
+
+    pagenum_t safe_pagenum();
+
+    Page& page();
 
 private:
     Buffer* buf;
@@ -44,7 +54,33 @@ private:
 };
 
 struct ReleasePolicy {
-    int initial_search(BufferManager* manager)
+    virtual int init(BufferManager* manager) = 0;
+    virtual int next(Buffer* buffer) = 0;
+};
+
+enum class RWFlag {
+    READ = 0,
+    WRITE = 1,
+};
+
+struct ReleaseLRU : ReleasePolicy {
+    int init(BufferManager* manager) override;
+    int next(Buffer* buffer) override;
+
+    static ReleaseLRU& inst() {
+        static ReleaseLRU lru;
+        return lru;
+    }
+};
+
+struct ReleaseMRU : ReleasePolicy {
+    int init(BufferManager* manager) override;
+    int next(Buffer* buffer) override;
+
+    static ReleaseMRU& inst() {
+        static ReleaseMRU mru;
+        return mru;
+    }
 };
 
 #endif

@@ -72,6 +72,24 @@ struct Internal {
 /// Page structure.
 class Page {
 public:
+    /// Default constructor.
+    Page() = default;
+
+    /// Default destructor.
+    ~Page() = default;
+
+    /// Default copy constructor, deleted.
+    Page(Page const&) = delete;
+
+    /// Default move constructor, deleted.
+    Page(Page&&) = delete;
+
+    /// Default copy assignment, deleted.
+    Page& operator=(Page const&) = delete;
+
+    /// Default move assignment, deleted.
+    Page& operator=(Page&&) = delete;
+
     /// Release page.
     /// \param T callback type, Status(pagenum_t, Status(Page&)).
     /// \param page_proc T, callback for writing other relative pages
