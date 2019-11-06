@@ -1,50 +1,50 @@
 #include "headers.hpp"
 
-status_t page_t::init(uint32_t leaf) {
-    page_header_t* header = page_header();
+Status Page::init(uint32_t leaf) {
+    PageHeader* header = page_header();
     header->is_leaf = leaf;
     header->number_of_keys = 0;
     header->parent_page_number = INVALID_PAGENUM;
     header->special_page_number = INVALID_PAGENUM;
-    return status_t::SUCCESS;
+    return Status::SUCCESS;
 }
 
-file_header_t* page_t::file_header() {
+FileHeader* Page::file_header() {
     return &impl.file.header;
 }
 
-const file_header_t* page_t::file_header() const {
+const FileHeader* Page::file_header() const {
     return &impl.file.header;
 }
 
-page_header_t* page_t::page_header() {
+PageHeader* Page::page_header() {
     return &impl.node.header.page_header;
 }
 
-const page_header_t* page_t::page_header() const {
+const PageHeader* Page::page_header() const {
     return &impl.node.header.page_header;
 }
 
-free_page_t* page_t::free_page() {
+FreePageHeader* Page::free_page() {
     return &impl.node.header.free_page.header;
 }
 
-const free_page_t* page_t::free_page() const {
+const FreePageHeader* Page::free_page() const {
     return &impl.node.header.free_page.header;
 }
 
-record_t* page_t::records() {
+Record* Page::records() {
     return impl.node.content.records;
 }
 
-const record_t* page_t::records() const {
+const Record* Page::records() const {
     return impl.node.content.records;
 }
 
-internal_t* page_t::entries() {
+Internal* Page::entries() {
     return impl.node.content.entries;
 }
 
-const internal_t* page_t::entries() const {
+const Internal* Page::entries() const {
     return impl.node.content.entries;
 }

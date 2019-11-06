@@ -1,11 +1,11 @@
 #include "test.hpp"
 
 TEST_SUITE(size, {
-    TEST(sizeof(padded_file_header_t) == PAGE_SIZE);
-    TEST(sizeof(page_header_t) == 128);
-    TEST(sizeof(padded_free_page_t) == 128);
-    TEST(sizeof(record_t) == 128);
-    TEST(sizeof(page_t) == PAGE_SIZE);
+    TEST(sizeof(PaddedFileHeader) == PAGE_SIZE);
+    TEST(sizeof(PageHeader) == 128);
+    TEST(sizeof(PaddedFreePageHeader) == 128);
+    TEST(sizeof(Record) == 128);
+    TEST(sizeof(Page) == PAGE_SIZE);
 })
 
 TEST_SUITE(page_release, {
@@ -28,7 +28,7 @@ TEST_SUITE(page_getter, {
 })
 
 TEST_SUITE(headers, {
-    static_assert(sizeof(page_t) == PAGE_SIZE, "the size of page_t is not PAGE_SIZE");
+    static_assert(sizeof(Page) == PAGE_SIZE, "the size of Page is not PAGE_SIZE");
     return size_test()
         && page_release_test()
         && page_create_test()
