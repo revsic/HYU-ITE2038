@@ -164,6 +164,7 @@ Ubuffer& Ubuffer::operator=(Ubuffer&& ubuffer) {
     ubuffer.buf = nullptr;
     ubuffer.pagenum = INVALID_PAGENUM;
     ubuffer.file = nullptr;
+    return *this;
 }
 
 Page& Ubuffer::page() {
