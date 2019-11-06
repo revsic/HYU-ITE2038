@@ -6,6 +6,13 @@
 #include "headers.hpp"
 #include "test.hpp"
 
+TEST_SUITE(create_filenum, {
+    const char* filename = "datafile";
+    const char* fullpath = "/Users/revsic/datafile";
+    filenum_t filenum = FileManager::create_filenum(filename);
+    TEST(filenum == FileManager::create_filenum(fullpath))
+})
+
 TEST_SUITE(file_constructor, {
     FileManager manager("testfile");
     Page page;

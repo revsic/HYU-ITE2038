@@ -8,6 +8,8 @@
 #include "headers.hpp"
 #include "status.hpp"
 
+using filenum_t = int32_t;
+
 /// File level disk manager.
 class FileManager {
 public:
@@ -20,6 +22,23 @@ public:
 
     /// Destructor, free file pointer.
     ~FileManager();
+
+    /// Default copy constructor, deleted.
+    FileManager(FileManager const&) = delete;
+
+    /// Default move constructor, deleted.
+    FileManager(FileManager&&) = delete;
+
+    /// Default copy assignment, deleted.
+    FileManager& operator=(FileManager const&) = delete;
+
+    /// Default move assignment, deleted.
+    FileManager& operator=(FileManager&&) = delete;
+
+    /// Hashing file name with sdbm.
+    /// \param filename std::string const&, the name of the file.
+    /// \return filenum_t, file ID.
+    static filenum_t create_filenum(std::string const& filename);
 
     /// Create new page.
     pagenum_t page_create() const;
@@ -44,6 +63,9 @@ public:
 private:
     /// File pointer.
     FILE* fp;
+
+    /// File ID.
+    filenum_t id;
 
     /// Initialize file.
     /// \return Status, whether success or not.
