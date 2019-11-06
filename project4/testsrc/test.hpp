@@ -17,4 +17,5 @@ int name##_test() {                                         \
     return 1;                                               \
 }
 
+int fileio_test();
 int headers_test();
