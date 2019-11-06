@@ -54,7 +54,7 @@ Status FileManager::page_read(pagenum_t pagenum, Page* dst) const {
     return Status::SUCCESS;
 }
 
-Status FileManager::page_write(pagenum_t pagenum, Page* src) const {
+Status FileManager::page_write(pagenum_t pagenum, Page const* src) const {
     CHECK_TRUE(fpwrite(src, sizeof(Page), pagenum * PAGE_SIZE, fp));
     return Status::SUCCESS;
 }
