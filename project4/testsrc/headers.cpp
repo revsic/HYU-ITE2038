@@ -8,6 +8,10 @@ TEST_SUITE(size, {
     TEST(sizeof(Page) == PAGE_SIZE);
 })
 
+TEST_SUITE(page_init, {
+    // TODO: Impl test
+})
+
 TEST_SUITE(page_release, {
     // TODO: Impl test
 })
@@ -30,6 +34,7 @@ TEST_SUITE(page_getter, {
 TEST_SUITE(headers, {
     static_assert(sizeof(Page) == PAGE_SIZE, "the size of Page is not PAGE_SIZE");
     return size_test()
+        && page_init_test()
         && page_release_test()
         && page_create_test()
         && page_extend_free_test()
