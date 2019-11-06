@@ -115,6 +115,7 @@ public:
                     page_proc, fp,
                     std::max(1ULL, filehdr->number_of_pages)));
             }
+            return Status::SUCCESS;
         });
 
         if (res == Status::FAILURE) {
@@ -127,7 +128,9 @@ public:
             freepage = filehdr->free_page_number;
             CHECK_SUCCESS(page_proc(freepage, [filehdr](Page* freep) {
                 filehdr->free_page_number = freep->free_page()->next_page_number;
+                return Status::SUCCESS;
             }));
+            return Status::SUCCESS;
         });
 
         if (res == Status::FAILURE) {
@@ -161,12 +164,14 @@ public:
             for (int i = 1; i <= num; ++i) {
                 CHECK_SUCCESS(page_proc(last + i, [prev](Page* page) {
                     page->free_page()->next_page_number = prev;
+                    return Status::SUCCESS;
                 }));
                 prev = last + i;
             }
 
             header->free_page_number = last + num;
             header->number_of_pages += num;
+            return Status::SUCCESS;
         }));
 
         return Status::SUCCESS;
