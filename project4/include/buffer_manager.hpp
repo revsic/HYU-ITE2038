@@ -14,31 +14,6 @@ enum class RWFlag {
     WRITE = 1,
 };
 
-struct ReleasePolicy {
-    virtual int init(BufferManager* manager) = 0;
-    virtual int next(Buffer* buffer) = 0;
-};
-
-struct ReleaseLRU : ReleasePolicy {
-    int init(BufferManager* manager) override;
-    int next(Buffer* buffer) override;
-
-    static ReleaseLRU& inst() {
-        static ReleaseLRU lru;
-        return lru;
-    }
-};
-
-struct ReleaseMRU : ReleasePolicy {
-    int init(BufferManager* manager) override;
-    int next(Buffer* buffer) override;
-
-    static ReleaseMRU& inst() {
-        static ReleaseMRU mru;
-        return mru;
-    }
-};
-
 class Buffer {
 public:
     Buffer();
@@ -69,6 +44,10 @@ private:
     int block_idx;
     FileManager* file;
     BufferManager* manager;
+
+    friend class ReleaseLRU;
+
+    friend class ReleaseMRU;
 
     Status init(int block_idx, BufferManager* manager);
 
@@ -111,6 +90,31 @@ private:
     FileManager* file;
 };
 
+struct ReleasePolicy {
+    virtual int init(BufferManager const& manager) = 0;
+    virtual int next(Buffer const& buffer) = 0;
+};
+
+struct ReleaseLRU : ReleasePolicy {
+    int init(BufferManager const& manager) override;
+    int next(Buffer const& buffer) override;
+
+    static ReleaseLRU& inst() {
+        static ReleaseLRU lru;
+        return lru;
+    }
+};
+
+struct ReleaseMRU : ReleasePolicy {
+    int init(BufferManager const& manager) override;
+    int next(Buffer const& buffer) override;
+
+    static ReleaseMRU& inst() {
+        static ReleaseMRU mru;
+        return mru;
+    }
+};
+
 class BufferManager {
 public:
     BufferManager();
@@ -139,6 +143,10 @@ private:
     int lru;
     int mru;
     std::unique_ptr<Buffer> buffers;
+
+    friend class ReleaseLRU;
+
+    friend class ReleaseMRU;
 
     Status init(int num_buffer);
 
