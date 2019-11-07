@@ -67,9 +67,8 @@ $(TARGET): $(TARGET_OBJ)
 	make static_library
 	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
-$(TARGET_TEST): $(TARGET_TEST_SRC)
-	make static_library
-	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
+$(TARGET_TEST): $(SRCS_FOR_LIB) $(TARGET_TEST_SRC)
+	$(CXX) $(CFLAGS) -DTEST_MODULE -I $(TESTSRC) -o $@ $^
 
 # $(TARGET_PERF): $(TARGET_PERF_SRC)
 # 	make static_library
