@@ -104,6 +104,15 @@ public:
 
     pagenum_t safe_pagenum();
 
+    template <typename F>
+    inline Status use(RWFlag flag, F&& callback) {
+        EXIT_ON_FAILURE(check());
+        buf->start_use(flag);
+        callback(*this);
+        buf->end_use(flag);
+        return Status::SUCCESS;
+    }
+
 private:
     Buffer* buf;
     pagenum_t pagenum;
@@ -187,7 +196,9 @@ private:
     int find(filenum_t fileid, pagenum_t pagenum);
 
 #ifdef TEST_MODULE
-    struct BufferManagerTest;
+    friend struct BufferManagerTest;
+
+    friend struct BufferTest;
 #endif
 };
 
