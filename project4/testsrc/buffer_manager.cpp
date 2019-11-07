@@ -289,51 +289,48 @@ TEST_SUITE(BufferTest::release, {
 })
 
 TEST_SUITE(BufferTest::start_end, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
 
-    // manager.num_buffer = 3;
-    // manager.lru = 0;
-    // manager.mru = 2;
-    // manager.buffers[0].prev_use = -1;
-    // manager.buffers[0].next_use = 1;
-    // manager.buffers[1].prev_use = 0;
-    // manager.buffers[1].next_use = 2;
-    // manager.buffers[2].prev_use = 1;
-    // manager.buffers[2].next_use = -1;
+    manager.num_buffer = 3;
+    manager.lru = 0;
+    manager.mru = 2;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = 2;
+    manager.buffers[2].prev_use = 1;
+    manager.buffers[2].next_use = -1;
 
-    // struct buffer_t* target = &manager.buffers[1];
+    Buffer* target = &manager.buffers[1];
 
-    // TEST_SUCCESS(buffer_start(target, READ_FLAG));
-    // TEST(target->pin == 1);
+    TEST_SUCCESS(target->start_use(RWFlag::READ));
+    TEST(target->pin == 1);
 
-    // TEST_SUCCESS(buffer_end(target, READ_FLAG));
-    // TEST(target->pin == 0);
-    // TEST(target->next_use == -1);
-    // TEST(target->prev_use == 2);
-    // TEST(manager.lru == 0);
-    // TEST(manager.mru == 1);
-    // TEST(manager.buffers[0].prev_use == -1);
-    // TEST(manager.buffers[0].next_use == 2);
-    // TEST(manager.buffers[2].prev_use == 0);
-    // TEST(manager.buffers[2].next_use == 1);
+    TEST_SUCCESS(target->end_use(RWFlag::READ));
+    TEST(target->pin == 0);
+    TEST(target->next_use == -1);
+    TEST(target->prev_use == 2);
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 1);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 0);
+    TEST(manager.buffers[2].next_use == 1);
 
-    // target = &manager.buffers[2];
-    // TEST_SUCCESS(buffer_start(target, WRITE_FLAG));
-    // TEST(target->pin == -1);
+    target = &manager.buffers[2];
+    TEST_SUCCESS(target->start_use(RWFlag::WRITE));
+    TEST(target->pin == -1);
 
-    // TEST_SUCCESS(buffer_end(target, WRITE_FLAG));
-    // TEST(target->pin == 0);
-    // TEST(target->next_use == -1);
-    // TEST(target->prev_use == 1);
-    // TEST(manager.lru == 0);
-    // TEST(manager.mru == 2);
-    // TEST(manager.buffers[0].prev_use == -1);
-    // TEST(manager.buffers[0].next_use == 1);
-    // TEST(manager.buffers[1].prev_use == 0);
-    // TEST(manager.buffers[1].next_use == 2);
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST_SUCCESS(target->end_use(RWFlag::WRITE));
+    TEST(target->pin == 0);
+    TEST(target->next_use == -1);
+    TEST(target->prev_use == 1);
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 2);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 1);
+    TEST(manager.buffers[1].prev_use == 0);
+    TEST(manager.buffers[1].next_use == 2);
 })
 
 TEST_SUITE(BufferManagerTest::constructor, {
