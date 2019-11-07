@@ -108,6 +108,10 @@ private:
     Buffer* buf;
     pagenum_t pagenum;
     FileManager* file;
+
+#ifdef TEST_MODULE
+    friend struct UbufferTest;
+#endif
 };
 
 struct ReleasePolicy {
@@ -181,6 +185,10 @@ private:
     int release(ReleasePolicy const& policy);
 
     int find(filenum_t fileid, pagenum_t pagenum);
+
+#ifdef TEST_MODULE
+    struct BufferManagerTest;
+#endif
 };
 
 #endif
