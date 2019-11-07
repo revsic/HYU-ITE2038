@@ -86,7 +86,7 @@ private:
     /// \param func T, callback.
     /// \return Status, whether success or not.
     template <typename T>
-    Status rwcallback(pagenum_t pagenum, T&& func) const {
+    inline Status rwcallback(pagenum_t pagenum, T&& func) const {
         Page page;
         CHECK_SUCCESS(page_read(pagenum, page));
         CHECK_SUCCESS(func(page));
