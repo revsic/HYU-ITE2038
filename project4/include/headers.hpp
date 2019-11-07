@@ -131,7 +131,7 @@ public:
             if (filehdr.free_page_number == 0) {
                 CHECK_SUCCESS(extend_free(
                     page_proc, fp,
-                    std::max(1ULL, filehdr.number_of_pages)));
+                    std::max(1UL, filehdr.number_of_pages)));
             }
             return Status::SUCCESS;
         });
