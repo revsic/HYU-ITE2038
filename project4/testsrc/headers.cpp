@@ -18,17 +18,14 @@ TEST_SUITE(page_release_abstraction, {
 
 TEST_SUITE(page_create_abstraction, {
     // TODO: Impl test
-
 })
 
 TEST_SUITE(page_extend_free_abstraction, {
     // TODO: Impl test
-
 })
 
 TEST_SUITE(page_getter, {
     // TODO: Impl test
-
 })
 
 TEST_SUITE(headers, {
