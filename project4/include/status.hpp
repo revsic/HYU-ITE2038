@@ -22,4 +22,7 @@ enum class Status { SUCCESS = 0, FAILURE = 1 };
 /// Exit process if given is NULL.
 #define EXIT_ON_NULL(x) if ((x) == nullptr) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(1); }
 
+/// Debug variable
+#define DBG(x) printf("line %d, " #x ": %d\n", __LINE__, x);
+
 #endif
