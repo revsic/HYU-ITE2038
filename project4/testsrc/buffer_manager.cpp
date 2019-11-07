@@ -1,4 +1,5 @@
 #include "buffer_manager.hpp"
+#include "disk_manager.hpp"
 #include "test.hpp"
 
 struct BufferTest {
@@ -70,236 +71,221 @@ TEST_SUITE(BufferTest::page, {
 })
 
 TEST_SUITE(BufferTest::init, {
-    // struct buffer_t buf;
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_init(&buf, 10, &manager));
+    Buffer buf;
+    TEST_SUCCESS(buf.init(10, nullptr));
 
-    // TEST(buf.pagenum == INVALID_PAGENUM);
-    // TEST(buf.is_dirty == FALSE);
-    // TEST(buf.pin == 0);
-    // TEST(buf.prev_use == -1);
-    // TEST(buf.next_use == -1);
-    // TEST(buf.block_idx == 10);
-    // TEST(buf.file == NULL);
-    // TEST(buf.manager == &manager);
+    TEST(buf.pagenum == INVALID_PAGENUM);
+    TEST(buf.is_dirty == false);
+    TEST(buf.pin == 0);
+    TEST(buf.prev_use == -1);
+    TEST(buf.next_use == -1);
+    TEST(buf.block_idx == 10);
+    TEST(buf.file == nullptr);
+    TEST(buf.manager == nullptr);
 })
 
 TEST_SUITE(BufferTest::load, {
-    // struct buffer_t buf;
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
-    // TEST_SUCCESS(buffer_init(&buf, 10, NULL));
+    Buffer buf;
+    FileManager file("testfile");
+    TEST_SUCCESS(buf.init(10, nullptr));
 
-    // pagenum_t pagenum = page_create(&file);
-    // TEST_SUCCESS(buffer_load(&buf, &file, pagenum));
+    pagenum_t pagenum = file.page_create();
+    TEST_SUCCESS(buf.load(file, pagenum));
 
-    // TEST(buf.pagenum == pagenum);
-    // TEST(buf.file == &file);
+    TEST(buf.pagenum == pagenum);
+    TEST(buf.file == &file);
 
-    // TEST_SUCCESS(file_close(&file));
-    // remove("testfile");
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferTest::new_page, {
-    // struct buffer_t buf;
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
-    // TEST_SUCCESS(buffer_init(&buf, 10, NULL));
-    // TEST_SUCCESS(buffer_new_page(&buf, &file));
+    Buffer buf;
+    FileManager file("testfile");
+    TEST_SUCCESS(buf.init(10, nullptr));
+    TEST_SUCCESS(buf.new_page(file));
 
-    // TEST(buf.pagenum != INVALID_PAGENUM);
-    // TEST(buf.file == &file);
+    TEST(buf.pagenum != INVALID_PAGENUM);
+    TEST(buf.file == &file);
 
-    // TEST_SUCCESS(file_close(&file));
-    // remove("testfile");
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferTest::link_neighbor, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
 
-    // // case 0. only node
-    // manager.lru = 0;
-    // manager.mru = 0;
-    // manager.buffers[0].prev_use = -1;
-    // manager.buffers[0].next_use = -1;
+    // case 0. only node
+    manager.lru = 0;
+    manager.mru = 0;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = -1;
 
-    // TEST_SUCCESS(buffer_link_neighbor(&manager.buffers[0]));
-    // TEST(manager.lru == -1);
-    // TEST(manager.mru == -1);
+    TEST_SUCCESS(manager.buffers[0].link_neighbor());
+    TEST(manager.lru == -1);
+    TEST(manager.mru == -1);
 
-    // // case 1. least recentrly used node
-    // manager.lru = 0;
-    // manager.mru = 2;
-    // manager.buffers[0].prev_use = -1;
-    // manager.buffers[0].next_use = 1;
-    // manager.buffers[1].prev_use = 0;
-    // manager.buffers[1].next_use = 2;
+    // case 1. least recentrly used node
+    manager.lru = 0;
+    manager.mru = 2;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = 2;
 
-    // TEST_SUCCESS(buffer_link_neighbor(&manager.buffers[0]));
-    // TEST(manager.lru == 1);
-    // TEST(manager.mru == 2);
-    // TEST(manager.buffers[1].prev_use == -1);
-    // TEST(manager.buffers[1].next_use == 2);
+    TEST_SUCCESS(manager.buffers[0].link_neighbor());
+    TEST(manager.lru == 1);
+    TEST(manager.mru == 2);
+    TEST(manager.buffers[1].prev_use == -1);
+    TEST(manager.buffers[1].next_use == 2);
 
-    // // case 2. most recently used node
-    // manager.lru = 2;
-    // manager.mru = 0;
-    // manager.buffers[0].prev_use = 1;
-    // manager.buffers[0].next_use = -1;
-    // manager.buffers[1].prev_use = 2;
-    // manager.buffers[1].next_use = 0;
+    // case 2. most recently used node
+    manager.lru = 2;
+    manager.mru = 0;
+    manager.buffers[0].prev_use = 1;
+    manager.buffers[0].next_use = -1;
+    manager.buffers[1].prev_use = 2;
+    manager.buffers[1].next_use = 0;
 
-    // TEST_SUCCESS(buffer_link_neighbor(&manager.buffers[0]));
-    // TEST(manager.mru == 1);
-    // TEST(manager.lru == 2);
-    // TEST(manager.buffers[1].next_use == -1);
-    // TEST(manager.buffers[1].prev_use == 2);
+    TEST_SUCCESS(manager.buffers[0].link_neighbor());
+    TEST(manager.mru == 1);
+    TEST(manager.lru == 2);
+    TEST(manager.buffers[1].next_use == -1);
+    TEST(manager.buffers[1].prev_use == 2);
 
-    // // case 3. middle node
-    // manager.lru = 0;
-    // manager.mru = 2;
-    // manager.buffers[0].prev_use = -1;
-    // manager.buffers[0].next_use = 1;
-    // manager.buffers[1].prev_use = 0;
-    // manager.buffers[1].next_use = 2;
-    // manager.buffers[2].prev_use = 1;
-    // manager.buffers[2].next_use = -1;
+    // case 3. middle node
+    manager.lru = 0;
+    manager.mru = 2;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = 2;
+    manager.buffers[2].prev_use = 1;
+    manager.buffers[2].next_use = -1;
 
-    // TEST_SUCCESS(buffer_link_neighbor(&manager.buffers[1]));
-    // TEST(manager.mru == 2);
-    // TEST(manager.lru == 0);
-    // TEST(manager.buffers[0].prev_use == -1);
-    // TEST(manager.buffers[0].next_use == 2);
-    // TEST(manager.buffers[2].prev_use == 0);
-    // TEST(manager.buffers[2].next_use == -1);
+    TEST_SUCCESS(manager.buffers[1].link_neighbor());
+    TEST(manager.mru == 2);
+    TEST(manager.lru == 0);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 0);
+    TEST(manager.buffers[2].next_use == -1);
 
-    // // case 4. unconnected node
-    // // undefined behaviour
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    // case 4. unconnected node
+    // undefined behaviour
 })
 
 TEST_SUITE(BufferTest::append_mru, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
 
-    // // case 1. first node
-    // manager.lru = -1;
-    // manager.mru = -1;
-    // manager.buffers[0].prev_use = -1;
-    // manager.buffers[1].next_use = -1;
-    // TEST_SUCCESS(buffer_append_mru(&manager.buffers[0], FALSE));
+    // case 1. first node
+    manager.lru = -1;
+    manager.mru = -1;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[1].next_use = -1;
+    TEST_SUCCESS(manager.buffers[0].append_mru(false));
 
-    // TEST(manager.lru == 0);
-    // TEST(manager.mru == 0);
-    // TEST(manager.buffers[0].prev_use == -1);
-    // TEST(manager.buffers[0].next_use == -1);
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 0);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == -1);
 
-    // // case 2. append
-    // manager.lru = 0;
-    // manager.mru = 1;
-    // manager.buffers[0].prev_use = -1;
-    // manager.buffers[0].next_use = 1;
-    // manager.buffers[1].prev_use = 0;
-    // manager.buffers[1].next_use = -1;
-    // TEST_SUCCESS(buffer_append_mru(&manager.buffers[2], FALSE));
+    // case 2. append
+    manager.lru = 0;
+    manager.mru = 1;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = -1;
+    TEST_SUCCESS(manager.buffers[2].append_mru(false));
 
-    // TEST(manager.lru == 0);
-    // TEST(manager.mru == 2);
-    // TEST(manager.buffers[0].prev_use == -1);
-    // TEST(manager.buffers[0].next_use == 1);
-    // TEST(manager.buffers[1].prev_use == 0);
-    // TEST(manager.buffers[1].next_use == 2);
-    // TEST(manager.buffers[2].prev_use == 1);
-    // TEST(manager.buffers[2].next_use == -1);
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 2);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 1);
+    TEST(manager.buffers[1].prev_use == 0);
+    TEST(manager.buffers[1].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 1);
+    TEST(manager.buffers[2].next_use == -1);
 })
 
 TEST_SUITE(BufferTest::release, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
 
-    // struct buffer_t* target = &manager.buffers[1];
+    Buffer& target = manager.buffers[1];
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
-    // TEST_SUCCESS(buffer_init(target, 1, &manager));
-    // TEST_SUCCESS(buffer_load(target, &file, FILE_HEADER_PAGENUM));
+    FileManager file("testfile");
+    TEST_SUCCESS(target.init(1, &manager));
+    TEST_SUCCESS(target.load(file, FILE_HEADER_PAGENUM));
 
-    // // case 1. not dirty
-    // manager.num_buffer = 3;
-    // manager.lru = 0;
-    // manager.mru = 2;
-    // manager.buffers[0].prev_use = -1;
-    // manager.buffers[0].next_use = 1;
-    // manager.buffers[1].prev_use = 0;
-    // manager.buffers[1].next_use = 2;
-    // manager.buffers[2].prev_use = 1;
-    // manager.buffers[2].next_use = -1;
+    // case 1. not dirty
+    manager.num_buffer = 3;
+    manager.lru = 0;
+    manager.mru = 2;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = 2;
+    manager.buffers[2].prev_use = 1;
+    manager.buffers[2].next_use = -1;
 
-    // TEST_SUCCESS(buffer_release(target));
-    // // linkage
-    // TEST(manager.lru == 0);
-    // TEST(manager.mru == 2);
-    // TEST(manager.buffers[0].prev_use == -1);
-    // TEST(manager.buffers[0].next_use == 2);
-    // TEST(manager.buffers[2].prev_use == 0);
-    // TEST(manager.buffers[2].next_use == -1);
-    // // block info
-    // TEST(manager.buffers[1].prev_use == -1);
-    // TEST(manager.buffers[1].next_use == -1);
-    // TEST(manager.buffers[1].block_idx == 1);
-    // TEST(manager.buffers[1].manager == &manager);
-    // // file check
-    // TEST_SUCCESS(buffer_load(target, &file, FILE_HEADER_PAGENUM));
-    // TEST(file_header(from_buffer(target))->free_page_number == 0);
-    // TEST(file_header(from_buffer(target))->root_page_number == INVALID_PAGENUM);
-    // TEST(file_header(from_buffer(target))->number_of_pages == 0);
+    TEST_SUCCESS(target.release());
+    // linkage
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 2);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 0);
+    TEST(manager.buffers[2].next_use == -1);
+    // block info
+    TEST(manager.buffers[1].prev_use == -1);
+    TEST(manager.buffers[1].next_use == -1);
+    TEST(manager.buffers[1].block_idx == 1);
+    TEST(manager.buffers[1].manager == &manager);
+    // file check
+    TEST_SUCCESS(target.load(file, FILE_HEADER_PAGENUM));
+    TEST(target.page().file_header().free_page_number == 0);
+    TEST(target.page().file_header().root_page_number == INVALID_PAGENUM);
+    TEST(target.page().file_header().number_of_pages == 0);
 
-    // // case 2. dirty
-    // struct ubuffer_t ubuffer;
-    // ubuffer.buf = target;
-    // ubuffer.pagenum = target->pagenum;
-    // ubuffer.file = target->file;
-    // BUFFER(ubuffer, WRITE_FLAG, {
-    //     file_header(from_ubuffer(&ubuffer))->root_page_number = 1;
-    //     file_header(from_ubuffer(&ubuffer))->number_of_pages = 20;
-    // })
+    // case 2. dirty
+    Ubuffer(&target, target.pagenum, target.file).use(
+        RWFlag::WRITE, [](Ubuffer& buf) {
+            buf.page().file_header().root_page_number = 1;
+            buf.page().file_header().number_of_pages = 20;
+        });
 
-    // manager.num_buffer = 3;
-    // manager.lru = 0;
-    // manager.mru = 2;
-    // manager.buffers[0].prev_use = -1;
-    // manager.buffers[0].next_use = 1;
-    // manager.buffers[1].prev_use = 0;
-    // manager.buffers[1].next_use = 2;
-    // manager.buffers[2].prev_use = 1;
-    // manager.buffers[2].next_use = -1;
+    manager.num_buffer = 3;
+    manager.lru = 0;
+    manager.mru = 2;
+    manager.buffers[0].prev_use = -1;
+    manager.buffers[0].next_use = 1;
+    manager.buffers[1].prev_use = 0;
+    manager.buffers[1].next_use = 2;
+    manager.buffers[2].prev_use = 1;
+    manager.buffers[2].next_use = -1;
 
-    // TEST_SUCCESS(buffer_release(target));
-    // // linkage
-    // TEST(manager.lru == 0);
-    // TEST(manager.mru == 2);
-    // TEST(manager.buffers[0].prev_use == -1);
-    // TEST(manager.buffers[0].next_use == 2);
-    // TEST(manager.buffers[2].prev_use == 0);
-    // TEST(manager.buffers[2].next_use == -1);
-    // // block info
-    // TEST(manager.buffers[1].prev_use == -1);
-    // TEST(manager.buffers[1].next_use == -1);
-    // TEST(manager.buffers[1].block_idx == 1);
-    // TEST(manager.buffers[1].manager == &manager);
-    // // file check
-    // TEST_SUCCESS(buffer_load(target, &file, FILE_HEADER_PAGENUM));
-    // TEST(file_header(from_buffer(target))->free_page_number == 0);
-    // TEST(file_header(from_buffer(target))->root_page_number == 1);
-    // TEST(file_header(from_buffer(target))->number_of_pages == 20);
+    TEST_SUCCESS(target.release());
+    // linkage
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 2);
+    TEST(manager.buffers[0].prev_use == -1);
+    TEST(manager.buffers[0].next_use == 2);
+    TEST(manager.buffers[2].prev_use == 0);
+    TEST(manager.buffers[2].next_use == -1);
+    // block info
+    TEST(manager.buffers[1].prev_use == -1);
+    TEST(manager.buffers[1].next_use == -1);
+    TEST(manager.buffers[1].block_idx == 1);
+    TEST(manager.buffers[1].manager == &manager);
+    // file check
+    TEST_SUCCESS(target.load(file, FILE_HEADER_PAGENUM));
+    TEST(target.page().file_header().free_page_number == 0);
+    TEST(target.page().file_header().root_page_number == 1);
+    TEST(target.page().file_header().number_of_pages == 20);
 
-    // TEST_SUCCESS(file_close(&file));
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // remove("testfile");
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferTest::start_end, {
