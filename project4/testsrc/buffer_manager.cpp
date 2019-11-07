@@ -14,6 +14,7 @@ struct BufferTest {
 };
 
 struct UbufferTest {
+    static int constructor_test();
     static int page_test();
     static int reload_test();
     static int check_test();
@@ -35,39 +36,31 @@ struct BufferManagerTest {
     static int find_test();
 };
 
+TEST_SUITE(UbufferTest::constructor, {
+    // TODO: impl test
+})
+
 TEST_SUITE(UbufferTest::reload, {
     // TODO: impl test
 })
 
 TEST_SUITE(UbufferTest::check, {
-    // struct buffer_t buf;
-    // struct ubuffer_t ubuf;
-    // struct file_manager_t file;
-    // ubuf.buf = &buf;
-    // buf.pagenum = 10;
-    // buf.file = &file;
-
-    // ubuf.pagenum = 10;
-    // ubuf.file = &file;
-    // TEST_SUCCESS(ubuffer_check(&ubuf));
-
-    // ubuf.pagenum = 20;
-    // TEST(ubuffer_check(&ubuf) == FAILURE);
+    // TODO impl test
 })
 
 TEST_SUITE(UbufferTest::page, {
-    // struct buffer_t buf;
-    // struct ubuffer_t ubuf;
-    // ubuf.buf = &buf;
-    // TEST(from_ubuffer(&ubuf) == from_buffer(&buf));
+    Buffer buf;
+    Ubuffer ubuf(&buf, INVALID_PAGENUM, nullptr);
+    TEST(&ubuf.page() == &buf.page());
 })
 
 TEST_SUITE(UbufferTest::safe_pagenum, {
-    // TODO
+    // TODO: impl test
 })
 
 TEST_SUITE(BufferTest::page, {
-
+    Buffer buf;
+    TEST(&buf.page() == &buf.frame);
 })
 
 TEST_SUITE(BufferTest::init, {
@@ -633,7 +626,8 @@ TEST_SUITE(BufferManagerTest::free_page, {
 })
 
 int buffer_manager_test() {
-    return UbufferTest::reload_test()
+    return UbufferTest::constructor_test()
+        && UbufferTest::reload_test()
         && UbufferTest::check_test()
         && UbufferTest::page_test()
         && UbufferTest::safe_pagenum_test()
