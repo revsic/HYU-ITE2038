@@ -71,9 +71,9 @@ Status Buffer::init(int block_idx, BufferManager* manager) {
     pin = 0;
     prev_use = -1;
     next_use = -1;
-    block_idx = block_idx;
     file = nullptr;
-    manager = manager;
+    this->block_idx = block_idx;
+    this->manager = manager;
     return Status::SUCCESS;
 }
 
