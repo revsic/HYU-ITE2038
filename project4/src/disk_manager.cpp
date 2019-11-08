@@ -12,8 +12,8 @@ filenum_t FileManager::create_filenum(std::string const& filename) {
     return (filenum_t)hash;
 }
 
-FileManager::FileManager() {
-    EXIT_ON_FAILURE(file_init());
+FileManager::FileManager() : fp(nullptr), id(INVALID_FILENUM) {
+    // Do nothing.
 }
 
 FileManager::FileManager(std::string const& filename) {
@@ -28,7 +28,9 @@ FileManager::FileManager(std::string const& filename) {
 }
 
 FileManager::~FileManager() {
-    fclose(fp);
+    if (fp != nullptr) {
+        fclose(fp);
+    }
 }
 
 filenum_t FileManager::get_id() const {
