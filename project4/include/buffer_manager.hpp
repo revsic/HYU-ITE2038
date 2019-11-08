@@ -11,13 +11,16 @@
 #include "test.hpp"
 #endif
 
+/// Buffer manager.
 class BufferManager;
 
+/// Read, write flag for buffer handling.
 enum class RWFlag {
-    READ = 0,
-    WRITE = 1,
+    READ = 0,                   /// read buffer
+    WRITE = 1,                  /// write buffer
 };
 
+/// Buffer structure.
 class Buffer {
 public:
     Buffer();
@@ -39,15 +42,15 @@ public:
     Status end_use(RWFlag flag);
 
 private:
-    Page frame;
-    pagenum_t pagenum;
-    bool is_dirty;
-    int pin;
-    int prev_use;
-    int next_use;
-    int block_idx;
-    FileManager* file;
-    BufferManager* manager;
+    Page frame;                 /// page frame.
+    pagenum_t pagenum;          /// page ID.
+    bool is_dirty;              /// whether any values are written in this page frame.
+    int pin;                    /// whether block is used now.
+    int prev_use;               /// previous used block, for page replacement policy.
+    int next_use;               /// next used block, for page replacement policy.
+    int block_idx;              /// index of the block in buffer manager.
+    FileManager* file;          /// file pointer which current page exist.
+    BufferManager* manager;     /// buffer manager which current buffer exist.
 
     friend class ReleaseLRU;
 
@@ -84,6 +87,7 @@ private:
 #endif
 };
 
+/// Buffer for user povision.
 class Ubuffer {
 public:
     Ubuffer(Buffer* buf, pagenum_t pagenum, FileManager* file);
@@ -116,9 +120,9 @@ public:
     }
 
 private:
-    Buffer* buf;
-    pagenum_t pagenum;
-    FileManager* file;
+    Buffer* buf;                /// buffer pointer.
+    pagenum_t pagenum;          /// page ID for buffer validation.
+    FileManager* file;          /// file pointer for buffer validation.
 
 #ifdef TEST_MODULE
     friend struct UbufferTest;
@@ -127,31 +131,20 @@ private:
 #endif
 };
 
+/// Page replacement policy.
 struct ReleasePolicy {
+    /// Initial searching state.
+    /// \param manager BufferManager const&, buffer manager.
+    /// \return int, index of the buffer array.
     virtual int init(BufferManager const& manager) const = 0;
+
+    /// Next buffer index.
+    /// \param buffer Buffer const&, buffer.
+    /// \return int, index of the buffer array.
     virtual int next(Buffer const& buffer) const = 0;
 };
 
-struct ReleaseLRU : ReleasePolicy {
-    int init(BufferManager const& manager) const override;
-    int next(Buffer const& buffer) const override;
-
-    static ReleaseLRU& inst() {
-        static ReleaseLRU lru;
-        return lru;
-    }
-};
-
-struct ReleaseMRU : ReleasePolicy {
-    int init(BufferManager const& manager) const override;
-    int next(Buffer const& buffer) const override;
-
-    static ReleaseMRU& inst() {
-        static ReleaseMRU mru;
-        return mru;
-    }
-};
-
+/// Buffer manager.
 class BufferManager {
 public:
     BufferManager(int num_buffer);
@@ -175,11 +168,11 @@ public:
     Status free_page(FileManager& file, pagenum_t pagenum);
 
 private:
-    int capacity;
-    int num_buffer;
-    int lru;
-    int mru;
-    std::unique_ptr<Buffer[]> buffers;
+    int capacity;                           /// buffer array size.
+    int num_buffer;                         /// number of the element.
+    int lru;                                /// least recently used block index.
+    int mru;                                /// most recently used block index.
+    std::unique_ptr<Buffer[]> buffers;      /// buffer array.
 
     friend class ReleaseLRU;
 
@@ -204,6 +197,33 @@ private:
 
     friend struct BufferTest;
 #endif
+};
+
+struct ReleaseLRU : ReleasePolicy {
+    int init(BufferManager const& manager) const override {
+        return manager.lru;
+    }
+
+    int next(Buffer const& buffer) const override {
+        return buffer.next_use;
+    }
+    static ReleaseLRU& inst() {
+        static ReleaseLRU lru;
+        return lru;
+    }
+};
+
+struct ReleaseMRU : ReleasePolicy {
+    int init(BufferManager const& manager) const override {
+        return manager.mru;
+    }
+    int next(Buffer const& buffer) const override {
+        return buffer.prev_use;
+    }
+    static ReleaseMRU& inst() {
+        static ReleaseMRU mru;
+        return mru;
+    }
 };
 
 #endif

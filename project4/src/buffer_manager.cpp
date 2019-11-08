@@ -1,21 +1,5 @@
 #include "buffer_manager.hpp"
 
-int ReleaseLRU::init(BufferManager const& manager) const {
-    return manager.lru;
-}
-
-int ReleaseLRU::next(Buffer const& buffer) const {
-    return buffer.next_use;
-}
-
-int ReleaseMRU::init(BufferManager const& manager) const {
-    return manager.mru;
-}
-
-int ReleaseMRU::next(Buffer const& buffer) const {
-    return buffer.prev_use;
-}
-
 Buffer::Buffer() {
     init(-1, nullptr);
 }
