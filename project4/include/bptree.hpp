@@ -16,7 +16,7 @@ public:
 
     BPTree(FileManager* file, BufferManager* buffers);
 
-    ~BPTree();
+    ~BPTree() = default;
 
     void test_config(int leaf_order, int internal_order, bool delayed_merge);
 
@@ -47,16 +47,16 @@ private:
 
     Ubuffer create_page(bool leaf);
 
-    Ubuffer free_page(pagenum_t pagenum);
+    Status free_page(pagenum_t pagenum);
 
     static constexpr int cut(int length);
 
 // find
     pagenum_t find_leaf(prikey_t key, Ubuffer buffer);
 
-    int find_key_from_leaf(prikey_t key, Ubuffer buffer, Record* record);
+    Status find_key_from_leaf(prikey_t key, Ubuffer buffer, Record* record);
 
-    int find_pagenum_from_internal(pagenum_t pagenum, Ubuffer buffer);
+    Status find_pagenum_from_internal(pagenum_t pagenum, Ubuffer buffer);
 
 // insert
     Status write_record(Record& rec,
