@@ -145,13 +145,13 @@ public:
     Ubuffer(Ubuffer const& ubuffer) = delete;
 
     /// Move constructor.
-    Ubuffer(Ubuffer&& ubuffer);
+    Ubuffer(Ubuffer&& ubuffer) noexcept;
 
     /// Deleted move assignment.
     Ubuffer& operator=(Ubuffer const& ubuffer) = delete;
 
     /// Move assignment.
-    Ubuffer& operator=(Ubuffer&& ubuffer);
+    Ubuffer& operator=(Ubuffer&& ubuffer) noexcept;
 
     /// Get page frame.
     /// \return Page&, page frame.
