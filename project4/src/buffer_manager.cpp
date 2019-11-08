@@ -141,14 +141,14 @@ Ubuffer::Ubuffer(std::nullptr_t) : Ubuffer(nullptr, INVALID_PAGENUM, nullptr) {
     // Do Nothing
 }
 
-Ubuffer::Ubuffer(Ubuffer&& ubuffer)
+Ubuffer::Ubuffer(Ubuffer&& ubuffer) noexcept
     : buf(ubuffer.buf), pagenum(ubuffer.pagenum), file(ubuffer.file) {
     ubuffer.buf = nullptr;
     ubuffer.pagenum = INVALID_PAGENUM;
     ubuffer.file = nullptr;
 }
 
-Ubuffer& Ubuffer::operator=(Ubuffer&& ubuffer) {
+Ubuffer& Ubuffer::operator=(Ubuffer&& ubuffer) noexcept {
     buf = ubuffer.buf;
     pagenum = ubuffer.pagenum;
     file = ubuffer.file;

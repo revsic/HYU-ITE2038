@@ -246,6 +246,7 @@ TEST_SUITE(BufferTest::release, {
         RWFlag::WRITE, [](Ubuffer& buf) {
             buf.page().file_header().root_page_number = 1;
             buf.page().file_header().number_of_pages = 20;
+            return Status::SUCCESS;
         });
 
     manager.num_buffer = 3;
