@@ -179,11 +179,11 @@ public:
     /// \return Status, whether success or not.
     template <typename F>
     inline Status use(RWFlag flag, F&& callback) {
-        EXIT_ON_FAILURE(check());
-        buf->start_use(flag);
-        callback(*this);
-        buf->end_use(flag);
-        return Status::SUCCESS;
+        CHECK_SUCCESS(check());
+        CHECK_SUCCESS(buf->start_use(flag));
+        Status res = callback(*this);
+        CHECK_SUCCESS(buf->end_use(flag));
+        return res;
     }
 
 private:
