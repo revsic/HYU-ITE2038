@@ -30,6 +30,7 @@ FileManager::FileManager(std::string const& filename) {
 FileManager::~FileManager() {
     if (fp != nullptr) {
         fclose(fp);
+        fp = nullptr;
     }
 }
 
