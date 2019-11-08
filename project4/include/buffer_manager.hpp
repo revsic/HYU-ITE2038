@@ -153,6 +153,10 @@ public:
     /// Move assignment.
     Ubuffer& operator=(Ubuffer&& ubuffer) noexcept;
 
+    /// Get buffer pointer.
+    /// \return Buffer*, buffer pointer.
+    Buffer* buffer();
+
     /// Get page frame.
     /// \return Page&, page frame.
     Page& page();

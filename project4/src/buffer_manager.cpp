@@ -159,6 +159,10 @@ Ubuffer& Ubuffer::operator=(Ubuffer&& ubuffer) {
     return *this;
 }
 
+Buffer* Ubuffer::buffer() {
+    return buf;
+}
+
 Page& Ubuffer::page() {
     return buf->page();
 }
