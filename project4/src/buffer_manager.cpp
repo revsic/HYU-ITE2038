@@ -133,6 +133,14 @@ Ubuffer::Ubuffer(Buffer* buf, pagenum_t pagenum, FileManager* file)
     // Do Nothing
 }
 
+Ubuffer::Ubuffer(Buffer& buf) : Ubuffer(&buf, buf.pagenum, buf.file) {
+    // Do Nothing
+}
+
+Ubuffer::Ubuffer(std::nullptr_t) : Ubuffer(nullptr, INVALID_PAGENUM, nullptr) {
+    // Do Nothing
+}
+
 Ubuffer::Ubuffer(Ubuffer&& ubuffer)
     : buf(ubuffer.buf), pagenum(ubuffer.pagenum), file(ubuffer.file) {
     ubuffer.buf = nullptr;
@@ -210,23 +218,22 @@ Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum) {
     if (idx == -1) {
         idx = load(file, pagenum);
         if (idx == -1) {
-            return Ubuffer(nullptr, INVALID_PAGENUM, nullptr);
+            return Ubuffer(nullptr);
         }
     }
-    return Ubuffer(&buffers[idx], pagenum, &file);
+    return Ubuffer(buffers[idx]);
 }
 
 Ubuffer BufferManager::new_page(FileManager& file) {
-    Ubuffer blank(nullptr, INVALID_PAGENUM, nullptr);
     int idx = find(file.get_id(), FILE_HEADER_PAGENUM);
     if (idx == -1) {
         idx = alloc();
         if (idx == -1) {
-            return blank;
+            return Ubuffer(nullptr);
         }
     } else {
         if (release_block(idx) == Status::FAILURE) {
-            return blank;
+            return Ubuffer(nullptr);
         }
         ++num_buffer;
     }
@@ -235,13 +242,13 @@ Ubuffer BufferManager::new_page(FileManager& file) {
     if (buffer.new_page(file) == Status::FAILURE) {
         --num_buffer;
         buffer.init(idx, this);
-        return blank;
+        return Ubuffer(nullptr);
     }
 
     if (buffer.append_mru(false) == Status::FAILURE) {
-        return blank;
+        return Ubuffer(nullptr);
     }
-    return Ubuffer(&buffer, buffer.pagenum, &file);
+    return Ubuffer(buffer);
 }
 
 Status BufferManager::free_page(FileManager& file, pagenum_t pagenum) {
