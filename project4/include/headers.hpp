@@ -132,7 +132,7 @@ public:
             if (filehdr.free_page_number == 0) {
                 CHECK_SUCCESS(extend_free(
                     page_proc, filehdr, fp,
-                    std::max(1UL, filehdr.number_of_pages)));
+                    std::max(static_cast<uint64_t>(1), filehdr.number_of_pages)));
             }
 
             freepage = filehdr.free_page_number;
