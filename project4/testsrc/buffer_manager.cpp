@@ -327,302 +327,261 @@ TEST_SUITE(BufferTest::start_end, {
 })
 
 TEST_SUITE(BufferManagerTest::constructor, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
 
-    // TEST(manager.capacity == 5);
-    // TEST(manager.num_buffer == 0);
-    // TEST(manager.lru == -1);
-    // TEST(manager.mru == -1);
-    // TEST(manager.buffers != NULL);
+    TEST(manager.capacity == 5);
+    TEST(manager.num_buffer == 0);
+    TEST(manager.lru == -1);
+    TEST(manager.mru == -1);
+    TEST(manager.buffers != NULL);
 
-    // int i;
-    // for (i = 0; i < 5; ++i) {
-    //     TEST(manager.buffers[i].file == NULL);
-    // }
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    int i;
+    for (i = 0; i < 5; ++i) {
+        TEST(manager.buffers[i].file == nullptr);
+    }
 })
 
 TEST_SUITE(BufferManagerTest::shutdown, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
+    for (int i = 0; i < 3; ++i) {
+        manager.load(file, FILE_HEADER_PAGENUM);
+    }
 
-    // int i;
-    // for (i = 0; i < 3; ++i) {
-    //     buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
-    // }
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
 
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // TEST_SUCCESS(file_close(&file));
-    // TEST(manager.num_buffer == 0);
-    // TEST(manager.capacity == 0);
-    // remove("testfile");
+    TEST(manager.num_buffer == 0);
+    TEST(manager.capacity == 0);
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::alloc, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
+    FileManager file;
 
-    // struct file_manager_t file;
+    for (int i = 0; i < 13; ++i) {
+        TEST(i % 5 == manager.alloc());
+        manager.buffers[i % 5].file = &file;
+        TEST_SUCCESS(manager.buffers[i % 5].append_mru(false));
+    }
 
-    // int i;
-    // for (i = 0; i < 13; ++i) {
-    //     TEST(i % 5 == buffer_manager_alloc(&manager));
-    //     manager.buffers[i % 5].file = &file;
-    //     manager.buffers[i % 5].is_dirty = FALSE;
-    //     TEST_SUCCESS(buffer_append_mru(&manager.buffers[i % 5], FALSE));
-    // }
-
-    // for (i = 0; i < 5; ++i) {
-    //     manager.buffers[i].file = NULL;
-    // }
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
+    for (int i = 0; i < 5; ++i) {
+        manager.buffers[i].file = nullptr;
+    }
 })
 
 TEST_SUITE(BufferManagerTest::load, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
+    int idx = manager.load(file, FILE_HEADER_PAGENUM);
+    TEST(idx == 0);
+    TEST(manager.num_buffer == 1);
+    TEST(manager.mru == 0);
+    TEST(manager.lru == 0);
 
-    // int idx = buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
-    // TEST(idx == 0);
-    // TEST(manager.num_buffer == 1);
-    // TEST(manager.mru == 0);
-    // TEST(manager.lru == 0);
+    Buffer* buffer = &manager.buffers[idx];
+    TEST(buffer->block_idx == 0);
+    TEST(buffer->prev_use == -1);
+    TEST(buffer->next_use == -1);
+    TEST(buffer->pagenum == FILE_HEADER_PAGENUM);
 
-    // struct buffer_t* buffer = &manager.buffers[idx];
-    // TEST(buffer->block_idx == 0);
-    // TEST(buffer->prev_use == -1);
-    // TEST(buffer->next_use == -1);
-    // TEST(buffer->pagenum == FILE_HEADER_PAGENUM);
+    idx = manager.load(file, FILE_HEADER_PAGENUM);
+    TEST(idx == 1);
+    TEST(manager.num_buffer == 2);
+    TEST(manager.mru == 1);
+    TEST(manager.lru == 0);
+    TEST(buffer->prev_use == -1);
+    TEST(buffer->next_use == 1);
 
-    // idx = buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
-    // TEST(idx == 1);
-    // TEST(manager.num_buffer == 2);
-    // TEST(manager.mru == 1);
-    // TEST(manager.lru == 0);
-    // TEST(buffer->prev_use == -1);
-    // TEST(buffer->next_use == 1);
+    buffer = &manager.buffers[idx];
+    TEST(buffer->block_idx == 1);
+    TEST(buffer->prev_use == 0);
+    TEST(buffer->next_use == -1);
 
-    // buffer = &manager.buffers[idx];
-    // TEST(buffer->block_idx == 1);
-    // TEST(buffer->prev_use == 0);
-    // TEST(buffer->next_use == -1);
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // TEST_SUCCESS(file_close(&file));
-    // remove("testfile");
+    manager.shutdown();
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::release_block, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
+    int idx = manager.load(file, FILE_HEADER_PAGENUM);
+    TEST(idx == 0);
 
-    // int idx = buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
-    // TEST(idx == 0);
+    idx = manager.load(file, FILE_HEADER_PAGENUM);
+    TEST(idx == 1);
 
-    // idx = buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM);
-    // TEST(idx == 1);
+    TEST_SUCCESS(manager.release_block(1));
+    TEST(manager.num_buffer == 1);
+    TEST(manager.lru == 0);
+    TEST(manager.mru == 0);
+    TEST(manager.buffers[0].next_use == -1);
+    TEST(manager.buffers[0].prev_use == -1);
 
-    // TEST_SUCCESS(buffer_manager_release_block(&manager, 1));
-    // TEST(manager.num_buffer == 1);
-    // TEST(manager.lru == 0);
-    // TEST(manager.mru == 0);
-    // TEST(manager.buffers[0].next_use == -1);
-    // TEST(manager.buffers[0].prev_use == -1);
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // TEST_SUCCESS(file_close(&file));
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::release_file, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
 
-    // struct file_manager_t file1;
-    // struct file_manager_t file2;
-    // TEST_SUCCESS(file_open(&file1, "testfile"));
-    // TEST_SUCCESS(file_open(&file2, "testfile2"));
+    FileManager file1("testfile");
+    FileManager file2("testfile2");
 
-    // TEST(0 == buffer_manager_load(&manager, &file1, FILE_HEADER_PAGENUM));
+    TEST(0 == manager.load(file1, FILE_HEADER_PAGENUM));
 
-    // TEST(1 == buffer_manager_load(&manager, &file2, FILE_HEADER_PAGENUM));
-    // TEST(2 == buffer_manager_load(&manager, &file2, FILE_HEADER_PAGENUM));
+    TEST(1 == manager.load(file2, FILE_HEADER_PAGENUM));
+    TEST(2 == manager.load(file2, FILE_HEADER_PAGENUM));
 
-    // TEST_SUCCESS(buffer_manager_release_file(&manager, file2.id));
-    // TEST(manager.num_buffer == 1);
-    // TEST(manager.buffers[0].file == &file1);
-    // TEST(manager.buffers[1].file == NULL);
-    // TEST(manager.buffers[2].file == NULL);
+    TEST_SUCCESS(manager.release_file(file2.get_id()));
+    TEST(manager.num_buffer == 1);
+    TEST(manager.buffers[0].file == &file1);
+    TEST(manager.buffers[1].file == nullptr);
+    TEST(manager.buffers[2].file == nullptr);
 
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // TEST_SUCCESS(file_close(&file1));
-    // TEST_SUCCESS(file_close(&file2));
-    // remove("testfile");
-    // remove("testfile2");
+    TEST_SUCCESS(manager.shutdown());
+    file1.~FileManager();
+    file2.~FileManager();
+    remove("testfile");
+    remove("testfile2");
 })
 
 TEST_SUITE(BufferManagerTest::release, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
+    for (int i = 0; i < 4; ++i) {
+        TEST(-1 != manager.load(file, FILE_HEADER_PAGENUM));
+    }
+    TEST(manager.lru == 0);
 
-    // int i;
-    // for (i = 0; i < 4; ++i) {
-    //     TEST(-1 != buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
-    // }
-    // TEST(manager.lru == 0);
+    // case 1. lru
+    // 0 -> 1 -> 2 -> 3
+    TEST(0 == manager.release(ReleaseLRU::inst()));
+    TEST(manager.lru == 1);
+    TEST(manager.buffers[1].next_use == 2);
 
-    // // case 1. lru
-    // // 0 -> 1 -> 2 -> 3
-    // TEST(0 == buffer_manager_release(&manager, &RELEASE_LRU));
-    // TEST(manager.lru == 1);
-    // TEST(manager.buffers[1].next_use == 2);
+    // case 2. lru is pinned
+    // 1 -> 2 -> 3
+    manager.buffers[1].pin++;
+    TEST(2 == manager.release(ReleaseLRU::inst()));
+    TEST(manager.lru == 1);
 
-    // // case 2. lru is pinned
-    // // 1 -> 2 -> 3
-    // manager.buffers[1].pin++;
-    // TEST(2 == buffer_manager_release(&manager, &RELEASE_LRU));
-    // TEST(manager.lru == 1);
+    // case 3. mru
+    // 1 -> 3 -> 0 
+    manager.buffers[3].pin++;
+    TEST(0 == manager.load(file, FILE_HEADER_PAGENUM));
+    TEST(0 == manager.release(ReleaseLRU::inst()));
+    TEST(manager.lru == 1);
 
-    // // case 3. mru
-    // // 1 -> 3 -> 0 
-    // manager.buffers[3].pin++;
-    // TEST(0 == buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
-    // TEST(0 == buffer_manager_release(&manager, &RELEASE_LRU));
-    // TEST(manager.lru == 1);
+    // case 1. mru
+    // 1 -> 3 -> 0
+    manager.buffers[1].pin = 0;
+    manager.buffers[3].pin = 0;
+    TEST(0 == manager.load(file, FILE_HEADER_PAGENUM));
+    TEST(0 == manager.release(ReleaseMRU::inst()));
 
-    // // case 1. mru
-    // // 1 -> 3 -> 0
-    // manager.buffers[1].pin = 0;
-    // manager.buffers[3].pin = 0;
-    // TEST(0 == buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
-    // TEST(0 == buffer_manager_release(&manager, &RELEASE_MRU));
+    // case 2. mru is pinned
+    // 1 -> 3 -> 0
+    TEST(0 == manager.load(file, FILE_HEADER_PAGENUM));
+    manager.buffers[0].pin++;
 
-    // // case 2. mru is pinned
-    // // 1 -> 3 -> 0
-    // TEST(0 == buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
-    // manager.buffers[0].pin++;
+    TEST(3 == manager.release(ReleaseMRU::inst()));
 
-    // TEST(3 == buffer_manager_release(&manager, &RELEASE_MRU));
+    // case 3. lru
+    // 1 -> 0 -> 2
+    TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
+    manager.buffers[2].pin++;
 
-    // // case 3. lru
-    // // 1 -> 0 -> 2
-    // TEST(2 == buffer_manager_load(&manager, &file, FILE_HEADER_PAGENUM));
-    // manager.buffers[2].pin++;
+    TEST(1 == manager.release(ReleaseMRU::inst()));
 
-    // TEST(1 == buffer_manager_release(&manager, &RELEASE_MRU));
+    manager.buffers[0].pin = 0;
+    manager.buffers[2].pin = 0;
 
-    // manager.buffers[0].pin = 0;
-    // manager.buffers[2].pin = 0;
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // TEST_SUCCESS(file_close(&file));
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::find, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
+    pagenum_t pagenum[3];
+    for (int i = 0; i < 3; ++i) {
+        pagenum[i] = file.page_create();
+        TEST(pagenum[i] != INVALID_PAGENUM);
+        TEST(i == manager.load(file, pagenum[i]));
+    }
 
-    // int i;
-    // pagenum_t pagenum[3];
-    // for (i = 0; i < 3; ++i) {
-    //     pagenum[i] = page_create(&file);
-    //     TEST(pagenum != INVALID_PAGENUM);
-    //     TEST(i == buffer_manager_load(&manager, &file, pagenum[i]));
-    // }
+    for (int i = 0; i < 3; ++i) {
+        TEST(i == manager.find(file.get_id(), pagenum[i]));
+    }
 
-    // for (i = 0; i < 3; ++i) {
-    //     TEST(i == buffer_manager_find(&manager, file.id, pagenum[i]));
-    // }
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // TEST_SUCCESS(file_close(&file));
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::buffering, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
+    pagenum_t pagenum[10];
+    for (int i = 0; i < 10; ++i) {
+        pagenum[i] = file.page_create();
+        TEST(pagenum[i] != INVALID_PAGENUM);
 
-    // int i;
-    // pagenum_t pagenum[10];
-    // struct ubuffer_t ubuf;
-    // for (i = 0; i < 10; ++i) {
-    //     pagenum[i] = page_create(&file);
-    //     TEST(pagenum != INVALID_PAGENUM);
+        Ubuffer ubuf = manager.buffering(file, pagenum[i]);
+        TEST(ubuf.pagenum == ubuf.buf->pagenum);
+        TEST(ubuf.file == ubuf.buf->file);
+        TEST(pagenum[i] == ubuf.buf->pagenum);
+        TEST(&manager.buffers[i % 5] == ubuf.buf);
+    }
 
-    //     ubuf = buffer_manager_buffering(&manager, &file, pagenum[i]);
-    //     TEST(ubuf.pagenum == ubuf.buf->pagenum);
-    //     TEST(ubuf.file == ubuf.buf->file);
-    //     TEST(pagenum[i] == ubuf.buf->pagenum);
-    //     TEST(&manager.buffers[i % 5] == ubuf.buf);
-    // }
+    for (int i = 9; i >= 5; --i) {
+        Ubuffer ubuf = manager.buffering(file, pagenum[i]);
+        TEST(ubuf.pagenum == ubuf.buf->pagenum);
+        TEST(ubuf.file == ubuf.buf->file);
+        TEST(pagenum[i] == ubuf.buf->pagenum);
+        TEST(&manager.buffers[i % 5] == ubuf.buf);
+    }
 
-    // for (i = 9; i >= 5; --i) {
-    //     ubuf = buffer_manager_buffering(&manager, &file, pagenum[i]);
-    //     TEST(ubuf.pagenum == ubuf.buf->pagenum);
-    //     TEST(ubuf.file == ubuf.buf->file);
-    //     TEST(pagenum[i] == ubuf.buf->pagenum);
-    //     TEST(&manager.buffers[i % 5] == ubuf.buf);
-    // }
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // TEST_SUCCESS(file_close(&file));
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::new_page, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
+    for (int i = 0; i < 13; ++i) {
+        Ubuffer ubuf = manager.new_page(file);
+        TEST(&manager.buffers[i % 5] == ubuf.buf);
+    }
 
-    // int i;
-    // struct ubuffer_t ubuf;
-    // for (i = 0; i < 13; ++i) {
-    //     ubuf = buffer_manager_new_page(&manager, &file);
-    //     TEST(&manager.buffers[i % 5] == ubuf.buf);
-    // }
-    
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // TEST_SUCCESS(file_close(&file));
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::free_page, {
-    // struct buffer_manager_t manager;
-    // TEST_SUCCESS(buffer_manager_init(&manager, 5));
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // struct file_manager_t file;
-    // TEST_SUCCESS(file_open(&file, "testfile"));
+    Ubuffer ubuf = manager.new_page(file);
+    TEST_SUCCESS(manager.free_page(file, ubuf.buf->pagenum));
 
-    // struct ubuffer_t ubuf = buffer_manager_new_page(&manager, &file);
-    // TEST_SUCCESS(buffer_manager_free_page(&manager, &file, ubuf.buf->pagenum));
-
-    // TEST_SUCCESS(buffer_manager_shutdown(&manager));
-    // TEST_SUCCESS(file_close(&file));
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 int buffer_manager_test() {

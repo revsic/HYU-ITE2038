@@ -79,6 +79,8 @@ private:
 
 #ifdef TEST_MODULE
     friend struct BufferTest;
+
+    friend struct BufferManagerTest;
 #endif
 };
 
@@ -120,6 +122,8 @@ private:
 
 #ifdef TEST_MODULE
     friend struct UbufferTest;
+
+    friend struct BufferManagerTest;
 #endif
 };
 
