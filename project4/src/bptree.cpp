@@ -23,7 +23,33 @@ void BPTree::test_config(int leaf_order,
 }
 
 void BPTree::print_leaves() {
+    pagenum_t pagenum;
+    Ubuffer buffer = buffering(FILE_HEADER_PAGENUM);
+    buffer.use(RWFlag::READ, [&pagenum](Page& page) {
+        pagenum = page.file_header().root_page_number;
+        return Status::SUCCESS;
+    });
 
+    if (pagenum == INVALID_PAGENUM) {
+        std::cout << "Empty tree." << std::endl;
+        return;
+    }
+
+    bool is_leaf = false;
+    while (!is_leaf) {
+        buffer = buffering(pagenum);
+        buffer.use(RWFlag::READ, [&is_leaf, &pagenum](Page& page) {
+            is_leaf = page.page_header().is_leaf;
+            pagenum = page.page_header().special_page_number;
+            return Status::SUCCESS;
+        });
+    }
+
+    while (true) {
+        buffer.use(RWFlag::READ, [](Page& buf) {
+            return Status::SUCCESS;
+        });
+    }
 }
 
 void BPTree::print_tree() {
@@ -49,9 +75,9 @@ std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) {
     }
 
     int i;
-    Status res = buffer.use(RWFlag::READ, [start, &i](Ubuffer& buf) {
-        Record* rec = buf.page().records();
-        int num_key = buf.page().page_header().number_of_keys;
+    Status res = buffer.use(RWFlag::READ, [start, &i](Page& page) {
+        Record* rec = page.records();
+        int num_key = page.page_header().number_of_keys;
         for (i = 0; i < num_key && rec[i].key < start; ++i)
             {}
 
@@ -67,9 +93,9 @@ std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) {
 
     while (true) {
         pagenum_t next;
-        res = buffer.use(RWFlag::READ, [end, &next, &i, &retn](Ubuffer& buf) {
-            Record* rec = buf.page().records();
-            int num_key = buf.page().page_header().number_of_keys;
+        res = buffer.use(RWFlag::READ, [end, &next, &i, &retn](Page& page) {
+            Record* rec = page.records();
+            int num_key = page.page_header().number_of_keys;
             for (; i < num_key && rec[i].key <= end; ++i) {
                 retn.push_back(rec[i]);
             }
@@ -77,7 +103,7 @@ std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) {
             if (i < num_key && rec[i].key > end) {
                 next = INVALID_PAGENUM;
             } else {
-                next = buf.page().page_header().special_page_number;
+                next = page.page_header().special_page_number;
             }
             return Status::SUCCESS;
         });
@@ -122,8 +148,8 @@ Ubuffer BPTree::create_page(bool leaf) {
     }
 
     EXIT_ON_FAILURE(
-        ubuf.use(RWFlag::WRITE, [leaf](Ubuffer& buf) {
-            return buf.page().init(leaf);
+        ubuf.use(RWFlag::WRITE, [leaf](Page& page) {
+            return page.init(leaf);
         })
     );
 
@@ -146,8 +172,8 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) {
 
     pagenum_t page;
     EXIT_ON_FAILURE(
-        buffer.use(RWFlag::READ, [&page](Ubuffer& ubuf) {
-            page = ubuf.page().file_header().root_page_number;
+        buffer.use(RWFlag::READ, [&page](Page& bufpage) {
+            page = bufpage.file_header().root_page_number;
             return Status::SUCCESS;
         })
     );
@@ -160,9 +186,9 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) {
     while (runnable) {
         buffer = buffering(page);
         EXIT_ON_FAILURE(
-            buffer.use(RWFlag::READ, [key, &page, &runnable](Ubuffer& ubuf) {
-                Internal* ent = ubuf.page().entries();
-                PageHeader& header = ubuf.page().page_header();
+            buffer.use(RWFlag::READ, [key, &page, &runnable](Page& bufpage) {
+                Internal* ent = bufpage.entries();
+                PageHeader& header = bufpage.page_header();
                 if (header.is_leaf) {
                     runnable = false;
                     return Status::SUCCESS;
@@ -188,8 +214,7 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) {
 }
 
 Status BPTree::find_key_from_leaf(prikey_t key, Ubuffer buffer, Record* record) {
-    return buffer.use(RWFlag::READ, [key, record](Ubuffer& buf) {
-        Page& page = buf.page();
+    return buffer.use(RWFlag::READ, [key, record](Page& page) {
         if (!page.page_header().is_leaf) {
             return Status::FAILURE;
         }
