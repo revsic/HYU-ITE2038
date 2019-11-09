@@ -49,6 +49,8 @@ private:
 
     Status free_page(pagenum_t pagenum);
 
+    int path_to_root(pagenum_t pagenum);
+
     static constexpr int cut(int length);
 
 // find
@@ -56,7 +58,9 @@ private:
 
     Status find_key_from_leaf(prikey_t key, Ubuffer buffer, Record* record);
 
-    Status find_pagenum_from_internal(pagenum_t pagenum, Ubuffer buffer);
+    Status find_pagenum_from_internal(pagenum_t pagenum,
+                                      Ubuffer buffer,
+                                      int idx);
 
 // insert
     Status write_record(Record& rec,
