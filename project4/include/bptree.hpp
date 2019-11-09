@@ -52,7 +52,7 @@ private:
     static constexpr int cut(int length);
 
 // find
-    pagenum_t find_leaf(prikey_t key, Ubuffer buffer);
+    pagenum_t find_leaf(prikey_t key, Ubuffer& buffer);
 
     Status find_key_from_leaf(prikey_t key, Ubuffer buffer, Record* record);
 

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <iostream>
 
 #include "bptree.hpp"
@@ -30,11 +31,71 @@ void BPTree::print_tree() {
 }
 
 Status BPTree::find(prikey_t key, Record* record) {
-    return Status::SUCCESS;
+    Ubuffer buffer(nullptr);
+    pagenum_t c = find_leaf(key, buffer);
+    if (c == INVALID_PAGENUM) {
+        return Status::FAILURE;
+    }
+    return find_key_from_leaf(key, std::move(buffer), record);
 }
 
 std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) {
-    return std::vector<Record>();
+    std::vector<Record> retn;
+
+    Ubuffer buffer(nullptr);
+    pagenum_t leaf = find_leaf(start, buffer);
+    if (leaf == INVALID_PAGENUM) {
+        return retn;
+    }
+
+    int i;
+    Status res = buffer.use(RWFlag::READ, [start, &i](Ubuffer& buf) {
+        Record* rec = buf.page().records();
+        int num_key = buf.page().page_header().number_of_keys;
+        for (i = 0; i < num_key && rec[i].key < start; ++i)
+            {}
+
+        if (i == num_key) {
+            return Status::FAILURE;
+        }
+        return Status::SUCCESS;
+    });
+
+    if (res == Status::FAILURE) {
+        return retn;
+    }
+
+    while (true) {
+        pagenum_t next;
+        res = buffer.use(RWFlag::READ, [end, &next, &i, &retn](Ubuffer& buf) {
+            Record* rec = buf.page().records();
+            int num_key = buf.page().page_header().number_of_keys;
+            for (; i < num_key && rec[i].key <= end; ++i) {
+                retn.push_back(rec[i]);
+            }
+
+            if (i < num_key && rec[i].key > end) {
+                next = INVALID_PAGENUM;
+            } else {
+                next = buf.page().page_header().special_page_number;
+            }
+            return Status::SUCCESS;
+        });
+
+        if (res == Status::FAILURE) {
+            return std::vector<Record>();
+        }
+        if (next == INVALID_PAGENUM) {
+            break;
+        }
+
+        i = 0;
+        buffer = buffering(next);
+        if (buffer.buffer() == nullptr) {
+            return std::vector<Record>();
+        }
+    }
+    return retn;
 }
 
 Status BPTree::insert(prikey_t key, uint8_t* value, int value_size) {
@@ -80,7 +141,7 @@ constexpr int BPTree::cut(int length) {
 }
 
 // find
-pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer buffer) {
+pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) {
     buffer = buffering(FILE_HEADER_PAGENUM);
 
     pagenum_t page;
@@ -92,9 +153,6 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer buffer) {
     );
 
     if (page == INVALID_PAGENUM) {
-        if (verbose_output) {
-            std::cout << "Empty tree." << std::endl;
-        }
         return page;
     }
 
@@ -102,32 +160,19 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer buffer) {
     while (runnable) {
         buffer = buffering(page);
         EXIT_ON_FAILURE(
-            buffer.use(RWFlag::READ, [this, key, &page, &runnable](Ubuffer& ubuf) {
+            buffer.use(RWFlag::READ, [key, &page, &runnable](Ubuffer& ubuf) {
                 Internal* ent = ubuf.page().entries();
                 PageHeader& header = ubuf.page().page_header();
-
                 if (header.is_leaf) {
                     runnable = false;
                     return Status::SUCCESS;
                 }
 
-                if (verbose_output) {
-                    std::cout << '[';
-                    for (int i = 0; i < header.number_of_keys - 1; ++i) {
-                        std::cout << ent[i].key << ' ';
-                    }
-                    std::cout << ent[header.number_of_keys - 1].key << "] ";
-                }
-
                 int i;
                 for (i = 0; i < header.number_of_keys && key >= ent[i].key; ++i)
                     {}
-                
-                --i;
-                if (verbose_output) {
-                    std::cout << i << " ->" << std::endl;
-                }
 
+                --i;
                 if (i < 0) {
                     page = header.special_page_number;
                 } else {
@@ -139,29 +184,28 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer buffer) {
         );
     }
 
-    if (verbose_output) {
-        EXIT_ON_FAILURE(
-            buffer.use(RWFlag::READ, [](Ubuffer& ubuf) {
-                PageHeader& header = ubuf.page().page_header();
-                Record* rec = ubuf.page().records();
-
-                std::cout << "Leaf [";
-                for (int i = 0; i < header.number_of_keys - 1; ++i) {
-                    std::cout << rec[i].key << ' ';
-                }
-                std::cout << rec[header.number_of_keys - 1].key
-                          << ']'
-                          << std::endl;
-                return Status::SUCCESS;
-            })
-        );
-    }
-
     return page;
 }
 
 Status BPTree::find_key_from_leaf(prikey_t key, Ubuffer buffer, Record* record) {
-    return Status::SUCCESS;
+    return buffer.use(RWFlag::READ, [key, record](Ubuffer& buf) {
+        Page& page = buf.page();
+        if (!page.page_header().is_leaf) {
+            return Status::FAILURE;
+        }
+
+        int i, num_key = page.page_header().number_of_keys;
+        for (i = 0; i < num_key && page.records()[i].key != key; ++i)
+            {}
+        
+        if (i < num_key) {
+            if (record != nullptr) {
+                std::memcpy(record, &page.records()[i], sizeof(Record));
+            }
+            return Status::SUCCESS;
+        }
+        return Status::FAILURE;
+    });
 }
 
 Status BPTree::find_pagenum_from_internal(pagenum_t pagenum, Ubuffer buffer) {
