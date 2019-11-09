@@ -175,13 +175,13 @@ public:
 
     /// Use buffer frame safely.
     /// \param flag RWFlag, read write flag.
-    /// \param callback void(Ubuffer&), callback.
+    /// \param callback void(Page&), callback.
     /// \return Status, whether success or not.
     template <typename F>
     inline Status use(RWFlag flag, F&& callback) {
         CHECK_SUCCESS(check());
         CHECK_SUCCESS(buf->start_use(flag));
-        Status res = callback(*this);
+        Status res = callback(page());
         CHECK_SUCCESS(buf->end_use(flag));
         return res;
     }

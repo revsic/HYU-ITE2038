@@ -243,9 +243,9 @@ TEST_SUITE(BufferTest::release, {
 
     // case 2. dirty
     Ubuffer(target).use(
-        RWFlag::WRITE, [](Ubuffer& buf) {
-            buf.page().file_header().root_page_number = 1;
-            buf.page().file_header().number_of_pages = 20;
+        RWFlag::WRITE, [](Page& page) {
+            page.file_header().root_page_number = 1;
+            page.file_header().number_of_pages = 20;
             return Status::SUCCESS;
         });
 
