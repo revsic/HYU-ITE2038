@@ -48,6 +48,9 @@ $(SRCDIR)disk_manager.o:
 $(SRCDIR)buffer_manager.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.cpp
 
+$(SRCDIR)bptree.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)bptree.o -c $(SRCDIR)bptree.c
+
 # $(SRCDIR)table.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)table.o -c $(SRCDIR)table.c
 
@@ -59,9 +62,6 @@ $(SRCDIR)buffer_manager.o:
 
 # $(SRCDIR)dbapi.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.c
-
-# $(SRCDIR)bpt.o:
-# 	$(CC) $(CFLAGS) -o $(SRCDIR)bpt.o -c $(SRCDIR)bpt.c
 
 $(TARGET): $(TARGET_OBJ)
 	make static_library
