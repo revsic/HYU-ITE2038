@@ -6,15 +6,11 @@
 - buffer manager
     - searching policy
     - create, new method run on buffer (not primitive api)
-- bpt:
-    - ubuffer: only pass by value
 - table
     - seperate table id and file id
     - unit test
 - table manager
     - unit test
-- all
-    - replace return type of procedure which use SUCCESS
 
 ### Done
 - headers
