@@ -1,0 +1,27 @@
+# static library
+*.a
+
+# shared object
+*.so
+
+# object files
+*.o
+
+# executable files
+main
+test
+perf
+
+# mac files
+.DS_Store
+
+# editor
+.vscode
+test.dSYM
+
+# db file
+datafile
+testfile
+
+# input file
+input.txt
