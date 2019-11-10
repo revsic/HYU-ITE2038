@@ -274,6 +274,41 @@ Ubuffer BPTree::create_page(bool leaf) {
 }
 
 Status BPTree::free_page(pagenum_t pagenum) {
+    pagenum_t root;
+    CHECK_SUCCESS(
+        buffering(FILE_HEADER_PAGENUM).use(RWFlag::WRITE, [&](Page& page) {
+            root = page.file_header().root_page_number;
+            page.file_header().root_page_number = INVALID_PAGENUM;
+            return Status::SUCCESS;
+        })
+    );
+
+    if (root == INVALID_PAGENUM) {
+        return Status::SUCCESS;
+    }
+
+    std::queue<pagenum_t> queue;
+    queue.push(root);
+
+    while (!queue.empty()) {
+        pagenum_t pagenum = queue.front();
+        queue.pop();
+
+        CHECK_SUCCESS(
+            buffering(pagenum).use(RWFlag::READ, [&](Page& page) {
+                if (!page.page_header().is_leaf) {
+                    queue.push(page.page_header().special_page_number);
+                    
+                    int num_key = page.page_header().number_of_keys;
+                    for (int i = 0; i < num_key; ++i) {
+                        queue.push(page.entries()[i].pagenum);
+                    }
+                }
+                return Status::SUCCESS;
+            })
+        );
+        CHECK_SUCCESS(free_page(pagenum));
+    }
     return buffers->free_page(*file, pagenum);
 }
 
