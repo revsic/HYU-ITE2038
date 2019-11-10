@@ -6,6 +6,10 @@
 #include "buffer_manager.hpp"
 #include "disk_manager.hpp"
 
+#ifdef TEST_MODULE
+#include "test.hpp"
+#endif
+
 class BPTree {
 public:
     static constexpr int DEFAULT_LEAF_ORDER = 32;
@@ -28,7 +32,7 @@ public:
 
     std::vector<Record> find_range(prikey_t start, prikey_t end);
 
-    Status insert(prikey_t key, uint8_t* value, int value_size);
+    Status insert(prikey_t key, const uint8_t* value, int value_size);
 
     Status remove(prikey_t key);
 
@@ -56,11 +60,11 @@ private:
 // find
     pagenum_t find_leaf(prikey_t key, Ubuffer& buffer);
 
-    Status find_key_from_leaf(prikey_t key, Ubuffer buffer, Record* record);
+    Status find_key_from_leaf(prikey_t key, Ubuffer& buffer, Record* record);
 
     Status find_pagenum_from_internal(pagenum_t pagenum,
-                                      Ubuffer buffer,
-                                      int idx);
+                                      Ubuffer& buffer,
+                                      int& idx);
 
 // insert
     Status write_record(Record& rec,
@@ -76,9 +80,9 @@ private:
 
     Status insert_and_split_node(Ubuffer node, int index, Internal const& entry);
 
-    Status insert_to_parent(Ubuffer leaf, prikey_t key, Ubuffer right);
+    Status insert_to_parent(Ubuffer left, prikey_t key, Ubuffer right);
 
-    Status insert_new_root(Ubuffer leaf, prikey_t key, Ubuffer right);
+    Status insert_new_root(Ubuffer left, prikey_t key, Ubuffer right);
 
     Status new_tree(Record const& rec);
 
@@ -113,6 +117,10 @@ private:
                               Ubuffer parent);
     
     Status delete_entry(prikey_t key, Ubuffer page);
+
+#ifdef TEST_MODULE
+    struct BPTreeTest;
+#endif
 };
 
 #endif

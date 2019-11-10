@@ -26,7 +26,7 @@ void BPTree::test_config(int leaf_order,
 void BPTree::print_leaves() {
     pagenum_t pagenum;
     Ubuffer buffer = buffering(FILE_HEADER_PAGENUM);
-    buffer.use(RWFlag::READ, [&pagenum](Page& page) {
+    buffer.use(RWFlag::READ, [&](Page& page) {
         pagenum = page.file_header().root_page_number;
         return Status::SUCCESS;
     });
@@ -39,7 +39,7 @@ void BPTree::print_leaves() {
     bool is_leaf = false;
     while (!is_leaf) {
         buffer = buffering(pagenum);
-        buffer.use(RWFlag::READ, [&is_leaf, &pagenum](Page& page) {
+        buffer.use(RWFlag::READ, [&](Page& page) {
             is_leaf = page.page_header().is_leaf;
             pagenum = page.page_header().special_page_number;
             return Status::SUCCESS;
@@ -47,7 +47,7 @@ void BPTree::print_leaves() {
     }
 
     while (true) {
-        buffer.use(RWFlag::READ, [this, &pagenum](Page& page) {
+        buffer.use(RWFlag::READ, [&](Page& page) {
             Record* rec = page.records();
             int num_key = page.page_header().number_of_keys;
             pagenum = page.page_header().special_page_number;
@@ -81,7 +81,7 @@ void BPTree::print_leaves() {
 void BPTree::print_tree() {
     pagenum_t root;
     Ubuffer buffer = buffering(FILE_HEADER_PAGENUM);
-    buffer.use(RWFlag::READ, [&root](Page& page) {
+    buffer.use(RWFlag::READ, [&](Page& page) {
         root = page.file_header().root_page_number;
         return Status::SUCCESS;
     });
@@ -172,7 +172,7 @@ Status BPTree::find(prikey_t key, Record* record) {
     if (c == INVALID_PAGENUM) {
         return Status::FAILURE;
     }
-    return find_key_from_leaf(key, std::move(buffer), record);
+    return find_key_from_leaf(key, buffer, record);
 }
 
 std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) {
@@ -185,7 +185,7 @@ std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) {
     }
 
     int i;
-    Status res = buffer.use(RWFlag::READ, [start, &i](Page& page) {
+    Status res = buffer.use(RWFlag::READ, [&](Page& page) {
         Record* rec = page.records();
         int num_key = page.page_header().number_of_keys;
         for (i = 0; i < num_key && rec[i].key < start; ++i)
@@ -234,8 +234,38 @@ std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) {
     return retn;
 }
 
-Status BPTree::insert(prikey_t key, uint8_t* value, int value_size) {
-    return Status::SUCCESS;
+Status BPTree::insert(prikey_t key, const uint8_t* value, int value_size) {
+    Ubuffer leaf_page(nullptr);
+    pagenum_t leaf = find_leaf(key, leaf_page);
+    if (leaf != INVALID_PAGENUM
+        && find_key_from_leaf(key, leaf_page, nullptr) == Status::SUCCESS) {
+        return Status::FAILURE;
+    }
+
+    Record record;
+    CHECK_SUCCESS(write_record(record, key, value, value_size));
+
+    pagenum_t root;
+    CHECK_SUCCESS(
+        buffering(FILE_HEADER_PAGENUM).use(RWFlag::READ, [&](Page& page) {
+            root = page.file_header().root_page_number;
+            return Status::SUCCESS;
+        })
+    );
+    if (root == INVALID_PAGENUM) {
+        return new_tree(record);
+    }
+
+    int num_key;
+    CHECK_SUCCESS(leaf_page.use(RWFlag::READ, [&](Page& page) {
+        num_key = page.page_header().number_of_keys;
+        return Status::SUCCESS;
+    }));
+    if (num_key < leaf_order - 1) {
+        return insert_to_leaf(std::move(leaf_page), record);
+    }
+
+    return insert_and_split_leaf(std::move(leaf_page), record);
 }
 
 Status BPTree::remove(prikey_t key) {
@@ -265,7 +295,7 @@ Ubuffer BPTree::create_page(bool leaf) {
     }
 
     EXIT_ON_FAILURE(
-        ubuf.use(RWFlag::WRITE, [leaf](Page& page) {
+        ubuf.use(RWFlag::WRITE, [&](Page& page) {
             return page.init(leaf);
         })
     );
@@ -315,7 +345,7 @@ Status BPTree::free_page(pagenum_t pagenum) {
 int BPTree::path_to_root(pagenum_t pagenum) {
     pagenum_t root;
     EXIT_ON_FAILURE(
-        buffering(FILE_HEADER_PAGENUM).use(RWFlag::READ, [&root](Page& page) {
+        buffering(FILE_HEADER_PAGENUM).use(RWFlag::READ, [&](Page& page) {
             root = page.file_header().root_page_number;
             return Status::SUCCESS;
         })
@@ -324,7 +354,7 @@ int BPTree::path_to_root(pagenum_t pagenum) {
     int length = 0;
     for (; root != pagenum; ++length) {
         EXIT_ON_FAILURE(
-            buffering(pagenum).use(RWFlag::READ, [&pagenum](Page& page) {
+            buffering(pagenum).use(RWFlag::READ, [&](Page& page) {
                 pagenum = page.page_header().parent_page_number;
                 return Status::SUCCESS;
             })
@@ -345,7 +375,7 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) {
 
     pagenum_t page;
     EXIT_ON_FAILURE(
-        buffer.use(RWFlag::READ, [&page](Page& bufpage) {
+        buffer.use(RWFlag::READ, [&](Page& bufpage) {
             page = bufpage.file_header().root_page_number;
             return Status::SUCCESS;
         })
@@ -386,8 +416,8 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) {
     return page;
 }
 
-Status BPTree::find_key_from_leaf(prikey_t key, Ubuffer buffer, Record* record) {
-    return buffer.use(RWFlag::READ, [key, record](Page& page) {
+Status BPTree::find_key_from_leaf(prikey_t key, Ubuffer& buffer, Record* record) {
+    return buffer.use(RWFlag::READ, [&](Page& page) {
         if (!page.page_header().is_leaf) {
             return Status::FAILURE;
         }
@@ -407,9 +437,9 @@ Status BPTree::find_key_from_leaf(prikey_t key, Ubuffer buffer, Record* record) 
 }
 
 Status BPTree::find_pagenum_from_internal(pagenum_t pagenum,
-                                          Ubuffer buffer,
-                                          int idx) {
-    return buffer.use(RWFlag::READ, [pagenum, &idx](Page& page) {
+                                          Ubuffer& buffer,
+                                          int& idx) {
+    return buffer.use(RWFlag::READ, [&](Page& page) {
         if (page.page_header().special_page_number == pagenum) {
             idx = -1;
             return Status::SUCCESS;
@@ -440,7 +470,7 @@ Status BPTree::write_record(Record& rec,
 }
 
 Status BPTree::insert_to_leaf(Ubuffer leaf, Record const& rec) {
-    return leaf.use(RWFlag::WRITE, [this, &rec](Page& page) {
+    return leaf.use(RWFlag::WRITE, [&](Page& page) {
         int num_key = page.page_header().number_of_keys;
         if (num_key >= leaf_order) {
             return Status::FAILURE;
@@ -613,18 +643,86 @@ Status BPTree::insert_and_split_node(Ubuffer node, int index, Internal const& en
     return insert_to_parent(std::move(node), k_prime, std::move(new_node));
 }
 
-Status BPTree::insert_to_parent(Ubuffer leaf, prikey_t key, Ubuffer right) {
-    CHECK_SUCCESS(leaf.use(RWFlag::READ, [](Page& page) {
-
+Status BPTree::insert_to_parent(Ubuffer left, prikey_t key, Ubuffer right) {
+    pagenum_t parent_num;
+    pagenum_t left_num = left.safe_pagenum();
+    pagenum_t right_num = right.safe_pagenum();
+    CHECK_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
+        parent_num = page.page_header().parent_page_number;
+        return Status::SUCCESS;
     }));
-    return Status::SUCCESS;
+
+    if (parent_num == INVALID_PAGENUM) {
+        return insert_new_root(std::move(left), key, std::move(right));
+    }
+
+    int idx;
+    Ubuffer parent_page = buffering(parent_num);
+    CHECK_SUCCESS(find_pagenum_from_internal(left_num, parent_page, idx));
+
+    int num_key;
+    CHECK_SUCCESS(parent_page.use(RWFlag::READ, [&](Page& page) {
+        num_key = page.page_header().number_of_keys;
+        return Status::SUCCESS;
+    }));
+
+    Internal entry = { key, right_num };
+    if (num_key < internal_order - 1) {
+        return insert_to_node(std::move(parent_page), idx + 1, entry);
+    }
+    return insert_and_split_node(std::move(parent_page), idx + 1, entry);
 }
 
-Status BPTree::insert_new_root(Ubuffer leaf, prikey_t key, Ubuffer right) {
+Status BPTree::insert_new_root(Ubuffer left, prikey_t key, Ubuffer right) {
+    Ubuffer root = create_page(false);
+    pagenum_t root_num = root.safe_pagenum();
+    CHECK_SUCCESS(root.use(RWFlag::WRITE, [&](Page& page) {
+        PageHeader& header = page.page_header();
+        header.number_of_keys++;
+        header.special_page_number = left.safe_pagenum();
+
+        Internal& ent = page.entries()[0];
+        ent.key = key;
+        ent.pagenum = right.safe_pagenum();
+        
+        return Status::SUCCESS;
+    }));
+
+    CHECK_SUCCESS(left.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().parent_page_number = root_num;
+        return Status::SUCCESS;
+    }));
+
+    CHECK_SUCCESS(right.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().parent_page_number = root_num;
+        return Status::SUCCESS;
+    }));
+
+    CHECK_SUCCESS(
+        buffering(FILE_HEADER_PAGENUM).use(RWFlag::WRITE, [&](Page& page) {
+            page.file_header().root_page_number = root_num;
+            return Status::SUCCESS;
+        })
+    );
     return Status::SUCCESS;
 }
 
 Status BPTree::new_tree(Record const& rec) {
+    Ubuffer root = create_page(true);
+    pagenum_t root_num = root.safe_pagenum();
+    CHECK_SUCCESS(root.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().number_of_keys++;
+        memcpy(&page.records()[0], &rec, sizeof(Record));
+        return Status::SUCCESS;
+    }));
+
+    CHECK_SUCCESS(
+        buffering(FILE_HEADER_PAGENUM).use(RWFlag::WRITE, [&](Page& page) {
+            page.file_header().root_page_number = root_num;
+            return Status::SUCCESS;
+        })
+    );
+
     return Status::SUCCESS;
 }
 
@@ -679,6 +777,7 @@ Status BPTree::rotate_to_right(Ubuffer left,
     CHECK_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
         is_leaf = page.page_header().is_leaf;
         num_key = page.page_header().number_of_keys;
+        return Status::SUCCESS;
     }))
 
     if (is_leaf) {
@@ -843,6 +942,7 @@ Status BPTree::shrink_root() {
     Ubuffer rootpage = buffering(root);
     CHECK_SUCCESS(rootpage.use(RWFlag::READ, [&](Page& page) {
         num_key = page.page_header().number_of_keys;
+        return Status::SUCCESS;
     }));
 
     if (num_key > 0) {
@@ -856,6 +956,7 @@ Status BPTree::shrink_root() {
             CHECK_SUCCESS(
                 buffering(childnum).use(RWFlag::WRITE, [](Page& childpage) {
                     childpage.page_header().parent_page_number = INVALID_PAGENUM;
+                    return Status::SUCCESS;
                 })
             );
         }
@@ -879,6 +980,7 @@ Status BPTree::merge_nodes(Ubuffer left,
     CHECK_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
         is_leaf = page.page_header().is_leaf;
         insertion_index = page.page_header().number_of_keys;
+        return Status::SUCCESS;
     }));
 
     if (is_leaf) {
@@ -974,6 +1076,7 @@ Status BPTree::delete_entry(prikey_t key, Ubuffer buffer) {
         is_leaf = page.page_header().is_leaf;
         num_key = page.page_header().number_of_keys;
         parent_num = page.page_header().parent_page_number;
+        return Status::SUCCESS;
     }));
 
     if (is_leaf) {
