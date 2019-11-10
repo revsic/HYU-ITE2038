@@ -83,9 +83,9 @@ private:
     Status new_tree(Record const& rec);
 
 // delete
-    Status remove_record_from_leaf(prikey_t key, Ubuffer node);
+    Status remove_record_from_leaf(prikey_t key, Ubuffer& node);
 
-    Status remove_entry_from_internal(prikey_t key, Ubuffer node);
+    Status remove_entry_from_internal(prikey_t key, Ubuffer& node);
 
     Status rotate_to_right(Ubuffer left,
                            prikey_t key,
