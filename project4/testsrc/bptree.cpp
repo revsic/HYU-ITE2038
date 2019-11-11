@@ -906,7 +906,7 @@ TEST_SUITE(BPTreeTest::shrink_root, {
         page.records()[0].key = 10;
         return Status::SUCCESS;
     }))
-    TEST_SUCCESS(node.use(RWFlag::WRITE, [&](Page& page) {
+    TEST_SUCCESS(filehdr.use(RWFlag::WRITE, [&](Page& page) {
         page.file_header().root_page_number = node.safe_pagenum();
         return Status::SUCCESS;
     }))
@@ -936,24 +936,24 @@ TEST_SUITE(BPTreeTest::shrink_root, {
     }))
 
     // case 2. internal root
-    node = make_node(&bpt, TRUE);
-    pagenum_t nodenum = ubuffer_pagenum(&node);
+    node = bpt.create_page(true);
+    pagenum_t nodenum = node.safe_pagenum();
 
-    node = make_node(&bpt, FALSE);
-    BUFFER(filehdr, WRITE_FLAG, {
-        TEST(file_header(from_ubuffer(&filehdr))->root_page_number =
-            ubuffer_pagenum(&node));
-    })
-    BUFFER(node, WRITE_FLAG, {
-        page_header(from_ubuffer(&node))->special_page_number = nodenum;;
-    })
+    node = bpt.create_page(false);
+    TEST_SUCCESS(filehdr.use(RWFlag::WRITE, [&](Page& page) {
+        page.file_header().root_page_number = node.safe_pagenum();
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(node.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().special_page_number = nodenum;
+        return Status::SUCCESS;
+    }))
 
-    TEST_SUCCESS(shrink_root(&bpt));
-    BUFFER(filehdr, READ_FLAG, {
-        TEST(
-            file_header(from_ubuffer(&filehdr))->root_page_number ==
-                nodenum);
-    })
+    TEST_SUCCESS(bpt.shrink_root());
+    TEST_SUCCESS(filehdr.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.file_header().root_page_number == nodenum);
+        return Status::SUCCESS;
+    }))
 
     bpt_test_postprocess(file, buffers);
 })
