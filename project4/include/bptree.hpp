@@ -71,10 +71,10 @@ private:
                                       int& idx);
 
 // insert
-    Status write_record(Record& rec,
-                        prikey_t key,
-                        const uint8_t* value,
-                        int value_size);
+    static Status write_record(Record& rec,
+                               prikey_t key,
+                               const uint8_t* value,
+                               int value_size);
     
     Status insert_to_leaf(Ubuffer leaf, Record const& rec);
 
