@@ -1130,266 +1130,282 @@ TEST_SUITE(BPTreeTest::rotate_to_left, {
 })
 
 TEST_SUITE(BPTreeTest::redistribute_nodes_leaf, {
-    // int i;
-    // struct bpt_t bpt;
-    // struct file_manager_t file;
-    // struct buffer_manager_t buffers;
-    // TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // struct ubuffer_t parent = make_node(&bpt, FALSE);
-    // struct ubuffer_t left = make_node(&bpt, TRUE);
-    // struct ubuffer_t right = make_node(&bpt, TRUE);
+    Ubuffer parent = bpt.create_page(false);
+    Ubuffer left = bpt.create_page(true);
+    Ubuffer right = bpt.create_page(true);
     
-    // struct page_t* page;
-    // BUFFER(parent, WRITE_FLAG, {
-    //     page = from_ubuffer(&parent);
-    //     page_header(page)->number_of_keys = 1;
-    //     page_header(page)->parent_page_number = INVALID_PAGENUM;
-    //     page_header(page)->special_page_number = ubuffer_pagenum(&left);
-    //     entries(page)[0].key = 3;
-    //     entries(page)[0].pagenum = ubuffer_pagenum(&right);
-    // })
-    // BUFFER(left, WRITE_FLAG, {
-    //     page = from_ubuffer(&left);
-    //     page_header(page)->number_of_keys = 3;
-    //     page_header(page)->parent_page_number = ubuffer_pagenum(&parent);
-    //     for (i = 0; i < 3; ++i) {
-    //         records(page)[i].key = i;
-    //         records(page)[i].value[0] = i;
-    //     }
-    // })
-    // BUFFER(right, WRITE_FLAG, {
-    //     page = from_ubuffer(&right);
-    //     page_header(page)->number_of_keys = 2;
-    //     page_header(page)->parent_page_number = ubuffer_pagenum(&parent);
-    //     for (i = 0; i < 2; ++i) {
-    //         records(page)[i].key = 3 + i;
-    //         records(page)[i].value[0] = 3 + i;
-    //     }
-    // })
+    TEST_SUCCESS(parent.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().number_of_keys = 1;
+        page.page_header().parent_page_number = INVALID_PAGENUM;
+        page.page_header().special_page_number = left.safe_pagenum();
+        page.entries()[0].key = 3;
+        page.entries()[0].pagenum = right.safe_pagenum();
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.use(RWFlag::WRITE, [&](Page& page) {;
+        page.page_header().number_of_keys = 3;
+        page.page_header().parent_page_number = parent.safe_pagenum();
+        for (int i = 0; i < 3; ++i) {
+            page.records()[i].key = i;
+            page.records()[i].value[0] = i;
+        }
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(right.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().number_of_keys = 2;
+        page.page_header().parent_page_number = parent.safe_pagenum();
+        for (int i = 0; i < 2; ++i) {
+            page.records()[i].key = 3 + i;
+            page.records()[i].value[0] = 3 + i;
+        }
+        return Status::SUCCESS;
+    }))
 
-    // TEST_SUCCESS(redistribute_nodes(&bpt, &left, 3, 0, &right, &parent));
+    TEST_SUCCESS(bpt.redistribute_nodes(
+        bpt.buffering(left.safe_pagenum()),
+        3,
+        0,
+        bpt.buffering(right.safe_pagenum()),
+        bpt.buffering(parent.safe_pagenum())));
 
-    // BUFFER(parent, READ_FLAG, {
-    //     page = from_ubuffer(&parent);
-    //     TEST(page_header(page)->number_of_keys == 1);
-    //     TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
-    //     TEST(page_header(page)->special_page_number == ubuffer_pagenum(&left));
-    //     TEST(entries(page)[0].key == 2);
-    //     TEST(entries(page)[0].pagenum == ubuffer_pagenum(&right));
-    // })
-    // BUFFER(left, READ_FLAG, {
-    //     page = from_ubuffer(&left);
-    //     TEST(page_header(page)->number_of_keys == 2);
-    //     TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&parent));
-    //     for (i = 0; i < 2; ++i) {
-    //         TEST(records(page)[i].key == i);
-    //         TEST(records(page)[i].value[0] == i);
-    //     }
-    // })
-    // BUFFER(right, READ_FLAG, {
-    //     page = from_ubuffer(&right);
-    //     TEST(page_header(page)->number_of_keys == 3);
-    //     TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&parent));
-    //     for (i = 0; i < 3; ++i) {
-    //         TEST(records(page)[i].key == 2 + i);
-    //         TEST(records(page)[i].value[0] == 2 + i);
-    //     }
-    // })
+    TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
+        TEST_STATUS(page.page_header().special_page_number == left.safe_pagenum());
+        TEST_STATUS(page.entries()[0].key == 2);
+        TEST_STATUS(page.entries()[0].pagenum == right.safe_pagenum());
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 2);
+        TEST_STATUS(page.page_header().parent_page_number == parent.safe_pagenum());
+        for (int i = 0; i < 2; ++i) {
+            TEST_STATUS(page.records()[i].key == i);
+            TEST_STATUS(page.records()[i].value[0] == i);
+        }
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 3);
+        TEST_STATUS(page.page_header().parent_page_number == parent.safe_pagenum());
+        for (int i = 0; i < 3; ++i) {
+            TEST_STATUS(page.records()[i].key == 2 + i);
+            TEST_STATUS(page.records()[i].value[0] == 2 + i);
+        }
+        return Status::SUCCESS;
+    }))
 
-    // TEST_SUCCESS(redistribute_nodes(&bpt, &left, 3, 0, &right, &parent));
+    TEST_SUCCESS(bpt.redistribute_nodes(
+        bpt.buffering(left.safe_pagenum()),
+        3,
+        0,
+        bpt.buffering(right.safe_pagenum()),
+        bpt.buffering(parent.safe_pagenum())));
 
-    // BUFFER(parent, READ_FLAG, {
-    //     page = from_ubuffer(&parent);
-    //     TEST(page_header(page)->number_of_keys == 1);
-    //     TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
-    //     TEST(page_header(page)->special_page_number == ubuffer_pagenum(&left));
-    //     TEST(entries(page)[0].key == 3);
-    //     TEST(entries(page)[0].pagenum == ubuffer_pagenum(&right));
-    // })
-    // BUFFER(left, READ_FLAG, {
-    //     page = from_ubuffer(&left);
-    //     TEST(page_header(page)->number_of_keys == 3);
-    //     TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&parent));
-    //     for (i = 0; i < 3; ++i) {
-    //         TEST(records(page)[i].key == i);
-    //         TEST(records(page)[i].value[0] == i);
-    //     }
-    // })
-    // BUFFER(right, READ_FLAG, {
-    //     page = from_ubuffer(&right);
-    //     TEST(page_header(page)->number_of_keys == 2);
-    //     TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&parent));
-    //     for (i = 0; i < 2; ++i) {
-    //         TEST(records(page)[i].key == 3 + i);
-    //         TEST(records(page)[i].value[0] == 3 + i);
-    //     }
-    // })
+    TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
+        TEST_STATUS(page.page_header().special_page_number == left.safe_pagenum());
+        TEST_STATUS(page.entries()[0].key == 3);
+        TEST_STATUS(page.entries()[0].pagenum == right.safe_pagenum());
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 3);
+        TEST_STATUS(page.page_header().parent_page_number == parent.safe_pagenum());
+        for (int i = 0; i < 3; ++i) {
+            TEST_STATUS(page.records()[i].key == i);
+            TEST_STATUS(page.records()[i].value[0] == i);
+        }
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 2);
+        TEST_STATUS(page.page_header().parent_page_number == parent.safe_pagenum());
+        for (int i = 0; i < 2; ++i) {
+            TEST_STATUS(page.records()[i].key == 3 + i);
+            TEST_STATUS(page.records()[i].value[0] == 3 + i);
+        }
+        return Status::SUCCESS;
+    }))
 
-    // TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::redistribute_nodes_internal, {
-    // int i;
-    // struct bpt_t bpt;
-    // struct file_manager_t file;
-    // struct buffer_manager_t buffers;
-    // TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // struct ubuffer_t parent = make_node(&bpt, FALSE);
-    // struct ubuffer_t left = make_node(&bpt, FALSE);
-    // struct ubuffer_t right = make_node(&bpt, FALSE);
+    Ubuffer parent = bpt.create_page(false);
+    Ubuffer left = bpt.create_page(false);
+    Ubuffer right = bpt.create_page(false);
     
-    // struct page_t* page;
-    // BUFFER(parent, WRITE_FLAG, {
-    //     page = from_ubuffer(&parent);
-    //     page_header(page)->number_of_keys = 1;
-    //     page_header(page)->parent_page_number = INVALID_PAGENUM;
-    //     page_header(page)->special_page_number = ubuffer_pagenum(&left);
-    //     entries(page)[0].key = 3;
-    //     entries(page)[0].pagenum = ubuffer_pagenum(&right);
-    // })
-    // pagenum_t tmpnum;
-    // pagenum_t pagenums[7];
-    // struct ubuffer_t tmp;
-    // BUFFER(left, WRITE_FLAG, {
-    //     tmpnum = ubuffer_pagenum(&left);
-    //     page = from_ubuffer(&left);
-    //     page_header(page)->number_of_keys = 3;
-    //     page_header(page)->parent_page_number = ubuffer_pagenum(&parent);
-    //     for (i = -1; i < 3; ++i) {
-    //         tmp = make_node(&bpt, TRUE);
-    //         pagenums[i + 1] = ubuffer_pagenum(&tmp);
-    //         if (i == -1) {
-    //             page_header(page)->special_page_number = pagenums[i + 1];
-    //         } else {
-    //             entries(page)[i].key = i;
-    //             entries(page)[i].pagenum = pagenums[i + 1];
-    //         }
+    TEST_SUCCESS(parent.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().number_of_keys = 1;
+        page.page_header().parent_page_number = INVALID_PAGENUM;
+        page.page_header().special_page_number = left.safe_pagenum();
+        page.entries()[0].key = 3;
+        page.entries()[0].pagenum = right.safe_pagenum();
+        return Status::SUCCESS;
+    }))
 
-    //         BUFFER(tmp, WRITE_FLAG, {
-    //             page_header(from_ubuffer(&tmp))->parent_page_number = tmpnum;
-    //         })
-    //     }
-    // })
-    // BUFFER(right, WRITE_FLAG, {
-    //     tmpnum = ubuffer_pagenum(&right);
-    //     page = from_ubuffer(&right);
-    //     page_header(page)->number_of_keys = 2;
-    //     page_header(page)->parent_page_number = ubuffer_pagenum(&parent);
-    //     for (i = -1; i < 2; ++i) {
-    //         tmp = make_node(&bpt, TRUE);
-    //         pagenums[i + 5] = ubuffer_pagenum(&tmp);
-    //         if (i == -1) {
-    //             page_header(page)->special_page_number = pagenums[i + 5];
-    //         } else {
-    //             entries(page)[i].key = 4 + i;
-    //             entries(page)[i].pagenum = pagenums[i + 5];
-    //         }
+    pagenum_t pagenums[7];
+    pagenum_t leftnum = left.safe_pagenum();
+    TEST_SUCCESS(left.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().number_of_keys = 3;
+        page.page_header().parent_page_number = parent.safe_pagenum();
+        for (int i = -1; i < 3; ++i) {
+            Ubuffer tmp = bpt.create_page(true);
+            pagenums[i + 1] = tmp.safe_pagenum();
+            if (i == -1) {
+                page.page_header().special_page_number = pagenums[i + 1];
+            } else {
+                page.entries()[i].key = i;
+                page.entries()[i].pagenum = pagenums[i + 1];
+            }
 
-    //         BUFFER(tmp, WRITE_FLAG, {
-    //             page_header(from_ubuffer(&tmp))->parent_page_number = tmpnum;
-    //         })
-    //     }
-    // })
+            CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
+                tmppage.page_header().parent_page_number = leftnum;
+                return Status::SUCCESS;
+            }))
+        }
+        return Status::SUCCESS;
+    }))
+    pagenum_t rightnum = right.safe_pagenum();
+    TEST_SUCCESS(right.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().number_of_keys = 2;
+        page.page_header().parent_page_number = parent.safe_pagenum();
+        for (int i = -1; i < 2; ++i) {
+            Ubuffer tmp = bpt.create_page(true);
+            pagenums[i + 5] = tmp.safe_pagenum();
+            if (i == -1) {
+                page.page_header().special_page_number = pagenums[i + 5];
+            } else {
+                page.entries()[i].key = 4 + i;
+                page.entries()[i].pagenum = pagenums[i + 5];
+            }
 
-    // TEST_SUCCESS(redistribute_nodes(&bpt, &left, 3, 0, &right, &parent));
+            CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
+               tmppage.page_header().parent_page_number = rightnum;
+               return Status::SUCCESS;
+            }))
+        }
+        return Status::SUCCESS;
+    }))
 
-    // BUFFER(parent, READ_FLAG, {
-    //     page = from_ubuffer(&parent);
-    //     TEST(page_header(page)->number_of_keys == 1);
-    //     TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
-    //     TEST(page_header(page)->special_page_number == ubuffer_pagenum(&left));
-    //     TEST(entries(page)[0].key == 2);
-    //     TEST(entries(page)[0].pagenum == ubuffer_pagenum(&right));
-    // })
-    // BUFFER(left, READ_FLAG, {
-    //     tmpnum = ubuffer_pagenum(&left);
-    //     page = from_ubuffer(&left);
-    //     TEST(page_header(page)->number_of_keys == 2);
-    //     TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&parent));
-    //     for (i = -1; i < 2; ++i) {
-    //         if (i == -1) {
-    //             TEST(page_header(page)->special_page_number == pagenums[i + 1]);
-    //         } else {
-    //             TEST(entries(page)[i].key == i);
-    //             TEST(entries(page)[i].pagenum == pagenums[i + 1]);
-    //         }
+    TEST_SUCCESS(bpt.redistribute_nodes(
+        bpt.buffering(leftnum),
+        3,
+        0,
+        bpt.buffering(rightnum),
+        bpt.buffering(parent.safe_pagenum())));
 
-    //         tmp = bpt_buffering(&bpt, pagenums[i + 1]);
-    //         BUFFER(tmp, READ_FLAG, {
-    //             TEST(page_header(from_ubuffer(&tmp))->parent_page_number == tmpnum);
-    //         })
-    //     }
-    // })
-    // BUFFER(right, READ_FLAG, {
-    //     tmpnum = ubuffer_pagenum(&right);
-    //     page = from_ubuffer(&right);
-    //     TEST(page_header(page)->number_of_keys == 3);
-    //     TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&parent));
-    //     for (i = -1; i < 3; ++i) {
-    //         if (i == -1) {
-    //             TEST(page_header(page)->special_page_number == pagenums[i + 4]);
-    //         } else {
-    //             TEST(entries(page)[i].key == i + 3);
-    //             TEST(entries(page)[i].pagenum == pagenums[i + 4]);
-    //         }
-    //         tmp = bpt_buffering(&bpt, pagenums[i + 4]);
-    //         BUFFER(tmp, READ_FLAG, {
-    //             TEST(page_header(from_ubuffer(&tmp))->parent_page_number == tmpnum);
-    //         })
-    //     }
-    // })
+    TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
+        TEST_STATUS(page.page_header().special_page_number == leftnum);
+        TEST_STATUS(page.entries()[0].key == 2);
+        TEST_STATUS(page.entries()[0].pagenum == rightnum);
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 2);
+        TEST_STATUS(page.page_header().parent_page_number == parent.safe_pagenum());
+        for (int i = -1; i < 2; ++i) {
+            if (i == -1) {
+                TEST_STATUS(page.page_header().special_page_number == pagenums[i + 1]);
+            } else {
+                TEST_STATUS(page.entries()[i].key == i);
+                TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 1]);
+            }
 
-    // TEST_SUCCESS(redistribute_nodes(&bpt, &left, 2, 0, &right, &parent));
+            Ubuffer tmp = bpt.buffering(pagenums[i + 1]);
+            CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
+                TEST_STATUS(tmppage.page_header().parent_page_number == leftnum);
+                return Status::SUCCESS;
+            }))
+            return Status::SUCCESS;
+        }
+    }))
+    TEST_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 3);
+        TEST_STATUS(page.page_header().parent_page_number == parent.safe_pagenum());
+        for (int i = -1; i < 3; ++i) {
+            if (i == -1) {
+                TEST_STATUS(page.page_header().special_page_number == pagenums[i + 4]);
+            } else {
+                TEST_STATUS(page.entries()[i].key == i + 3);
+                TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 4]);
+            }
+            Ubuffer tmp = bpt.buffering(pagenums[i + 4]);
+            CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
+                TEST_STATUS(tmppage.page_header().parent_page_number == rightnum);
+                return Status::SUCCESS;
+            }))
+            return Status::SUCCESS;
+        }
+    }))
 
-    // BUFFER(parent, READ_FLAG, {
-    //     page = from_ubuffer(&parent);
-    //     TEST(page_header(page)->number_of_keys == 1);
-    //     TEST(page_header(page)->parent_page_number == INVALID_PAGENUM);
-    //     TEST(page_header(page)->special_page_number == ubuffer_pagenum(&left));
-    //     TEST(entries(page)[0].key == 3);
-    //     TEST(entries(page)[0].pagenum == ubuffer_pagenum(&right));
-    // })
-    // BUFFER(left, READ_FLAG, {
-    //     tmpnum = ubuffer_pagenum(&left);
-    //     page = from_ubuffer(&left);
-    //     TEST(page_header(page)->number_of_keys == 3);
-    //     TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&parent));
-    //     for (i = -1; i < 3; ++i) {
-    //         if (i == -1) {
-    //             TEST(page_header(page)->special_page_number == pagenums[i + 1]);
-    //         } else {
-    //             TEST(entries(page)[i].key == i);
-    //             TEST(entries(page)[i].pagenum == pagenums[i + 1]);
-    //         }
+    TEST_SUCCESS(bpt.redistribute_nodes(
+        bpt.buffering(leftnum),
+        2,
+        0,
+        bpt.buffering(rightnum),
+        bpt.buffering(parent.safe_pagenum())));
 
-    //         tmp = bpt_buffering(&bpt, pagenums[i + 1]);
-    //         BUFFER(tmp, READ_FLAG, {
-    //             TEST(page_header(from_ubuffer(&tmp))->parent_page_number == tmpnum);
-    //         })
-    //     }
-    // })
-    // BUFFER(right, READ_FLAG, {
-    //     tmpnum = ubuffer_pagenum(&right);
-    //     page = from_ubuffer(&right);
-    //     TEST(page_header(page)->number_of_keys == 2);
-    //     TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&parent));
-    //     for (i = -1; i < 2; ++i) {
-    //         if (i == -1) {
-    //             TEST(page_header(page)->special_page_number == pagenums[i + 5]);
-    //         } else {
-    //             TEST(entries(page)[i].key == i + 4);
-    //             TEST(entries(page)[i].pagenum == pagenums[i + 5]);
-    //         }
-    //         tmp = bpt_buffering(&bpt, pagenums[i + 5]);
-    //         BUFFER(tmp, READ_FLAG, {
-    //             TEST(page_header(from_ubuffer(&tmp))->parent_page_number == tmpnum);
-    //         })
-    //     }
-    // })
 
-    // TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
+    TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
+        TEST_STATUS(page.page_header().special_page_number == leftnum);
+        TEST_STATUS(page.entries()[0].key == 3);
+        TEST_STATUS(page.entries()[0].pagenum == rightnum);
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 3);
+        TEST_STATUS(page.page_header().parent_page_number == parent.safe_pagenum());
+        for (int i = -1; i < 3; ++i) {
+            if (i == -1) {
+                TEST_STATUS(page.page_header().special_page_number == pagenums[i + 1]);
+            } else {
+                TEST_STATUS(page.entries()[i].key == i);
+                TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 1]);
+            }
+
+            Ubuffer tmp = bpt.buffering(pagenums[i + 1]);
+            CHECK_SUCCESS(tmp.use(RWFlag::READ, [&](Page& tmppage) {
+                TEST_STATUS(tmppage.page_header().parent_page_number == leftnum);
+                return Status::SUCCESS;
+            }))
+        }
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 2);
+        TEST_STATUS(page.page_header().parent_page_number == parent.safe_pagenum());
+        for (int i = -1; i < 2; ++i) {
+            if (i == -1) {
+                TEST_STATUS(page.page_header().special_page_number == pagenums[i + 5]);
+            } else {
+                TEST_STATUS(page.entries()[i].key == i + 4);
+                TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 5]);
+            }
+            Ubuffer tmp = bpt.buffering(pagenums[i + 5]);
+            CHECK_SUCCESS(tmp.use(RWFlag::READ, [&](Page& tmppage) {
+                TEST_STATUS(tmppage.page_header().parent_page_number == rightnum);
+                return Status::SUCCESS;
+            }))
+        }
+        return Status::SUCCESS;
+    }))
+
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::delete_entry, {
