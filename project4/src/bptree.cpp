@@ -280,30 +280,6 @@ Status BPTree::remove(prikey_t key) {
 }
 
 Status BPTree::destroy_tree() {
-    return Status::SUCCESS;
-}
-
-// Ubuffer macro
-Ubuffer BPTree::buffering(pagenum_t pagenum) {
-    return buffers->buffering(*file, pagenum);
-}
-
-Ubuffer BPTree::create_page(bool leaf) {
-    Ubuffer ubuf = buffers->new_page(*file);
-    if (ubuf.buffer() == nullptr) {
-        return ubuf;
-    }
-
-    EXIT_ON_FAILURE(
-        ubuf.use(RWFlag::WRITE, [&](Page& page) {
-            return page.init(leaf);
-        })
-    );
-
-    return ubuf;
-}
-
-Status BPTree::free_page(pagenum_t pagenum) {
     pagenum_t root;
     CHECK_SUCCESS(
         buffering(FILE_HEADER_PAGENUM).use(RWFlag::WRITE, [&](Page& page) {
@@ -339,6 +315,30 @@ Status BPTree::free_page(pagenum_t pagenum) {
         );
         CHECK_SUCCESS(free_page(pagenum));
     }
+    return Status::SUCCESS;
+}
+
+// Ubuffer macro
+Ubuffer BPTree::buffering(pagenum_t pagenum) {
+    return buffers->buffering(*file, pagenum);
+}
+
+Ubuffer BPTree::create_page(bool leaf) {
+    Ubuffer ubuf = buffers->new_page(*file);
+    if (ubuf.buffer() == nullptr) {
+        return ubuf;
+    }
+
+    EXIT_ON_FAILURE(
+        ubuf.use(RWFlag::WRITE, [&](Page& page) {
+            return page.init(leaf);
+        })
+    );
+
+    return ubuf;
+}
+
+Status BPTree::free_page(pagenum_t pagenum) {
     return buffers->free_page(*file, pagenum);
 }
 
@@ -944,7 +944,7 @@ Status BPTree::shrink_root() {
         return Status::SUCCESS;
     }
 
-    pagenum_t childnum;
+    pagenum_t childnum = INVALID_PAGENUM;
     CHECK_SUCCESS(rootpage.use(RWFlag::READ, [&](Page& page) {
         if (!page.page_header().is_leaf) {
             childnum = page.page_header().special_page_number;
@@ -963,6 +963,7 @@ Status BPTree::shrink_root() {
         return Status::SUCCESS;
     }));
 
+    CHECK_SUCCESS(free_page(root));
     return Status::SUCCESS;
 }
 
