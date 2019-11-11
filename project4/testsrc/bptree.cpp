@@ -67,19 +67,20 @@ TEST_SUITE(BPTreeTest::buffering, {
 
 TEST_SUITE(BPTreeTest::create_page, {
     // just porting buffer_manager_new_page
-    // struct bpt_t bpt;
-    // struct file_manager_t file;
-    // struct buffer_manager_t buffers;
-    // TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // struct ubuffer_t buf = make_node(&bpt, TRUE);
-    // struct page_header_t* header = page_header(from_ubuffer(&buf));
-    // TEST(header->parent_page_number == INVALID_PAGENUM);
-    // TEST(header->is_leaf == TRUE);
-    // TEST(header->number_of_keys == 0);
-    // TEST(header->special_page_number == INVALID_PAGENUM);
+    Ubuffer buf = bpt.create_page(true);
+    PageHeader& header = buf.page().page_header();
+    TEST(header.parent_page_number == INVALID_PAGENUM);
+    TEST(header.is_leaf);
+    TEST(header.number_of_keys == 0);
+    TEST(header.special_page_number == INVALID_PAGENUM);
 
-    // TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
+    buffers.shutdown();
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BPTreeTest::free_page, {
