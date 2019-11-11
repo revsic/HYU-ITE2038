@@ -489,6 +489,7 @@ Status BPTree::insert_to_leaf(Ubuffer leaf, Record const& rec) {
 
         page.page_header().number_of_keys++;
         std::memcpy(&records[insertion_point], &rec, sizeof(Record));
+        return Status::SUCCESS;
     });
 }
 
@@ -1035,6 +1036,7 @@ Status BPTree::merge_nodes(Ubuffer left,
                 }
                 return Status::SUCCESS;
             }));
+            return Status::SUCCESS;
         }));
     }
 
