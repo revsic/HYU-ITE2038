@@ -894,66 +894,68 @@ TEST_SUITE(BPTreeTest::remove_entry_from_internal, {
 })
 
 TEST_SUITE(BPTreeTest::shrink_root, {
-    // struct bpt_t bpt;
-    // struct file_manager_t file;
-    // struct buffer_manager_t buffers;
-    // TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // // case 0. no shrink
-    // struct ubuffer_t node = make_node(&bpt, TRUE);
-    // struct ubuffer_t filehdr = bpt_buffering(&bpt, FILE_HEADER_PAGENUM);
-    // BUFFER(node, WRITE_FLAG, {
-    //     page_header(from_ubuffer(&node))->number_of_keys = 1;
-    //     records(from_ubuffer(&node))[0].key = 10;
-    // })
-    // BUFFER(filehdr, WRITE_FLAG, {
-    //     file_header(from_ubuffer(&filehdr))->root_page_number =
-    //         ubuffer_pagenum(&node);
-    // })
+    // case 0. no shrink
+    Ubuffer node = bpt.create_page(true);
+    Ubuffer filehdr = bpt.buffering(FILE_HEADER_PAGENUM);
+    TEST_SUCCESS(node.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().number_of_keys = 1;
+        page.records()[0].key = 10;
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(node.use(RWFlag::WRITE, [&](Page& page) {
+        page.file_header().root_page_number = node.safe_pagenum();
+        return Status::SUCCESS;
+    }))
 
-    // TEST_SUCCESS(shrink_root(&bpt));
-    // BUFFER(filehdr, READ_FLAG, {
-    //     TEST(
-    //         file_header(from_ubuffer(&filehdr))->root_page_number =
-    //             ubuffer_pagenum(&node));
-    // })
-    // BUFFER(node, READ_FLAG, {
-    //     TEST(page_header(from_ubuffer(&node))->number_of_keys == 1);
-    //     TEST(records(from_ubuffer(&node))[0].key == 10);
-    // })
+    TEST_SUCCESS(bpt.shrink_root());
+    TEST_SUCCESS(filehdr.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.file_header().root_page_number == node.safe_pagenum());
+        return Status::SUCCESS;
+    }))
 
-    // // case 1. leaf root
-    // BUFFER(node, WRITE_FLAG, {
-    //     page_header(from_ubuffer(&node))->number_of_keys = 0;
-    // })
-    // TEST_SUCCESS(shrink_root(&bpt));
-    // BUFFER(filehdr, READ_FLAG, {
-    //     TEST(
-    //         file_header(from_ubuffer(&filehdr))->root_page_number ==
-    //             INVALID_PAGENUM);
-    // })
+    TEST_SUCCESS(node.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.records()[0].key == 10);
+        return Status::SUCCESS;
+    }))
 
-    // // case 2. internal root
-    // node = make_node(&bpt, TRUE);
-    // pagenum_t nodenum = ubuffer_pagenum(&node);
+    // case 1. leaf root
+    TEST_SUCCESS(node.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().number_of_keys = 0;
+        return Status::SUCCESS;
+    }))
 
-    // node = make_node(&bpt, FALSE);
-    // BUFFER(filehdr, WRITE_FLAG, {
-    //     TEST(file_header(from_ubuffer(&filehdr))->root_page_number =
-    //         ubuffer_pagenum(&node));
-    // })
-    // BUFFER(node, WRITE_FLAG, {
-    //     page_header(from_ubuffer(&node))->special_page_number = nodenum;;
-    // })
+    TEST_SUCCESS(bpt.shrink_root());
+    TEST_SUCCESS(filehdr.use(RWFlag::READ, [&](Page& page) {
+        TEST_STATUS(page.file_header().root_page_number == INVALID_PAGENUM);
+        return Status::SUCCESS;
+    }))
 
-    // TEST_SUCCESS(shrink_root(&bpt));
-    // BUFFER(filehdr, READ_FLAG, {
-    //     TEST(
-    //         file_header(from_ubuffer(&filehdr))->root_page_number ==
-    //             nodenum);
-    // })
+    // case 2. internal root
+    node = make_node(&bpt, TRUE);
+    pagenum_t nodenum = ubuffer_pagenum(&node);
 
-    // TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
+    node = make_node(&bpt, FALSE);
+    BUFFER(filehdr, WRITE_FLAG, {
+        TEST(file_header(from_ubuffer(&filehdr))->root_page_number =
+            ubuffer_pagenum(&node));
+    })
+    BUFFER(node, WRITE_FLAG, {
+        page_header(from_ubuffer(&node))->special_page_number = nodenum;;
+    })
+
+    TEST_SUCCESS(shrink_root(&bpt));
+    BUFFER(filehdr, READ_FLAG, {
+        TEST(
+            file_header(from_ubuffer(&filehdr))->root_page_number ==
+                nodenum);
+    })
+
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::merge_nodes, {
