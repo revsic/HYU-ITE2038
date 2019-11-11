@@ -316,7 +316,7 @@ Status BufferManager::release_block(int idx) {
     return Status::SUCCESS;
 }
 
-Status BufferManager::release_file(filenum_t fileid) {
+Status BufferManager::release_file(fileid_t fileid) {
     for (int i = 0; i < capacity; ++i) {
         FileManager* file = buffers[i].file;
         if (file != nullptr && file->get_id() == fileid) {
@@ -341,7 +341,7 @@ int BufferManager::release(ReleasePolicy const& policy) {
     return idx;
 }
 
-int BufferManager::find(filenum_t fileid, pagenum_t pagenum) {
+int BufferManager::find(fileid_t fileid, pagenum_t pagenum) {
     for (int i = 0; i < capacity; ++i) {
         Buffer& buffer = buffers[i];
         if (buffer.file != nullptr

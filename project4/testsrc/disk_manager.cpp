@@ -9,7 +9,7 @@
 TEST_SUITE(hash_filename, {
     const char* filename = "datafile";
     const char* fullpath = "/Users/revsic/datafile";
-    filenum_t filenum = FileManager::hash_filename(filename);
+    fileid_t filenum = FileManager::hash_filename(filename);
     TEST(filenum == FileManager::hash_filename(fullpath))
 })
 

@@ -2,7 +2,7 @@
 
 #include "disk_manager.hpp"
 
-filenum_t FileManager::hash_filename(std::string const& filename) {
+fileid_t FileManager::hash_filename(std::string const& filename) {
     std::size_t pos = filename.rfind('/');
     if (pos == std::string::npos) {
         return std::hash<std::string>{}(filename);
@@ -30,8 +30,12 @@ FileManager::~FileManager() {
     }
 }
 
-filenum_t FileManager::get_id() const {
+fileid_t FileManager::get_id() const {
     return id;
+}
+
+fileid_t FileManager::rehash() {
+    return (id = std::hash<std::size_t>{}(id));
 }
 
 Status FileManager::file_init() {

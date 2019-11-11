@@ -8,7 +8,7 @@
 #include "headers.hpp"
 #include "status.hpp"
 
-using filenum_t = std::size_t;
+using fileid_t = std::size_t;
 
 /// File level disk manager.
 class FileManager {
@@ -36,12 +36,15 @@ public:
     FileManager& operator=(FileManager&&) = delete;
 
     /// Get file id.
-    filenum_t get_id() const;
+    fileid_t get_id() const;
+
+    /// Rehashing id.
+    fileid_t rehash();
 
     /// Hashing file name.
     /// \param filename std::string const&, the name of the file.
-    /// \return filenum_t, file ID.
-    static filenum_t hash_filename(std::string const& filename);
+    /// \return fileid_t, file ID.
+    static fileid_t hash_filename(std::string const& filename);
 
     /// Create new page.
     pagenum_t page_create() const;
@@ -68,7 +71,7 @@ private:
     FILE* fp;
 
     /// File ID.
-    filenum_t id;
+    fileid_t id;
 
     /// Initialize file.
     /// \return Status, whether success or not.

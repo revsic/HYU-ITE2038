@@ -288,19 +288,19 @@ private:
     Status release_block(int idx);
 
     /// Release all buffer blocks relative to given file id.
-    /// \param fileid filenum_t, file ID.
+    /// \param fileid fileid_t, file ID.
     /// \return Status, whether success or not.
-    Status release_file(filenum_t fileid);
+    Status release_file(fileid_t fileid);
 
     /// Release buffer with given policy.
     /// \return int, released index.
     int release(ReleasePolicy const& policy);
 
     /// Find buffers with given file ID and page ID.
-    /// \param fileid filenum_t, file ID.
+    /// \param fileid fileid_t, file ID.
     /// \param pagenum pagenum_t, page ID.
     /// \return int, found index.
-    int find(filenum_t fileid, pagenum_t pagenum);
+    int find(fileid_t fileid, pagenum_t pagenum);
 
 #ifdef TEST_MODULE
     friend struct BufferManagerTest;
