@@ -26,6 +26,7 @@ FileManager::FileManager(std::string const& filename) : id(hash_filename(filenam
 FileManager::~FileManager() {
     if (fp != nullptr) {
         fclose(fp);
+        // for preventing double free
         fp = nullptr;
     }
 }
@@ -56,6 +57,7 @@ Status FileManager::file_create(std::string const& filename) {
 }
 
 pagenum_t FileManager::page_create() const {
+    // use page create abstraction
     return Page::create(
         [this](pagenum_t target, auto func) {
             return rwcallback(target, func);
@@ -63,6 +65,7 @@ pagenum_t FileManager::page_create() const {
 }
 
 Status FileManager::page_free(pagenum_t pagenum) const {
+    // use page release abstraction
     return Page::release(
         [this](pagenum_t target, auto&& func) { 
             return rwcallback(target, func);
@@ -70,11 +73,13 @@ Status FileManager::page_free(pagenum_t pagenum) const {
 }
 
 Status FileManager::page_read(pagenum_t pagenum, Page& dst) const {
+    // low level read
     CHECK_TRUE(fpread(&dst, sizeof(Page), pagenum * PAGE_SIZE, fp));
     return Status::SUCCESS;
 }
 
 Status FileManager::page_write(pagenum_t pagenum, Page const& src) const {
+    // low level write
     CHECK_TRUE(fpwrite(&src, sizeof(Page), pagenum * PAGE_SIZE, fp));
     return Status::SUCCESS;
 }
