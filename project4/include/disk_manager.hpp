@@ -38,7 +38,7 @@ public:
     /// Get file id.
     filenum_t get_id() const;
 
-    /// Hashing file name with sdbm.
+    /// Hashing file name.
     /// \param filename std::string const&, the name of the file.
     /// \return filenum_t, file ID.
     static filenum_t create_filenum(std::string const& filename);

@@ -1,28 +1,24 @@
+#include <functional>
+
 #include "disk_manager.hpp"
 
 filenum_t FileManager::create_filenum(std::string const& filename) {
-    unsigned long hash = 0;
-    for (char c : filename) {
-        if (c == '/' || c == '\\') {
-            hash = 0;
-            continue;
-        }
-        hash = c + (hash << 6) + (hash << 16) - hash;
+    std::size_t pos = filename.rfind('/');
+    if (pos == std::string::npos) {
+        return std::hash<std::string>{}(filename);
+    } else {
+        return std::hash<std::string>{}(filename.substr(pos + 1));
     }
-    return (filenum_t)hash;
 }
 
 FileManager::FileManager() : fp(nullptr), id(0) {
     // Do nothing.
 }
 
-FileManager::FileManager(std::string const& filename) {
-    // if file exist
+FileManager::FileManager(std::string const& filename) : id(create_filenum(filename)) {
     if (fexist(filename.c_str())) {
         EXIT_ON_NULL(fp = fopen(filename.c_str(), "r+"));
-        id = create_filenum(filename);
     } else {
-        // create file
         EXIT_ON_FAILURE(file_create(filename));
     }
 }
@@ -52,7 +48,6 @@ Status FileManager::file_init() {
 
 Status FileManager::file_create(std::string const& filename) {
     CHECK_NULL(fp = fopen(filename.c_str(), "w+"));
-    id = create_filenum(filename);
     return file_init();
 }
 
