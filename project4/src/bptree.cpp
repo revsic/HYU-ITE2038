@@ -1135,7 +1135,7 @@ Status BPTree::delete_entry(prikey_t key, Ubuffer buffer) {
         return Status::SUCCESS;
     }));
 
-    int capacity = is_leaf ? leaf_order : internal_order;
+    int capacity = is_leaf ? leaf_order : internal_order - 1;
     if (left_nkey + right_nkey < capacity) {
         return merge_nodes(
             std::move(left), k_prime, std::move(right), std::move(parent));
