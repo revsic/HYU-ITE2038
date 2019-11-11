@@ -363,12 +363,6 @@ int BPTree::path_to_root(pagenum_t pagenum) {
     return length;
 }
 
-constexpr int BPTree::cut(int length) {
-    return length % 2 == 0
-        ? length / 2
-        : length / 2 + 1;
-}
-
 // find
 pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) {
     buffer = buffering(FILE_HEADER_PAGENUM);

@@ -55,7 +55,11 @@ private:
 
     int path_to_root(pagenum_t pagenum);
 
-    static constexpr int cut(int length);
+    static constexpr int cut(int length) {
+        return length % 2 == 0
+            ? length / 2
+            : length / 2 + 1;
+    }
 
 // find
     pagenum_t find_leaf(prikey_t key, Ubuffer& buffer);
