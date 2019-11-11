@@ -130,7 +130,8 @@ TEST_SUITE(page_read_write, {
 })
 
 int disk_manager_test() {
-    return file_constructor_test()
+    return create_filenum_test()
+        && file_constructor_test()
         && file_destructor_test()
         && page_create_test()
         && page_free_test()
