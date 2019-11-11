@@ -1,6 +1,8 @@
 #ifndef RESULT_HPP
 #define RESULT_HPP
 
+#include <iostream>
+
 /// Either Success or Failure
 enum class Status { SUCCESS = 0, FAILURE = 1 };
 
@@ -23,6 +25,6 @@ enum class Status { SUCCESS = 0, FAILURE = 1 };
 #define EXIT_ON_NULL(x) if ((x) == nullptr) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(1); }
 
 /// Debug variable
-#define DBG(x) printf("line %d, " #x ": %d\n", __LINE__, x);
+#define DBG(x) std::cout << "line " << __LINE__ << ", " #x ": " << x << std::endl;
 
 #endif
