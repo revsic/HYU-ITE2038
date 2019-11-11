@@ -26,7 +26,7 @@ OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.cpp=.o)
 # -g: source level debug info
 # -fPIC: position independent code
 # -I: include path
-# -std=c++11: c++ standard 14
+# -std=c++14: c++ standard 14
 CFLAGS+= -g -fPIC -I $(INC) -std=c++14
 
 # target file
@@ -49,13 +49,10 @@ $(SRCDIR)buffer_manager.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.cpp
 
 $(SRCDIR)bptree.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)bptree.o -c $(SRCDIR)bptree.c
+	$(CC) $(CFLAGS) -o $(SRCDIR)bptree.o -c $(SRCDIR)bptree.cpp
 
-# $(SRCDIR)table.o:
-# 	$(CC) $(CFLAGS) -o $(SRCDIR)table.o -c $(SRCDIR)table.c
-
-# $(SRCDIR)table_manager.o:
-# 	$(CC) $(CFLAGS) -o $(SRCDIR)table_manager.o -c $(SRCDIR)table_manager.c
+$(SRCDIR)table_manager.o:
+	$(CC) $(CFLAGS) -o $(SRCDIR)table_manager.o -c $(SRCDIR)table_manager.cpp
 
 # $(SRCDIR)dbms.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)dbms.o -c $(SRCDIR)dbms.c
