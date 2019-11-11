@@ -119,7 +119,7 @@ private:
     Status delete_entry(prikey_t key, Ubuffer page);
 
 #ifdef TEST_MODULE
-    struct BPTreeTest;
+    friend struct BPTreeTest;
 #endif
 };
 
