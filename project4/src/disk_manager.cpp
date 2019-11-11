@@ -12,7 +12,7 @@ filenum_t FileManager::create_filenum(std::string const& filename) {
     return (filenum_t)hash;
 }
 
-FileManager::FileManager() : fp(nullptr), id(INVALID_FILENUM) {
+FileManager::FileManager() : fp(nullptr), id(0) {
     // Do nothing.
 }
 

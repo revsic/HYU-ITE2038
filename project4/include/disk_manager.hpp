@@ -8,9 +8,7 @@
 #include "headers.hpp"
 #include "status.hpp"
 
-using filenum_t = int32_t;
-
-constexpr filenum_t INVALID_FILENUM = -1;
+using filenum_t = std::size_t;
 
 /// File level disk manager.
 class FileManager {

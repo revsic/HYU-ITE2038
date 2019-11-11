@@ -317,7 +317,6 @@ Status BufferManager::release_block(int idx) {
 }
 
 Status BufferManager::release_file(filenum_t fileid) {
-    CHECK_TRUE(fileid != INVALID_FILENUM);
     for (int i = 0; i < capacity; ++i) {
         FileManager* file = buffers[i].file;
         if (file != nullptr && file->get_id() == fileid) {
