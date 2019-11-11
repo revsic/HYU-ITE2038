@@ -6,11 +6,11 @@
 #include "headers.hpp"
 #include "test.hpp"
 
-TEST_SUITE(create_filenum, {
+TEST_SUITE(hash_filename, {
     const char* filename = "datafile";
     const char* fullpath = "/Users/revsic/datafile";
-    filenum_t filenum = FileManager::create_filenum(filename);
-    TEST(filenum == FileManager::create_filenum(fullpath))
+    filenum_t filenum = FileManager::hash_filename(filename);
+    TEST(filenum == FileManager::hash_filename(fullpath))
 })
 
 TEST_SUITE(file_constructor, {
@@ -130,7 +130,7 @@ TEST_SUITE(page_read_write, {
 })
 
 int disk_manager_test() {
-    return create_filenum_test()
+    return hash_filename_test()
         && file_constructor_test()
         && file_destructor_test()
         && page_create_test()

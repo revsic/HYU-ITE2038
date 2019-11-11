@@ -41,7 +41,7 @@ public:
     /// Hashing file name.
     /// \param filename std::string const&, the name of the file.
     /// \return filenum_t, file ID.
-    static filenum_t create_filenum(std::string const& filename);
+    static filenum_t hash_filename(std::string const& filename);
 
     /// Create new page.
     pagenum_t page_create() const;

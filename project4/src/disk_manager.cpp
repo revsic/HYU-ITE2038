@@ -2,7 +2,7 @@
 
 #include "disk_manager.hpp"
 
-filenum_t FileManager::create_filenum(std::string const& filename) {
+filenum_t FileManager::hash_filename(std::string const& filename) {
     std::size_t pos = filename.rfind('/');
     if (pos == std::string::npos) {
         return std::hash<std::string>{}(filename);
@@ -15,7 +15,7 @@ FileManager::FileManager() : fp(nullptr), id(0) {
     // Do nothing.
 }
 
-FileManager::FileManager(std::string const& filename) : id(create_filenum(filename)) {
+FileManager::FileManager(std::string const& filename) : id(hash_filename(filename)) {
     if (fexist(filename.c_str())) {
         EXIT_ON_NULL(fp = fopen(filename.c_str(), "r+"));
     } else {
