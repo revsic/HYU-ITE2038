@@ -104,6 +104,7 @@ Status Buffer::append_mru(bool link) {
 
     prev_use = manager->mru;
     next_use = -1;
+    // update mru block
     if (manager->mru != -1) {
         manager->buffers[manager->mru].next_use = block_idx;
     }
@@ -116,9 +117,11 @@ Status Buffer::append_mru(bool link) {
 
 Status Buffer::release() {
     CHECK_NULL(file);
+    // waiting pin
     while (pin)
         {}
-    
+
+    // write mode
     --pin;
     CHECK_SUCCESS(link_neighbor());
 
@@ -142,7 +145,9 @@ Ubuffer::Ubuffer(std::nullptr_t) : Ubuffer(nullptr, INVALID_PAGENUM, nullptr) {
 }
 
 Ubuffer::Ubuffer(Ubuffer&& ubuffer) noexcept
-    : buf(ubuffer.buf), pagenum(ubuffer.pagenum), file(ubuffer.file) {
+    : buf(ubuffer.buf), pagenum(ubuffer.pagenum), file(ubuffer.file)
+{
+    // clear other
     ubuffer.buf = nullptr;
     ubuffer.pagenum = INVALID_PAGENUM;
     ubuffer.file = nullptr;
@@ -152,7 +157,7 @@ Ubuffer& Ubuffer::operator=(Ubuffer&& ubuffer) noexcept {
     buf = ubuffer.buf;
     pagenum = ubuffer.pagenum;
     file = ubuffer.file;
-
+    // clear other
     ubuffer.buf = nullptr;
     ubuffer.pagenum = INVALID_PAGENUM;
     ubuffer.file = nullptr;
@@ -168,7 +173,7 @@ Page& Ubuffer::page() {
 }
 
 Status Ubuffer::reload() {
-    // rebuffering
+    // rebuffering, shallow copy
     *this = buf->manager->buffering(*file, pagenum);
     CHECK_NULL(buf);
     return Status::SUCCESS;
@@ -177,7 +182,8 @@ Status Ubuffer::reload() {
 Status Ubuffer::check() {
     if (buf->file != NULL
         && buf->file->get_id() == file->get_id()
-        && buf->pagenum == pagenum) {
+        && buf->pagenum == pagenum
+    ) {
         return Status::SUCCESS;
     }
     return reload();
@@ -193,12 +199,14 @@ BufferManager::BufferManager(int num_buffer)
     , num_buffer(0)
     , lru(-1)
     , mru(-1)
-    , buffers(std::make_unique<Buffer[]>(capacity)) {
+    , buffers(std::make_unique<Buffer[]>(capacity))
+{
     if (buffers == nullptr) {
         capacity = 0;
         return;
     }
 
+    // initialize all buffers before use
     for (int i = 0; i < capacity; ++i) {
         buffers[i].init(i, this);
     }
@@ -221,6 +229,7 @@ Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum) {
     int idx = find(file.get_id(), pagenum);
     if (idx == -1) {
         idx = load(file, pagenum);
+        // if find and load both failed
         if (idx == -1) {
             return Ubuffer(nullptr);
         }
@@ -232,23 +241,26 @@ Ubuffer BufferManager::new_page(FileManager& file) {
     int idx = find(file.get_id(), FILE_HEADER_PAGENUM);
     if (idx == -1) {
         idx = alloc();
+        // if find and allocation both failed
         if (idx == -1) {
             return Ubuffer(nullptr);
         }
     } else {
+        // if file header buffer exists
         if (release_block(idx) == Status::FAILURE) {
             return Ubuffer(nullptr);
         }
         ++num_buffer;
     }
 
+    // create new page
     Buffer& buffer = buffers[idx];
     if (buffer.new_page(file) == Status::FAILURE) {
         --num_buffer;
         buffer.init(idx, this);
         return Ubuffer(nullptr);
     }
-
+    // update mru, lru list
     if (buffer.append_mru(false) == Status::FAILURE) {
         return Ubuffer(nullptr);
     }
@@ -261,6 +273,7 @@ Status BufferManager::free_page(FileManager& file, pagenum_t pagenum) {
         CHECK_SUCCESS(release_block(idx));
     }
 
+    // release file header for consistentcy
     idx = find(file.get_id(), FILE_HEADER_PAGENUM);
     if (idx != -1) {
         CHECK_SUCCESS(release_block(idx));
@@ -270,6 +283,7 @@ Status BufferManager::free_page(FileManager& file, pagenum_t pagenum) {
 
 int BufferManager::alloc() {
     int idx;
+    // find buffer, linear search
     if (num_buffer < capacity) {
         for (idx = 0;
              idx < capacity && buffers[idx].file != nullptr;
@@ -293,14 +307,14 @@ int BufferManager::load(FileManager& file, pagenum_t pagenum) {
     if (idx == -1) {
         return -1;
     }
-
+    // load buffer
     Buffer& buffer = buffers[idx];
     if (buffer.load(file, pagenum) == Status::FAILURE) {
         --num_buffer;
         buffer.init(idx, this);
         return -1;
     }
-    
+    // update mru
     if (buffer.append_mru(false) == Status::FAILURE) {
         return -1;
     }
@@ -308,8 +322,10 @@ int BufferManager::load(FileManager& file, pagenum_t pagenum) {
 }
 
 Status BufferManager::release_block(int idx) {
+    // index bound check
     CHECK_TRUE(0 <= idx && idx < capacity);
     CHECK_NULL(buffers[idx].file);
+    // release buffer
     CHECK_SUCCESS(buffers[idx].release());
     
     --num_buffer;
@@ -317,6 +333,7 @@ Status BufferManager::release_block(int idx) {
 }
 
 Status BufferManager::release_file(fileid_t fileid) {
+    // release all files which have id same as given.
     for (int i = 0; i < capacity; ++i) {
         FileManager* file = buffers[i].file;
         if (file != nullptr && file->get_id() == fileid) {
@@ -327,14 +344,16 @@ Status BufferManager::release_file(fileid_t fileid) {
 }
 
 int BufferManager::release(ReleasePolicy const& policy) {
+    // searching proper buffer
     int idx = policy.init(*this);
     while (idx != -1 && buffers[idx].pin) {
         idx = policy.next(buffers[idx]);
     }
+    // if failed
     if (idx == -1) {
         return -1;
     }
-
+    // release block
     if (release_block(idx) == Status::FAILURE) {
         return -1;
     }
@@ -342,6 +361,7 @@ int BufferManager::release(ReleasePolicy const& policy) {
 }
 
 int BufferManager::find(fileid_t fileid, pagenum_t pagenum) {
+    // find buffer, linear search
     for (int i = 0; i < capacity; ++i) {
         Buffer& buffer = buffers[i];
         if (buffer.file != nullptr
