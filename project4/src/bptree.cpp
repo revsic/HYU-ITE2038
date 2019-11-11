@@ -143,7 +143,7 @@ void BPTree::print_tree() {
             }
 
             if (!pagehdr.is_leaf) {
-                if (pagehdr.special_page_number != INVALID_FILENUM) {
+                if (pagehdr.special_page_number != INVALID_PAGENUM) {
                     queue.push(pagehdr.special_page_number);
                     for (int i = 0; i < pagehdr.number_of_keys; ++i) {
                         queue.push(ent[i].pagenum);
