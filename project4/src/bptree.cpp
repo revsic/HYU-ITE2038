@@ -968,9 +968,9 @@ Status BPTree::shrink_root() {
 }
 
 Status BPTree::merge_nodes(Ubuffer left,
-                    prikey_t key,
-                    Ubuffer right,
-                    Ubuffer parent) {
+                           prikey_t key,
+                           Ubuffer right,
+                           Ubuffer parent) {
     bool is_leaf;
     int insertion_index;
     CHECK_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
