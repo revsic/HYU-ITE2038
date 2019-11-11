@@ -51,7 +51,6 @@ TEST_SUITE(BPTreeTest::buffering, {
 })
 
 TEST_SUITE(BPTreeTest::create_page, {
-    // just porting buffer_manager_new_page
     FileManager file("testfile");
     BufferManager buffers(4);
     BPTree bpt(&file, &buffers);
@@ -223,7 +222,6 @@ TEST_SUITE(BPTreeTest::find_pagenum_from_internal, {
 })
 
 TEST_SUITE(BPTreeTest::find, {
-    int i;
     char str[] = "00";
     constexpr int leaf_order = 4;
     constexpr int internal_order = 5;
@@ -234,14 +232,14 @@ TEST_SUITE(BPTreeTest::find, {
 
     bpt.test_config(leaf_order, internal_order, true);
     bpt.verbose_output = false;
-    for (i = 0; i < 40; ++i) {
+    for (int i = 0; i < 40; ++i) {
         str[0] = '0' + i / 10;
         str[1] = '0' + i % 10;
         TEST_SUCCESS(bpt.insert(i, reinterpret_cast<uint8_t*>(str), 3));
     }
 
     Record rec;
-    for (i = 0; i < 40; ++i) {
+    for (int i = 0; i < 40; ++i) {
         TEST_SUCCESS(bpt.find(i, &rec));
         TEST(rec.value[0] == '0' + i / 10);
         TEST(rec.value[1] == '0' + i % 10);
@@ -251,7 +249,6 @@ TEST_SUITE(BPTreeTest::find, {
 })
 
 TEST_SUITE(BPTreeTest::find_range, {
-    int i;
     char str[] = "00";
     constexpr int leaf_order = 4;
     constexpr int internal_order = 5;
@@ -262,7 +259,7 @@ TEST_SUITE(BPTreeTest::find_range, {
 
     bpt.test_config(leaf_order, internal_order, true);
     bpt.verbose_output = false;
-    for (i = 0; i < 40; ++i) {
+    for (int i = 0; i < 40; ++i) {
         str[0] = '0' + i / 10;
         str[1] = '0' + i % 10;
         TEST_SUCCESS(bpt.insert(i, (uint8_t*)str, 3));
@@ -271,27 +268,27 @@ TEST_SUITE(BPTreeTest::find_range, {
     // case 0. whole range
     std::vector<Record> vec = bpt.find_range(-100, 100);
     TEST(vec.size() == 40);
-    for (i = 0; i < 40; ++i) {
+    for (int i = 0; i < 40; ++i) {
         TEST(vec[i].key == i);
     }
 
     // case 1. half range
     vec = bpt.find_range(-100, 20);
     TEST(vec.size() == 21);
-    for (i = 0; i < 21; ++i) {
+    for (int i = 0; i < 21; ++i) {
         TEST(vec[i].key == i);
     }
 
     vec = bpt.find_range(20, 100);
     TEST(vec.size() == 20);
-    for (i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; ++i) {
         TEST(vec[i].key == i + 20);
     }
 
     // case 2. in range
     vec = bpt.find_range(10, 23);
     TEST(vec.size() == 14);
-    for (i = 0; i < 14; ++i) {
+    for (int i = 0; i < 14; ++i) {
         TEST(vec[i].key == i + 10);
     }
 
@@ -307,141 +304,148 @@ TEST_SUITE(BPTreeTest::print_tree, {
 })
 
 TEST_SUITE(BPTreeTest::write_record, {
-    // struct record_t rec;
+    Record rec;
 
-    // int value = 100;
-    // TEST_SUCCESS(make_record(&rec, 10, (uint8_t*)&value, sizeof(int)));
-    // TEST(rec.key == 10);
-    // TEST(*(int*)rec.value == value);
+    int value = 100;
+    TEST_SUCCESS(BPTree::write_record(
+        rec, 10, reinterpret_cast<uint8_t*>(&value), sizeof(int)));
+    TEST(rec.key == 10);
+    TEST(*reinterpret_cast<int*>(rec.value) == value);
 
-    // int i;
-    // int array[200];
-    // for (i = 0; i < 200; ++i) {
-    //     array[i] = i;
-    // }
+    int array[200];
+    for (int i = 0; i < 200; ++i) {
+        array[i] = i;
+    }
 
-    // TEST_SUCCESS(make_record(&rec, 20, (const uint8_t*)array, sizeof(int) * 200));
-    // TEST(rec.key == 20);
+    TEST_SUCCESS(BPTree::write_record(
+        rec,
+        20,
+        reinterpret_cast<const uint8_t*>(array),
+        sizeof(int) * 200));
+    TEST(rec.key == 20);
 
-    // int* ptr = (int*)rec.value;
-    // for (i = 0; i < 30; ++i) {
-    //     TEST(ptr[i] == array[i]);
-    // }
+    int* ptr = reinterpret_cast<int*>(rec.value);
+    for (int i = 0; i < 30; ++i) {
+        TEST(ptr[i] == array[i]);
+    }
 })
 
 TEST_SUITE(BPTreeTest::insert_to_leaf, {
-    // struct bpt_t bpt;
-    // struct file_manager_t file;
-    // struct buffer_manager_t buffers;
-    // TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // TEST_SUCCESS(bpt_test_config(&bpt, 5, 5));
-    // struct ubuffer_t buf = make_node(&bpt, TRUE);
+    bpt.test_config(5, 5, true);
+    Ubuffer buf = bpt.create_page(true);
+    pagenum_t bufnum = buf.safe_pagenum();
 
-    // // case 0. ordered input
-    // int i;
-    // struct record_t rec;
-    // for (i = 0; i < 5; ++i) {
-    //     rec.key = i;
-    //     TEST_SUCCESS(insert_into_leaf(&bpt, &buf, &rec));
-    // }
+    // case 0. ordered input
+    Record rec;
+    for (int i = 0; i < 5; ++i) {
+        rec.key = i;
+        TEST_SUCCESS(
+            bpt.insert_to_leaf(bpt.buffering(bufnum), rec));
+    }
 
-    // for (i = 0; i < 5; ++i) {
-    //     TEST(records(from_ubuffer(&buf))[i].key == i);
-    // }
+    for (int i = 0; i < 5; ++i) {
+        TEST(buf.page().records()[i].key == i);
+    }
 
-    // // case 0.1. overflow
-    // TEST(insert_into_leaf(&bpt, &buf, &rec) == FAILURE);
+    // case 0.1. overflow
+    TEST(bpt.insert_to_leaf(bpt.buffering(bufnum), rec)
+        == Status::FAILURE);
 
-    // // case 1. reversed ordered input
-    // page_header(from_ubuffer(&buf))->number_of_keys = 0;
-    // for (i = 0; i < 5; ++i) {
-    //     rec.key = 5 - i;
-    //     TEST_SUCCESS(insert_into_leaf(&bpt, &buf, &rec));
-    // }
+    // case 1. reversed ordered input
+    buf.page().page_header().number_of_keys = 0;
+    for (int i = 0; i < 5; ++i) {
+        rec.key = 5 - i;
+        TEST_SUCCESS(
+            bpt.insert_to_leaf(bpt.buffering(bufnum), rec));
+    }
 
-    // for (i = 0; i < 5; ++i) {
-    //     TEST(records(from_ubuffer(&buf))[i].key == i + 1);
-    // }
+    for (int i = 0; i < 5; ++i) {
+        TEST(buf.page().records()[i].key == i + 1);
+    }
 
-    // // case 2. random input
-    // int arr[5];
-    // arr[0] = 1;
-    // arr[1] = 3;
-    // arr[2] = 2;
-    // arr[3] = 5;
-    // arr[4] = 4;
+    // case 2. random input
+    int arr[5];
+    arr[0] = 1;
+    arr[1] = 3;
+    arr[2] = 2;
+    arr[3] = 5;
+    arr[4] = 4;
 
-    // page_header(from_ubuffer(&buf))->number_of_keys = 0;
-    // for (i = 0; i < 5; ++i) {
-    //     rec.key = arr[i];
-    //     TEST_SUCCESS(insert_into_leaf(&bpt, &buf, &rec));
-    // }
+    buf.page().page_header().number_of_keys = 0;
+    for (int i = 0; i < 5; ++i) {
+        rec.key = arr[i];
+        TEST_SUCCESS(
+            bpt.insert_to_leaf(bpt.buffering(bufnum), rec));
+    }
 
-    // for (i = 0; i < 5; ++i) {
-    //     TEST(records(from_ubuffer(&buf))[i].key == i + 1);
-    // }
+    for (int i = 0; i < 5; ++i) {
+        TEST(buf.page().records()[i].key == i + 1);
+    }
 
-    // TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::insert_and_split_leaf, {
-    // struct bpt_t bpt;
-    // struct file_manager_t file;
-    // struct buffer_manager_t buffers;
-    // TEST_SUCCESS(bpt_test_preprocess(&bpt, &file, &buffers));
-    // TEST_SUCCESS(bpt_test_config(&bpt, 5, 4));
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
+    bpt.test_config(5, 4, true);
 
-    // struct ubuffer_t leaf = make_node(&bpt, TRUE);
-    // struct page_t* page = from_ubuffer(&leaf);
+    Ubuffer leaf = bpt.create_page(true);
+    pagenum_t leafnum = leaf.safe_pagenum();
 
-    // int i;
-    // struct record_t record;
+    Record record;
 
-    // // case 0. last one
-    // const int size = 4;
-    // CHECK_SUCCESS(ubuffer_check(&leaf));
-    // for (i = 0; i < size; ++i) {
-    //     record.key = i;
-    //     TEST_SUCCESS(insert_into_leaf(&bpt, &leaf, &record));
-    // }
+    // case 0. last one
+    constexpr int size = 4;
+    TEST_SUCCESS(leaf.check());
+    for (int i = 0; i < size; ++i) {
+        record.key = i;
+        TEST_SUCCESS(
+            bpt.insert_to_leaf(bpt.buffering(leafnum), record));
+    }
 
-    // record.key = size;
-    // TEST_SUCCESS(insert_into_leaf_after_splitting(&bpt, &leaf, &record));
+    record.key = size;
+    TEST_SUCCESS(
+        bpt.insert_and_split_leaf(bpt.buffering(leafnum), record));
 
-    // struct ubuffer_t filehdr = bpt_buffering(&bpt, FILE_HEADER_PAGENUM);
-    // pagenum_t root = file_header(from_ubuffer(&filehdr))->root_page_number;
+    Ubuffer filehdr = bpt.buffering(FILE_HEADER_PAGENUM);
+    pagenum_t root = filehdr.page().file_header().root_page_number;
 
-    // struct ubuffer_t rootpage = bpt_buffering(&bpt, root);
-    // page = from_ubuffer(&rootpage);
+    Ubuffer rootpage = bpt.buffering(root);
+    Page& page = rootpage.page();
 
-    // TEST(page_header(page)->special_page_number == ubuffer_pagenum(&leaf));
-    // TEST(page_header(page)->number_of_keys == 1);
+    TEST(page.page_header().special_page_number == leafnum);
+    TEST(page.page_header().number_of_keys == 1);
 
-    // int expected = cut(size);
-    // TEST(entries(page)[0].key == expected);
-    // pagenum_t right = entries(page)[0].pagenum;
+    constexpr int expected = BPTree::cut(size);
+    TEST(page.entries()[0].key == expected);
+    pagenum_t right = page.entries()[0].pagenum;
 
-    // TEST_SUCCESS(ubuffer_check(&leaf));
-    // page = from_ubuffer(&leaf);
-    // TEST(page_header(page)->number_of_keys == expected);
-    // TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&rootpage));
-    // TEST(page_header(page)->special_page_number == right);
-    // for (i = 0; i < expected; ++i) {
-    //     TEST(records(page)[i].key == i);
-    // }
+    TEST_SUCCESS(leaf.check());
+    Page& page2 = leaf.page();
+    TEST(page2.page_header().number_of_keys == expected);
+    TEST(page2.page_header().parent_page_number == root);
+    TEST(page2.page_header().special_page_number == right);
+    for (int i = 0; i < expected; ++i) {
+        TEST(page2.records()[i].key == i);
+    }
 
-    // struct ubuffer_t rightbuf = bpt_buffering(&bpt, right);
-    // page = from_ubuffer(&rightbuf);
-    // expected = size + 1 - expected;
-    // TEST(page_header(page)->number_of_keys == expected);
-    // TEST(page_header(page)->parent_page_number == ubuffer_pagenum(&rootpage));
-    // TEST(page_header(page)->special_page_number == INVALID_PAGENUM);
-    // for (i = 0; i < expected; ++i) {
-    //     TEST(records(page)[i].key == i + cut(size));
-    // }
+    Ubuffer rightbuf = bpt.buffering(right);
+    Page& page3 = rightbuf.page();
+    constexpr int right_expected = size + 1 - expected;
+    TEST(page3.page_header().number_of_keys == right_expected);
+    TEST(page3.page_header().parent_page_number == root);
+    TEST(page3.page_header().special_page_number == INVALID_PAGENUM);
+    for (int i = 0; i < right_expected; ++i) {
+        TEST(page3.records()[i].key == i + BPTree::cut(size));
+    }
 
-    // TEST_SUCCESS(bpt_test_postprocess(&bpt, &file, &buffers));
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::insert_to_node, {
