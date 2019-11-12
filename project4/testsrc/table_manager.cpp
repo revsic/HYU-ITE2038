@@ -79,11 +79,74 @@ TEST_SUITE(TableManagerTest::load, {
 })
 
 TEST_SUITE(TableManagerTest::find, {
-    
+    TableManager tables;
+    BufferManager buffers(4);
+
+    tableid_t res = tables.load("./testfile", buffers);
+    tableid_t res2 = tables.load("./testfile2", buffers);
+    tableid_t res3 = tables.load("./testfile3", buffers);
+
+    TEST(tables.find(res) != nullptr);
+    TEST(tables.find(res2) != nullptr);
+    TEST(tables.find(res3) != nullptr);
+    TEST(tables.find(res)->filename() == "testfile");
+    TEST(tables.find(res2)->filename() == "testfile2");
+    TEST(tables.find(res3)->filename() == "testfile3");
+
+    remove("testfile");
+    remove("testfile2");
+    remove("testfile3");
 })
 
 TEST_SUITE(TableManagerTest::remove, {
-    
+    TableManager tables;
+    BufferManager buffers(4);
+
+    tableid_t res = tables.load("./testfile", buffers);
+    tableid_t res2 = tables.load("./testfile2", buffers);
+    tableid_t res3 = tables.load("./testfile3", buffers);
+
+    tableid_t arr[3];
+    arr[0] = res; arr[1] = res2; arr[2] = res3;
+
+    for (auto const& pair : tables.tables) {
+        bool found = false;
+        for (int i = 0; i < 3; ++i) {
+            if (arr[i] == pair.first) {
+                found = true;
+                break;
+            }
+        }
+        TEST(found);
+    }
+
+    tables.remove(res3);
+    TEST(tables.tables.size() == 2);
+
+    for (auto const& pair : tables.tables) {
+        bool found = false;
+        for (int i = 0; i < 2; ++i) {
+            if (arr[i] == pair.first) {
+                found = true;
+                break;
+            }
+        }
+        TEST(found);
+    }
+
+    tables.remove(res2);
+    TEST(tables.tables.size() == 1);
+
+    for (auto const& pair : tables.tables) {
+        TEST(arr[0] == pair.first);
+    }
+
+    tables.remove(res);
+    TEST(tables.tables.size() == 0);
+
+    remove("testfile");
+    remove("testfile2");
+    remove("testfile3");
 })
 
 int table_manager_test() {
