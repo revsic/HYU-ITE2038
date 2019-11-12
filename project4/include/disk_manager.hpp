@@ -41,10 +41,18 @@ public:
     /// Rehashing id.
     fileid_t rehash();
 
+    /// Set file id.
+    fileid_t rehash(fileid_t id);
+
     /// Hashing file name.
     /// \param filename std::string const&, the name of the file.
     /// \return fileid_t, file ID.
     static fileid_t hash_filename(std::string const& filename);
+
+    /// Rehasing file id.
+    /// \param id fileid_t, file ID.
+    /// \return fileid_t, rehashed file id.
+    static fileid_t rehash_fileid(fileid_t id);
 
     /// Create new page.
     pagenum_t page_create() const;

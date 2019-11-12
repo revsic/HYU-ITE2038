@@ -11,6 +11,10 @@ fileid_t FileManager::hash_filename(std::string const& filename) {
     }
 }
 
+fileid_t FileManager::rehash_fileid(fileid_t id) {
+    return std::hash<std::size_t>{}(id);
+}
+
 FileManager::FileManager() : fp(nullptr), id(0) {
     // Do nothing.
 }
@@ -36,7 +40,11 @@ fileid_t FileManager::get_id() const {
 }
 
 fileid_t FileManager::rehash() {
-    return (id = std::hash<std::size_t>{}(id));
+    return (id = rehash_fileid(id));
+}
+
+fileid_t FileManager::rehash(fileid_t new_id) {
+    return (id = new_id);
 }
 
 Status FileManager::file_init() {
