@@ -35,6 +35,20 @@ FileManager::~FileManager() {
     }
 }
 
+FileManager::FileManager(FileManager&& other) : fp(other.fp), id(other.id) {
+    other.fp = nullptr;
+    other.id = 0;
+}
+
+FileManager& FileManager::operator=(FileManager&& other) {
+    fp = other.fp;
+    id = other.id;
+
+    other.fp = nullptr;
+    other.id = 0;
+    return *this;
+}
+
 fileid_t FileManager::get_id() const {
     return id;
 }

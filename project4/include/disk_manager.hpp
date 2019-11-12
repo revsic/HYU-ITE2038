@@ -26,14 +26,14 @@ public:
     /// Default copy constructor, deleted.
     FileManager(FileManager const&) = delete;
 
-    /// Default move constructor, deleted.
-    FileManager(FileManager&&) = delete;
+    /// Move constructor.
+    FileManager(FileManager&& other);
 
     /// Default copy assignment, deleted.
     FileManager& operator=(FileManager const&) = delete;
 
-    /// Default move assignment, deleted.
-    FileManager& operator=(FileManager&&) = delete;
+    /// Move assignment.
+    FileManager& operator=(FileManager&& other);
 
     /// Get file id.
     fileid_t get_id() const;
