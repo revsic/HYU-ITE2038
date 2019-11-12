@@ -48,6 +48,10 @@ public:
     /// \param delayed_merge bool, whether use delayed merge or not.
     void test_config(int leaf_order, int internal_order, bool delayed_merge);
 
+    /// Update file pointer.
+    /// \param file FileManager*, file base.
+    void update_file(FileManager* file);
+
     /// Print all leaves.
     void print_leaves() const;
 

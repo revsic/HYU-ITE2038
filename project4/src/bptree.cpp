@@ -23,6 +23,10 @@ void BPTree::test_config(int leaf_order,
     verbose_output = true;
 }
 
+void BPTree::update_file(FileManager* file) {
+    this->file = file;
+}
+
 void BPTree::print_leaves() const {
     pagenum_t pagenum;
     Ubuffer buffer = buffering(FILE_HEADER_PAGENUM);
