@@ -49,6 +49,8 @@ public:
 
     fileid_t rehash(fileid_t new_id);
 
+    std::string const& filename() const;
+
 private:
     FileManager file;
     BPTree bpt;
@@ -84,6 +86,10 @@ private:
     std::unordered_map<tableid_t, Table> tables;
 
     static tableid_t convert(fileid_t id);
+
+#ifdef TEST_MODULE
+    friend struct TableManagerTest;
+#endif
 };
 
 

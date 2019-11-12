@@ -61,6 +61,10 @@ fileid_t Table::rehash(fileid_t new_id) {
     return file.rehash(new_id);
 }
 
+std::string const& Table::filename() const {
+    return file.get_filename();
+}
+
 tableid_t TableManager::load(
     std::string const& filename, BufferManager& buffers
 ) {

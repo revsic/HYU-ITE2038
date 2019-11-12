@@ -13,6 +13,7 @@ struct TableTest {
     TEST_NAME(destroy_tree)
     TEST_NAME(fileid)
     TEST_NAME(rehash)
+    TEST_NAME(filename)
 };
 
 TEST_SUITE(TableTest::constructor, {
@@ -55,6 +56,28 @@ TEST_SUITE(TableTest::rehash, {
     // just wrapping
 })
 
+TEST_SUITE(TableTest::filename, {
+    // just wrapping get_filename
+})
+
+struct TableManagerTest {
+    TEST_NAME(load)
+    TEST_NAME(find)
+    TEST_NAME(remove)
+};
+
+TEST_SUITE(TableManagerTest::load, {
+
+})
+
+TEST_SUITE(TableManagerTest::find, {
+    
+})
+
+TEST_SUITE(TableManagerTest::remove, {
+    
+})
+
 int table_manager_test() {
     return TableTest::constructor_test()
         && TableTest::assignment_test()
@@ -65,5 +88,6 @@ int table_manager_test() {
         && TableTest::remove_test()
         && TableTest::destroy_tree_test()
         && TableTest::fileid_test()
-        && TableTest::rehash_test();
+        && TableTest::rehash_test()
+        && TableTest::filename_test();
 }
