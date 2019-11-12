@@ -15,7 +15,7 @@ class Table {
 public:
     Table(std::string const& filename, BufferManager& manager);
 
-    ~Table();
+    ~Table() = default;
 
     Table(Table const&) = delete;
     
@@ -37,9 +37,11 @@ public:
 
     fileid_t rehash();
 
+    fileid_t rehash(fileid_t new_id);
+
 private:
-    BPTree bpt;
     FileManager file;
+    BPTree bpt;
 };
 
 class TableManager {
@@ -58,9 +60,9 @@ public:
 
     tableid_t load(std::string const& filename, BufferManager& buffers);
 
-    Table& find(tableid_t id);
+    Table* find(tableid_t id);
 
-    Table const& find(tableid_t id) const;
+    Table const* find(tableid_t id) const;
 
     Status remove(tableid_t id);
 
