@@ -49,16 +49,19 @@ $(SRCDIR)buffer_manager.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)buffer_manager.o -c $(SRCDIR)buffer_manager.cpp
 
 $(SRCDIR)bptree.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)bptree.o -c $(SRCDIR)bptree.cpp
+	$(CXX) $(CFLAGS) -o $(SRCDIR)bptree.o -c $(SRCDIR)bptree.cpp
 
 $(SRCDIR)table_manager.o:
-	$(CC) $(CFLAGS) -o $(SRCDIR)table_manager.o -c $(SRCDIR)table_manager.cpp
+	$(CXX) $(CFLAGS) -o $(SRCDIR)table_manager.o -c $(SRCDIR)table_manager.cpp
 
 # $(SRCDIR)dbms.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)dbms.o -c $(SRCDIR)dbms.c
 
 # $(SRCDIR)dbapi.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.c
+
+$(TARGET_OBJ): $(TARGET_SRC)
+	$(CXX) $(CFLAGS) -o $@ -c $^
 
 $(TARGET): $(TARGET_OBJ)
 	make static_library
