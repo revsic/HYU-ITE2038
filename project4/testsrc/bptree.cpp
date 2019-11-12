@@ -1329,8 +1329,8 @@ TEST_SUITE(BPTreeTest::redistribute_nodes_internal, {
                 TEST_STATUS(tmppage.page_header().parent_page_number == leftnum);
                 return Status::SUCCESS;
             }))
-            return Status::SUCCESS;
         }
+        return Status::SUCCESS;
     }))
     TEST_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
         TEST_STATUS(page.page_header().number_of_keys == 3);
@@ -1347,8 +1347,8 @@ TEST_SUITE(BPTreeTest::redistribute_nodes_internal, {
                 TEST_STATUS(tmppage.page_header().parent_page_number == rightnum);
                 return Status::SUCCESS;
             }))
-            return Status::SUCCESS;
         }
+        return Status::SUCCESS;
     }))
 
     TEST_SUCCESS(bpt.redistribute_nodes(
