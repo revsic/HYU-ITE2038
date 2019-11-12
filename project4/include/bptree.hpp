@@ -33,14 +33,14 @@ public:
     /// Removed copy constructor.
     BPTree(BPTree const&) = delete;
 
-    /// Removed move constructor.
-    BPTree(BPTree&&) = delete;
+    /// Move constructor.
+    BPTree(BPTree&& other);
 
     /// Removed copy assignment.
     BPTree& operator=(BPTree const&) = delete;
 
-    /// Removed move assignment.
-    BPTree& operator=(BPTree&&) = delete;
+    /// Move assignment.
+    BPTree& operator=(BPTree&& other);
 
     /// Update b+tree configuration.
     /// \param leaf_order int, leaf order.
