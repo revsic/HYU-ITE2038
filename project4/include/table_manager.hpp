@@ -13,17 +13,19 @@ using tableid_t = int;
 
 class Table {
 public:
+    Table();
+
     Table(std::string const& filename, BufferManager& manager);
 
     ~Table() = default;
 
     Table(Table const&) = delete;
     
-    Table(Table&&) = delete;
+    Table(Table&& other);
 
     Table& operator=(Table const&) = delete;
 
-    Table& operator=(Table&&) = delete;
+    Table& operator=(Table&& other);
 
     Status find(prikey_t key, Record* record) const;
 

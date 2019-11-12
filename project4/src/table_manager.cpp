@@ -1,9 +1,25 @@
 #include "table_manager.hpp"
 
+Table::Table() : file(), bpt(nullptr, nullptr) {
+    // Do Nothing
+}
+
 Table::Table(std::string const& filename, BufferManager& manager) :
     file(filename), bpt(&file, &manager)
 {
     // Do Nothing
+}
+
+Table::Table(Table&& other) :
+    file(std::move(other.file)), bpt(std::move(other.bpt))
+{
+    // Do Nothing
+}
+
+Table& Table::operator=(Table&& other) {
+    file = std::move(other.file);
+    bpt = std::move(other.bpt);
+    return *this;
 }
 
 Status Table::find(prikey_t key, Record* record) const {
@@ -44,14 +60,14 @@ tableid_t TableManager::load(
         id = FileManager::rehash_fileid(id);
     }
 
-    tables.emplace(id, Table(filename, buffers));
-    tables[id].rehash(id);
+    tables[id] = Table(filename, buffers);
+    tables.at(id).rehash(id);
     return static_cast<tableid_t>(id);
 }
 
 Table* TableManager::find(tableid_t id) {
     if (tables.find(id) != tables.end()) {
-        return &tables[id];
+        return &tables.at(id);
     }
     return nullptr;
 }
