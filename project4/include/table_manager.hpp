@@ -9,6 +9,10 @@
 #include "disk_manager.hpp"
 #include "headers.hpp"
 
+#ifdef TEST_MODULE
+#include "test.hpp"
+#endif
+
 using tableid_t = int;
 
 class Table {
@@ -48,6 +52,10 @@ public:
 private:
     FileManager file;
     BPTree bpt;
+
+#ifdef TEST_MODULE
+    friend struct TableTest;
+#endif
 };
 
 class TableManager {
