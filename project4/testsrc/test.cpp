@@ -6,6 +6,7 @@ TEST_SUITE(unit, {
     TEST(disk_manager_test());
     TEST(buffer_manager_test());
     TEST(bptree_test());
+    TEST(table_manager_test());
 })
 
 int main() {
