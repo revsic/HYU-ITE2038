@@ -67,7 +67,15 @@ struct TableManagerTest {
 };
 
 TEST_SUITE(TableManagerTest::load, {
+    TableManager tables;
+    BufferManager buffers(4);
 
+    tableid_t res = tables.load("testfile", buffers);
+    TEST(res == tables.load("./testfile", buffers));
+    TEST(res != tables.load("./testfile2", buffers));
+
+    remove("testfile");
+    remove("testfile2");
 })
 
 TEST_SUITE(TableManagerTest::find, {
@@ -89,5 +97,8 @@ int table_manager_test() {
         && TableTest::destroy_tree_test()
         && TableTest::fileid_test()
         && TableTest::rehash_test()
-        && TableTest::filename_test();
+        && TableTest::filename_test()
+        && TableManagerTest::load_test()
+        && TableManagerTest::find_test()
+        && TableManagerTest::remove_test();
 }
