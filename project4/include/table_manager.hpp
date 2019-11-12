@@ -73,7 +73,9 @@ public:
     Status remove(tableid_t id);
 
 private:
-    std::unordered_map<fileid_t, Table> tables;
+    std::unordered_map<tableid_t, Table> tables;
+
+    static tableid_t convert(fileid_t id);
 };
 
 

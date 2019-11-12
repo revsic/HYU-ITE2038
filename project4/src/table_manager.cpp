@@ -13,12 +13,13 @@ Table::Table(std::string const& filename, BufferManager& manager) :
 Table::Table(Table&& other) :
     file(std::move(other.file)), bpt(std::move(other.bpt))
 {
-    // Do Nothing
+    bpt.update_file(&file);
 }
 
 Table& Table::operator=(Table&& other) {
     file = std::move(other.file);
     bpt = std::move(other.bpt);
+    bpt.update_file(&file);
     return *this;
 }
 
@@ -64,18 +65,19 @@ tableid_t TableManager::load(
     std::string const& filename, BufferManager& buffers
 ) {
     fileid_t id = FileManager::hash_filename(filename);
-    while (tables.find(id) != tables.end()) {
+    while (tables.find(convert(id)) != tables.end()) {
         id = FileManager::rehash_fileid(id);
     }
 
-    tables[id] = Table(filename, buffers);
-    tables.at(id).rehash(id);
-    return static_cast<tableid_t>(id);
+    tableid_t tid = convert(id);
+    tables[tid] = Table(filename, buffers);
+    tables[tid].rehash(id);
+    return tid;
 }
 
 Table* TableManager::find(tableid_t id) {
     if (tables.find(id) != tables.end()) {
-        return &tables.at(id);
+        return &tables[id];
     }
     return nullptr;
 }
@@ -95,4 +97,8 @@ Status TableManager::remove(tableid_t id) {
 
     tables.erase(iter);
     return Status::SUCCESS;
+}
+
+tableid_t TableManager::convert(fileid_t id) {
+    return static_cast<tableid_t>(id);
 }
