@@ -27,6 +27,8 @@ public:
 
     Table& operator=(Table&& other);
 
+    void print_tree() const;
+
     Status find(prikey_t key, Record* record) const;
 
     std::vector<Record> find_range(prikey_t start, prikey_t end) const;
@@ -34,6 +36,8 @@ public:
     Status insert(prikey_t key, uint8_t const* value, int value_size) const;
 
     Status remove(prikey_t key) const;
+
+    Status destroy_tree() const;
 
     fileid_t fileid() const;
 

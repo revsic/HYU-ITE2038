@@ -22,6 +22,10 @@ Table& Table::operator=(Table&& other) {
     return *this;
 }
 
+void Table::print_tree() const {
+    bpt.print_tree();
+}
+
 Status Table::find(prikey_t key, Record* record) const {
     return bpt.find(key, record);
 }
@@ -38,6 +42,10 @@ Status Table::insert(
 
 Status Table::remove(prikey_t key) const {
     return bpt.remove(key);
+}
+
+Status Table::destroy_tree() const {
+    return bpt.destroy_tree();
 }
 
 fileid_t Table::fileid() const {
