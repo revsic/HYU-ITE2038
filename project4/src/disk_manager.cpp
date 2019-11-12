@@ -13,7 +13,9 @@ std::pair<std::string, std::size_t> FileManager::hash_filename(
 }
 
 fileid_t FileManager::rehash_fileid(fileid_t id) {
-    return std::hash<std::size_t>{}(id);
+    constexpr std::size_t shift = 12;
+    return std::hash<std::size_t>{}(
+        (id << shift) | (id >> ((sizeof(std::size_t) << 3) - shift)));
 }
 
 FileManager::FileManager() : fp(nullptr), id(0) {
@@ -24,7 +26,6 @@ FileManager::FileManager(std::string const& filename) {
     auto pair = hash_filename(filename);
     name = pair.first;
     id = pair.second;
-
     if (fexist(filename.c_str())) {
         EXIT_ON_NULL(fp = fopen(filename.c_str(), "r+"));
     } else {
@@ -40,17 +41,22 @@ FileManager::~FileManager() {
     }
 }
 
-FileManager::FileManager(FileManager&& other) : fp(other.fp), id(other.id) {
+FileManager::FileManager(FileManager&& other) :
+    fp(other.fp), id(other.id), name(other.name)
+{
     other.fp = nullptr;
     other.id = 0;
+    other.name = "";
 }
 
 FileManager& FileManager::operator=(FileManager&& other) {
     fp = other.fp;
     id = other.id;
+    name = other.name;
 
     other.fp = nullptr;
     other.id = 0;
+    other.name = "";
     return *this;
 }
 
