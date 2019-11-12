@@ -44,6 +44,9 @@ public:
     /// Set file id.
     fileid_t rehash(fileid_t id);
 
+    /// Get filename.
+    std::string const& get_filename() const;
+
     /// Hashing file name.
     /// \param filename std::string const&, the name of the file.
     /// \return fileid_t, file ID.
@@ -80,6 +83,9 @@ private:
 
     /// File ID.
     fileid_t id;
+
+    /// file name.
+    std::string name;
 
     /// Initialize file.
     /// \return Status, whether success or not.

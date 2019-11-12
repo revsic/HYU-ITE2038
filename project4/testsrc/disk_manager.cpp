@@ -7,10 +7,7 @@
 #include "test.hpp"
 
 TEST_SUITE(hash_filename, {
-    const char* filename = "datafile";
-    const char* fullpath = "/Users/revsic/datafile";
-    fileid_t filenum = FileManager::hash_filename(filename);
-    TEST(filenum == FileManager::hash_filename(fullpath))
+    // just std::hash
 })
 
 TEST_SUITE(file_constructor, {
@@ -33,6 +30,11 @@ TEST_SUITE(file_constructor, {
     TEST(file_header.number_of_pages == 0);
 
     manager2.~FileManager();
+
+    FileManager manager3("testfile");
+    FileManager manager4("../project4/testfile");
+    TEST(manager3.get_id() == manager4.get_id());
+    TEST(manager3.get_filename() == manager4.get_filename());
     remove("testfile");
 })
 

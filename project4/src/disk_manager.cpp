@@ -3,12 +3,7 @@
 #include "disk_manager.hpp"
 
 fileid_t FileManager::hash_filename(std::string const& filename) {
-    std::size_t pos = filename.rfind('/');
-    if (pos == std::string::npos) {
-        return std::hash<std::string>{}(filename);
-    } else {
-        return std::hash<std::string>{}(filename.substr(pos + 1));
-    }
+    return std::hash<std::string>{}(filename);
 }
 
 fileid_t FileManager::rehash_fileid(fileid_t id) {
@@ -19,7 +14,13 @@ FileManager::FileManager() : fp(nullptr), id(0) {
     // Do nothing.
 }
 
-FileManager::FileManager(std::string const& filename) : id(hash_filename(filename)) {
+FileManager::FileManager(std::string const& filename) {
+    std::size_t pos = filename.rfind('/');
+    name = pos == std::string::npos
+        ? filename
+        : filename.substr(pos + 1);
+    id = hash_filename(name);
+
     if (fexist(filename.c_str())) {
         EXIT_ON_NULL(fp = fopen(filename.c_str(), "r+"));
     } else {
@@ -59,6 +60,10 @@ fileid_t FileManager::rehash() {
 
 fileid_t FileManager::rehash(fileid_t new_id) {
     return (id = new_id);
+}
+
+std::string const& FileManager::get_filename() const {
+    return name;
 }
 
 Status FileManager::file_init() {
