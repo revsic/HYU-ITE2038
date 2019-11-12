@@ -2,8 +2,14 @@
 
 #include "disk_manager.hpp"
 
-fileid_t FileManager::hash_filename(std::string const& filename) {
-    return std::hash<std::string>{}(filename);
+std::pair<std::string, std::size_t> FileManager::hash_filename(
+    std::string const& filename
+) {
+    std::size_t pos = filename.rfind('/');
+    std::string name = pos == std::string::npos
+        ? filename
+        : filename.substr(pos + 1);
+    return std::make_pair(name, std::hash<std::string>{}(name));
 }
 
 fileid_t FileManager::rehash_fileid(fileid_t id) {
@@ -15,11 +21,9 @@ FileManager::FileManager() : fp(nullptr), id(0) {
 }
 
 FileManager::FileManager(std::string const& filename) {
-    std::size_t pos = filename.rfind('/');
-    name = pos == std::string::npos
-        ? filename
-        : filename.substr(pos + 1);
-    id = hash_filename(name);
+    auto pair = hash_filename(filename);
+    name = pair.first;
+    id = pair.second;
 
     if (fexist(filename.c_str())) {
         EXIT_ON_NULL(fp = fopen(filename.c_str(), "r+"));

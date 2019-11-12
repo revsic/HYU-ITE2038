@@ -49,8 +49,9 @@ public:
 
     /// Hashing file name.
     /// \param filename std::string const&, the name of the file.
-    /// \return fileid_t, file ID.
-    static fileid_t hash_filename(std::string const& filename);
+    /// \return std::pair<std::string, std::size_t>, preprocessed name and hash.
+    static std::pair<std::string, std::size_t> hash_filename(
+        std::string const& filename);
 
     /// Rehasing file id.
     /// \param id fileid_t, file ID.
