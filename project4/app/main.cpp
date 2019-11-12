@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include "buffer_manager.hpp"
 #include "table_manager.hpp"
@@ -11,28 +12,29 @@ int main(int argc, char* argv[]) {
     Table* table = tables.find(tid);
 
     bool runnable = true;
-    while (!std::cin.eof() && runnable) {
+    std::ifstream fin("testinput.txt");
+    while (!fin.eof() && runnable) {
         char inst;
         int input, range;
         Record record;
         std::string value;
 
         std::cout << '>';
-        std::cin >> inst;
+        fin >> inst;
         switch(inst) {
         case 'o':
-            std::cin >> value;
+            fin >> value;
             tables.remove(tid);
             tid = tables.load(value, buffers);
             table = tables.find(tid);
             break;
         case 'd':
-            std::cin >> input;
+            fin >> input;
             table->remove(input);
             table->print_tree();
             break;
         case 'i':
-            std::cin >> input;
+            fin >> input;
             value = std::to_string(input) + " value";
             table->insert(
                 input,
@@ -41,7 +43,7 @@ int main(int argc, char* argv[]) {
             table->print_tree();
             break;
         case 'f':
-            std::cin >> input;
+            fin >> input;
             if (table->find(input, &record) == Status::SUCCESS) {
                 std::cout
                     << "Key: " << input << ' '
@@ -51,7 +53,7 @@ int main(int argc, char* argv[]) {
             }
             break;
         case 'r':
-            std::cin >> input >> range;
+            fin >> input >> range;
             if (input > range) {
                 std::swap(input, range);
             }
