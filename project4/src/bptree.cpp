@@ -40,6 +40,7 @@ BPTree& BPTree::operator=(BPTree&& other) {
     other.delayed_merge = other.verbose_output = false;
     other.file = nullptr;
     other.buffers = nullptr;
+    return *this;
 }
 
 void BPTree::test_config(int leaf_order,
