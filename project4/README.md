@@ -6,9 +6,6 @@
 - buffer manager
     - searching policy
     - create, new method run on buffer (not primitive api)
-- table
-    - seperate table id and file id
-    - unit test
 - table manager
     - unit test
 
