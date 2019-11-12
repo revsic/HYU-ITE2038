@@ -12,7 +12,8 @@ int main(int argc, char* argv[]) {
     Table* table = tables.find(tid);
 
     bool runnable = true;
-    std::istream& in = std::cin;
+    // std::istream& in = std::cin;
+    std::ifstream in("testinput.txt");
 
     while (!in.eof() && runnable) {
         char inst;
@@ -25,9 +26,11 @@ int main(int argc, char* argv[]) {
         switch(inst) {
         case 'o':
             in >> value;
+            buffers.release_file(table->fileid());
             tables.remove(tid);
             tid = tables.load(value, buffers);
             table = tables.find(tid);
+            table->print_tree();
             break;
         case 'd':
             in >> input;
@@ -77,7 +80,7 @@ int main(int argc, char* argv[]) {
         default:
             break;
         }
-        while (getchar() != '\n');
+        // while (getchar() != '\n');
     }
 
     return 0;
