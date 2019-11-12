@@ -7,7 +7,9 @@
 #include "test.hpp"
 
 TEST_SUITE(hash_filename, {
-    // just std::hash
+    auto pair = FileManager::hash_filename("testfile");
+    auto pair2 = FileManager::hash_filename("../project/testfile");
+    TEST(pair == pair2);
 })
 
 TEST_SUITE(file_constructor, {
