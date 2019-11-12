@@ -12,8 +12,7 @@ int main(int argc, char* argv[]) {
     Table* table = tables.find(tid);
 
     bool runnable = true;
-    // std::istream& in = std::cin;
-    std::ifstream in("testinput.txt");
+    std::istream& in = std::cin;
 
     while (!in.eof() && runnable) {
         char inst;
@@ -80,7 +79,7 @@ int main(int argc, char* argv[]) {
         default:
             break;
         }
-        // while (getchar() != '\n');
+        while (getchar() != '\n');
     }
 
     return 0;
