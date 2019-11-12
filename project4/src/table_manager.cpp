@@ -69,11 +69,15 @@ tableid_t TableManager::load(
     std::string const& filename, BufferManager& buffers
 ) {
     fileid_t id = FileManager::hash_filename(filename);
-    while (tables.find(convert(id)) != tables.end()) {
+    tableid_t tid = convert(id);
+    while (tables.find(tid) != tables.end()) {
+        if (filename == tables[tid].filename()) {
+            return tid;
+        }
         id = FileManager::rehash_fileid(id);
+        tid = convert(id);
     }
 
-    tableid_t tid = convert(id);
     tables[tid] = Table(filename, buffers);
     tables[tid].rehash(id);
     return tid;
