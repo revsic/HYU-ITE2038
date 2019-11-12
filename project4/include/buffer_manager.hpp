@@ -259,6 +259,11 @@ public:
     /// \return Status, whether success or not.
     Status free_page(FileManager& file, pagenum_t pagenum);
 
+    /// Release all buffer blocks relative to given file id.
+    /// \param fileid fileid_t, file ID.
+    /// \return Status, whether success or not.
+    Status release_file(fileid_t fileid);
+
 private:
     int capacity;                           /// buffer array size.
     int num_buffer;                         /// number of the element.
@@ -286,11 +291,6 @@ private:
     /// \param idx int, buffer index.
     /// \return Status, whether sucess or not.
     Status release_block(int idx);
-
-    /// Release all buffer blocks relative to given file id.
-    /// \param fileid fileid_t, file ID.
-    /// \return Status, whether success or not.
-    Status release_file(fileid_t fileid);
 
     /// Release buffer with given policy.
     /// \return int, released index.
