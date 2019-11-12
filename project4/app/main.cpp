@@ -12,29 +12,30 @@ int main(int argc, char* argv[]) {
     Table* table = tables.find(tid);
 
     bool runnable = true;
-    std::ifstream fin("testinput.txt");
-    while (!fin.eof() && runnable) {
+    std::istream& in = std::cin;
+
+    while (!in.eof() && runnable) {
         char inst;
         int input, range;
         Record record;
         std::string value;
 
         std::cout << '>';
-        fin >> inst;
+        in >> inst;
         switch(inst) {
         case 'o':
-            fin >> value;
+            in >> value;
             tables.remove(tid);
             tid = tables.load(value, buffers);
             table = tables.find(tid);
             break;
         case 'd':
-            fin >> input;
+            in >> input;
             table->remove(input);
             table->print_tree();
             break;
         case 'i':
-            fin >> input;
+            in >> input;
             value = std::to_string(input) + " value";
             table->insert(
                 input,
@@ -43,7 +44,7 @@ int main(int argc, char* argv[]) {
             table->print_tree();
             break;
         case 'f':
-            fin >> input;
+            in >> input;
             if (table->find(input, &record) == Status::SUCCESS) {
                 std::cout
                     << "Key: " << input << ' '
@@ -53,7 +54,7 @@ int main(int argc, char* argv[]) {
             }
             break;
         case 'r':
-            fin >> input >> range;
+            in >> input >> range;
             if (input > range) {
                 std::swap(input, range);
             }
