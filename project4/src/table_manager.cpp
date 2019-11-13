@@ -11,14 +11,14 @@ Table::Table(std::string const& filename, BufferManager& manager) :
 }
 
 Table::Table(Table&& other) noexcept :
-    file(std::move(file)), bpt(std::move(bpt))
+    file(std::move(other.file)), bpt(std::move(other.bpt))
 {
     bpt.reset_file(&file);
 }
 
 Table& Table::operator=(Table&& other) noexcept {
-    file = std::move(file);
-    bpt = std::move(bpt);
+    file = std::move(other.file);
+    bpt = std::move(other.bpt);
     bpt.reset_file(&file);
     return *this;
 }
