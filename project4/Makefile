@@ -57,8 +57,8 @@ $(SRCDIR)table_manager.o:
 $(SRCDIR)dbms.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)dbms.o -c $(SRCDIR)dbms.cpp
 
-# $(SRCDIR)dbapi.o:
-# 	$(CC) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.c
+$(SRCDIR)dbapi.o:
+	$(CCXX) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.cpp
 
 $(TARGET_OBJ): $(TARGET_SRC)
 	$(CXX) $(CFLAGS) -o $@ -c $^
