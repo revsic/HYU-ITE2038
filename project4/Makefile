@@ -70,9 +70,9 @@ $(TARGET): $(TARGET_OBJ)
 $(TARGET_TEST): $(SRCS_FOR_LIB) $(TARGET_TEST_SRC)
 	$(CXX) $(CFLAGS) -DTEST_MODULE -I $(TESTSRC) -o $@ $^
 
-# $(TARGET_PERF): $(TARGET_PERF_SRC)
-# 	make static_library
-# 	$(CC) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
+$(TARGET_PERF): $(TARGET_PERF_SRC)
+	make static_library
+	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
 
 clean:
 	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(TARGET_PERF) $(OBJS_FOR_LIB) $(LIBS)* *.db
