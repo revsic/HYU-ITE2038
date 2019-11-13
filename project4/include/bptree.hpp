@@ -34,13 +34,17 @@ public:
     BPTree(BPTree const&) = delete;
 
     /// Move constructor.
-    BPTree(BPTree&& other) = delete;
+    BPTree(BPTree&& other) noexcept;
 
     /// Removed copy assignment.
     BPTree& operator=(BPTree const&) = delete;
 
     /// Move assignment.
-    BPTree& operator=(BPTree&& other) = delete;
+    BPTree& operator=(BPTree&& other) noexcept;
+
+    /// Reset file manager pointer.
+    /// \param new_file FileManager*, new file manager.
+    void reset_file(FileManager* file);
 
     /// Update b+tree configuration.
     /// \param leaf_order int, leaf order.

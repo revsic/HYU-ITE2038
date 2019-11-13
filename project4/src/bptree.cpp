@@ -14,6 +14,40 @@ BPTree::BPTree(FileManager* file, BufferManager* buffers) :
     // Do nothing
 }
 
+BPTree::BPTree(BPTree&& other)
+    : leaf_order(other.leaf_order)
+    , internal_order(other.internal_order)
+    , delayed_merge(other.delayed_merge)
+    , verbose_output(other.verbose_output)
+    , file(other.file)
+    , buffers(other.buffers)
+{
+    other.leaf_order = other.internal_order = 0;
+    other.delayed_merge = other.verbose_output = false;
+    other.file = nullptr;
+    other.buffers = nullptr;
+}
+
+BPTree& BPTree::operator=(BPTree&& other) {
+    leaf_order = other.leaf_order;
+    internal_order = other.internal_order;
+    delayed_merge = other.delayed_merge;
+    verbose_output = other.verbose_output;
+    file = other.file;
+    buffers = other.buffers;
+
+    other.leaf_order = other.internal_order = 0;
+    other.delayed_merge = other.verbose_output = false;
+    other.file = nullptr;
+    other.buffers = nullptr;
+
+    return *this;
+}
+
+void BPTree::reset_file(FileManager* file) {
+    this->file = file;
+}
+
 void BPTree::test_config(int leaf_order,
                          int internal_order,
                          bool delayed_merge) {
