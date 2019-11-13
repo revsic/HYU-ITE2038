@@ -111,13 +111,13 @@ public:
     TableManager(TableManager const&) = delete;
 
     /// Deleted move constructor.
-    TableManager(TableManager&&) = delete;
+    TableManager(TableManager&& other) noexcept;
 
     /// Deleted copy assignment.
     TableManager& operator=(TableManager const&) = delete;
 
     /// Deleted move assignment.
-    TableManager& operator=(TableManager&&) = delete;
+    TableManager& operator=(TableManager&& other) noexcept;
 
     /// Load table in disk based structure with given file name and buffers.
     /// \param filename std::string const&, the name of the file.

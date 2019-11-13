@@ -66,6 +66,17 @@ std::string const& Table::filename() const {
     return file.get_filename();
 }
 
+TableManager::TableManager(TableManager&& other) noexcept :
+    tables(std::move(other.tables))
+{
+    // Do Nothing
+}
+
+TableManager& TableManager::operator=(TableManager&& other) noexcept {
+    tables = std::move(other.tables);
+    return *this;
+}
+
 tableid_t TableManager::load(
     std::string const& filename, BufferManager& buffers
 ) {
