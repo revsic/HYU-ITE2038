@@ -51,6 +51,9 @@ $(SRCDIR)buffer_manager.o:
 $(SRCDIR)bptree.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)bptree.o -c $(SRCDIR)bptree.cpp
 
+$(SRCDIR)bptree_iter.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)bptree_iter.o -c $(SRCDIR)bptree_iter.cpp
+
 $(SRCDIR)table_manager.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)table_manager.o -c $(SRCDIR)table_manager.cpp
 
