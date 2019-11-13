@@ -23,8 +23,9 @@ Table& Table::operator=(Table&& other) {
     return *this;
 }
 
-void Table::print_tree() const {
+Status Table::print_tree() const {
     bpt.print_tree();
+    return Status::SUCCESS;
 }
 
 Status Table::find(prikey_t key, Record* record) const {

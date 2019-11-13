@@ -42,7 +42,7 @@ public:
     Table& operator=(Table&& other);
 
     /// Print tree.
-    void print_tree() const;
+    Status print_tree() const;
 
     /// Find the key and write the record to the given pointer.
     /// \param key prikey_t, primary key.
