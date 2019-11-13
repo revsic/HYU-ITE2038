@@ -33,12 +33,30 @@ FileManager::FileManager(std::string const& filename) {
     }
 }
 
+FileManager::FileManager(FileManager&& other) :
+    fp(other.fp), id(other.id), name(std::move(other.name))
+{
+    other.fp = nullptr;
+    other.id = 0;
+}
+
 FileManager::~FileManager() {
     if (fp != nullptr) {
         fclose(fp);
         // for preventing double free
         fp = nullptr;
     }
+}
+
+FileManager& FileManager::operator=(FileManager&& other) {
+    fp = other.fp;
+    id = other.id;
+    name = std::move(other.name);
+
+    other.fp = nullptr;
+    other.id = 0;
+
+    return *this;
 }
 
 fileid_t FileManager::get_id() const {
