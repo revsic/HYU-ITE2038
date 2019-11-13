@@ -199,11 +199,14 @@ BufferManager::BufferManager(int num_buffer)
     , num_buffer(0)
     , lru(-1)
     , mru(-1)
-    , buffers(std::make_unique<Buffer[]>(capacity))
+    , buffers(nullptr)
 {
-    if (buffers == nullptr) {
-        capacity = 0;
-        return;
+    if (capacity > 0) {
+        buffers = std::make_unique<Buffer[]>(capacity);
+        if (buffers == nullptr) {
+            capacity = 0;
+            return;
+        }
     }
 
     // initialize all buffers before use
@@ -246,6 +249,7 @@ BufferManager& BufferManager::operator=(BufferManager&& other) noexcept {
 }
 
 Status BufferManager::shutdown() {
+    CHECK_NULL(buffers);
     for (int i = 0; i < capacity; ++i) {
         release_block(i);
     }
