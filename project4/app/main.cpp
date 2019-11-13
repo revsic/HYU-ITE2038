@@ -25,18 +25,18 @@ int main(int argc, char* argv[]) {
             close_table(tid);
 
             tid = open_table(value.c_str());
-            GLOBAL_DB.print_tree(tid);
+            GLOBAL_DB->print_tree(tid);
             break;
         case 'd':
             in >> input;
             db_delete(tid, input);
-            GLOBAL_DB.print_tree(tid);
+            GLOBAL_DB->print_tree(tid);
             break;
         case 'i':
             in >> input;
             value = std::to_string(input) + " value";
             db_insert(tid, input, value.c_str());
-            GLOBAL_DB.print_tree(tid);
+            GLOBAL_DB->print_tree(tid);
             break;
         case 'f':
             in >> input;
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
             if (input > range) {
                 std::swap(input, range);
             }
-            for (Record const& rec : GLOBAL_DB.find_range(tid, input, range)) {
+            for (Record const& rec : GLOBAL_DB->find_range(tid, input, range)) {
                 std::cout
                     << "Key: " << rec.key << ' '
                     << "Value: " << rec.value << std::endl;
@@ -64,11 +64,11 @@ int main(int argc, char* argv[]) {
             runnable = false;
             break;
         case 't':
-            GLOBAL_DB.print_tree(tid);
+            GLOBAL_DB->print_tree(tid);
             break;
         case 'x':
-            GLOBAL_DB.destroy_tree(tid);
-            GLOBAL_DB.print_tree(tid);
+            GLOBAL_DB->destroy_tree(tid);
+            GLOBAL_DB->print_tree(tid);
             break;
         default:
             break;
