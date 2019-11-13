@@ -88,13 +88,6 @@ tableid_t TableManager::load(
     return tid;
 }
 
-Table* TableManager::find(tableid_t id) {
-    if (tables.find(id) != tables.end()) {
-        return &tables[id];
-    }
-    return nullptr;
-}
-
 Table const* TableManager::find(tableid_t id) const {
     if (tables.find(id) != tables.end()) {
         return &tables.at(id);

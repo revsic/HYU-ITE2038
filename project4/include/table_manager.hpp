@@ -125,11 +125,6 @@ public:
     /// \return tableid_t, loaded table ID.
     tableid_t load(std::string const& filename, BufferManager& buffers);
 
-    /// Find table structure by ID.
-    /// \param tableid_t, id
-    /// \return Table*, found table pointer.
-    Table* find(tableid_t id);
-
     /// Find table structure by ID (const ver).
     /// \param tableid_t, id
     /// \return Table const*, found table pointer.
