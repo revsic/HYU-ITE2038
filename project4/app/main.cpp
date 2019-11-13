@@ -13,8 +13,8 @@ int main(int argc, char* argv[]) {
 
     while (!in.eof() && runnable) {
         char inst;
+        char arr[1024];
         int input, range;
-        Record record;
         std::string value;
 
         std::cout << '>';
@@ -41,11 +41,10 @@ int main(int argc, char* argv[]) {
             break;
         case 'f':
             in >> input;
-            char arr[1024];
             if (db_find(tid, input, arr) == 0) {
                 std::cout
                     << "Key: " << input << ' '
-                    << "Value: " << record.value << std::endl;
+                    << "Value: " << arr << std::endl;
             } else {
                 std::cout << "not found" << std::endl;
             }
