@@ -5,27 +5,30 @@
 
 class UbufferRecordRef {
 public:
-    UbufferRecordRef(int record_index, Ubuffer& buffer);
+    UbufferRecordRef(int record_index, Ubuffer* buffer);
 
     UbufferRecordRef(UbufferRecordRef const&) = delete;
 
-    UbufferRecordRef(UbufferRecordRef&&) = delete;
+    UbufferRecordRef(UbufferRecordRef&&) noexcept;
 
     UbufferRecordRef& operator=(UbufferRecordRef const&) = delete;
 
-    UbufferRecordRef& operator=(UbufferRecordRef&&) = delete;
+    UbufferRecordRef& operator=(UbufferRecordRef&&) noexcept;
 
     ~UbufferRecordRef() = default;
 
+    prikey_t key();
+
     template <typename F>
     inline Status use(RWFlag flag, F&& callback) {
-        return buffer.use(flag, [&](Page& page) {
+        return buffer->use(flag, [&](Page& page) {
             return callback(page.records()[record_index]);
         });
     }
+
 private:
     int record_index;
-    Ubuffer& buffer;
+    Ubuffer* buffer;
 };
 
 class BPTreeIterator {

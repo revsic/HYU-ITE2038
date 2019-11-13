@@ -2,10 +2,36 @@
 
 #include "bptree_iter.hpp"
 
-UbufferRecordRef::UbufferRecordRef(int record_index, Ubuffer& buffer) :
+UbufferRecordRef::UbufferRecordRef(int record_index, Ubuffer* buffer) :
     record_index(record_index), buffer(buffer)
 {
     // Do Nothing
+}
+
+UbufferRecordRef::UbufferRecordRef(UbufferRecordRef&& other) noexcept :
+    record_index(other.record_index), buffer(other.buffer)
+{
+        other.record_index = 0;
+        other.buffer = nullptr;
+}
+
+UbufferRecordRef& UbufferRecordRef::operator=(
+    UbufferRecordRef&& other
+) noexcept {
+    record_index = other.record_index;
+    buffer = other.buffer;
+
+    other.record_index = 0;
+    other.buffer = nullptr;
+    return *this;
+}
+
+prikey_t UbufferRecordRef::key() {
+    prikey_t res;
+    EXIT_ON_FAILURE(use(RWFlag::READ, [&](Record& record) {
+        res = record.key;
+    }));
+    return res;
 }
 
 BPTreeIterator::BPTreeIterator(
@@ -92,5 +118,5 @@ bool BPTreeIterator::operator!=(BPTreeIterator const& other) {
 }
 
 UbufferRecordRef BPTreeIterator::operator*() {
-    return UbufferRecordRef(record_index, buffer);
+    return UbufferRecordRef(record_index, &buffer);
 }
