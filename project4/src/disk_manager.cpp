@@ -41,7 +41,7 @@ FileManager::~FileManager() {
     }
 }
 
-FileManager::FileManager(FileManager&& other) :
+FileManager::FileManager(FileManager&& other) noexcept :
     fp(other.fp), id(other.id), name(other.name)
 {
     other.fp = nullptr;
@@ -49,7 +49,7 @@ FileManager::FileManager(FileManager&& other) :
     other.name = "";
 }
 
-FileManager& FileManager::operator=(FileManager&& other) {
+FileManager& FileManager::operator=(FileManager&& other) noexcept {
     fp = other.fp;
     id = other.id;
     name = other.name;
