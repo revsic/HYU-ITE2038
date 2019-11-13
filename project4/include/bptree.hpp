@@ -10,6 +10,9 @@
 #include "test.hpp"
 #endif
 
+/// B+Tree record iterator.
+class BPTreeIterator;
+
 /// B+Tree Structure.
 class BPTree {
 public:
@@ -52,10 +55,6 @@ public:
     /// \param delayed_merge bool, whether use delayed merge or not.
     void test_config(int leaf_order, int internal_order, bool delayed_merge);
 
-    /// Update file pointer.
-    /// \param file FileManager*, file base.
-    void update_file(FileManager* file);
-
     /// Print all leaves.
     void print_leaves() const;
 
@@ -90,6 +89,12 @@ public:
     /// \return Status, whether success to destroy tree or not.
     Status destroy_tree() const;
 
+    /// Get the beginning of b+tree record iterator.
+    BPTreeIterator begin() const;
+
+    /// Get the end of b+tree record iterator. 
+    BPTreeIterator end() const;
+
 private:
     int leaf_order;
     int internal_order;
@@ -97,6 +102,8 @@ private:
     bool delayed_merge;
     FileManager* file;
     BufferManager* buffers;
+
+    friend class BPTreeIterator;
 
     /// Return buffer specified by pageid.
     /// \param pagenum pagenum_t, page id.

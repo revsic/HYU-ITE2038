@@ -3,6 +3,7 @@
 #include <queue>
 
 #include "bptree.hpp"
+#include "bptree_iter.hpp"
 
 BPTree::BPTree(FileManager* file, BufferManager* buffers) :
     leaf_order(DEFAULT_LEAF_ORDER),
@@ -55,10 +56,6 @@ void BPTree::test_config(int leaf_order,
     this->internal_order = internal_order;
     this->delayed_merge = delayed_merge;
     verbose_output = true;
-}
-
-void BPTree::update_file(FileManager* file) {
-    this->file = file;
 }
 
 void BPTree::print_leaves() const {
@@ -356,6 +353,15 @@ Status BPTree::destroy_tree() const {
         CHECK_SUCCESS(free_page(pagenum));
     }
     return Status::SUCCESS;
+}
+
+
+BPTreeIterator BPTree::begin() const {
+    return BPTreeIterator::begin(*this);
+}
+
+BPTreeIterator BPTree::end() const {
+    return BPTreeIterator::end();
 }
 
 // Ubuffer macro
