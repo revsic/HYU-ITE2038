@@ -68,18 +68,22 @@ std::string const& Table::filename() const {
 tableid_t TableManager::load(
     std::string const& filename, BufferManager& buffers
 ) {
+    // name, hash
     auto pair = FileManager::hash_filename(filename);
     fileid_t id = pair.second;
     tableid_t tid = convert(id);
     while (tables.find(tid) != tables.end()) {
+        // if name of the file is same
         if (pair.first == tables[tid].filename()) {
             return tid;
         }
+        // rehash id
         id = FileManager::rehash_fileid(id);
         tid = convert(id);
     }
 
     tables[tid] = Table(filename, buffers);
+    // set rehashed id
     tables[tid].rehash(id);
     return tid;
 }
