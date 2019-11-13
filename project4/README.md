@@ -11,9 +11,6 @@
 - headers
     - Add type definition
     - type size test (all pass)
-- utility
-    - function for simplicyfing member variable access
-    - unit test (all pass)
 - fileio
     - file level IO
     - unit test (all pass)
