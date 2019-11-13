@@ -54,8 +54,8 @@ $(SRCDIR)bptree.o:
 $(SRCDIR)table_manager.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)table_manager.o -c $(SRCDIR)table_manager.cpp
 
-# $(SRCDIR)dbms.o:
-# 	$(CC) $(CFLAGS) -o $(SRCDIR)dbms.o -c $(SRCDIR)dbms.c
+$(SRCDIR)dbms.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)dbms.o -c $(SRCDIR)dbms.cpp
 
 # $(SRCDIR)dbapi.o:
 # 	$(CC) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.c
