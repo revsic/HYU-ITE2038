@@ -25,6 +25,6 @@ enum class Status { SUCCESS = 0, FAILURE = 1 };
 #define EXIT_ON_NULL(x) if ((x) == nullptr) { printf("check failure: file %s, line %d\n", __FILE__, __LINE__); exit(1); }
 
 /// Debug variable
-#define DBG(x) std::cout << __FILE__ "\t, line " << __LINE__ << ", " #x ": " << x << std::endl;
+#define DBG(x) std::cout << __FILE__ "\t, line " << __LINE__ << ", " #x ": " << (x) << std::endl;
 
 #endif
