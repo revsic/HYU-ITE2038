@@ -1,7 +1,7 @@
 #ifndef BPTREE_ITER_HPP
 #define BPTREE_ITER_HPP
 
-#include "bptree.hpp";
+#include "bptree.hpp"
 
 class UbufferRecordRef {
 public:
