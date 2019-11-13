@@ -51,15 +51,18 @@ public:
 
     bool operator!=(BPTreeIterator const& other);    
 
+    bool operator==(BPTreeIterator const& other);
+
     UbufferRecordRef operator*();
 
 private:
     BPTreeIterator(
-        pagenum_t pagenum, int record_index,
+        pagenum_t pagenum, int record_index, int num_key,
         Ubuffer buffer, BPTree const* tree);
 
     pagenum_t pagenum;
     int record_index;
+    int num_key;
     Ubuffer buffer;
     BPTree const* tree;
 };
