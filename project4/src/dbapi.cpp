@@ -27,10 +27,13 @@ int db_find(int table_id, int64_t key, char* ret_val) {
     if (res == Status::FAILURE) {
         return 1;
     }
-    std::memcpy(
-        ret_val,
-        reinterpret_cast<char*>(rec.value),
-        sizeof(Record) - sizeof(prikey_t));
+
+    if (ret_val != nullptr) {
+        std::memcpy(
+            ret_val,
+            reinterpret_cast<char*>(rec.value),
+            sizeof(Record) - sizeof(prikey_t));
+    }
     return 0;
 }
 
