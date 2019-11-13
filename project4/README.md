@@ -6,8 +6,6 @@
 - buffer manager
     - searching policy
     - create, new method run on buffer (not primitive api)
-- table manager
-    - unit test
 
 ### Done
 - headers
@@ -28,6 +26,9 @@
 - bpt
     - on-disk b+tree
     - unit test (all pass)
+- table manager
+    - table manager.
+    - unit test
 
 ### Next project
 - buffer manager
