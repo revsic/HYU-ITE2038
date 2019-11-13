@@ -4,6 +4,11 @@ Database::Database(int num_buffer) : buffers(num_buffer), tables() {
     // Do Nothing
 }
 
+Database::~Database() {
+    buffers.~BufferManager();
+    tables.~TableManager();
+}
+
 tableid_t Database::open_table(std::string const& filename) {
     return tables.load(filename, buffers);
 }

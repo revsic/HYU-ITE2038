@@ -12,7 +12,7 @@ public:
     Database(int num_buffer);
 
     /// Default destructor.
-    ~Database() = default;
+    ~Database();
 
     /// Deleted copy constructor.
     Database(Database const&) = delete;
