@@ -43,6 +43,11 @@ BPTree& BPTree::operator=(BPTree&& other) noexcept {
     return *this;
 }
 
+void BPTree::reorder(FileManager* file, BufferManager* buffers) {
+    this->file = file;
+    this->buffers = buffers;
+}
+
 void BPTree::test_config(int leaf_order,
                          int internal_order,
                          bool delayed_merge) {

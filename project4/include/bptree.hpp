@@ -42,6 +42,11 @@ public:
     /// Move assignment.
     BPTree& operator=(BPTree&& other) noexcept;
 
+    /// Reordering pointer.
+    /// \param file FileManager*, file manager.
+    /// \param buffers BufferManager*, buffer manager.
+    void reorder(FileManager* file, BufferManager* buffers);
+
     /// Update b+tree configuration.
     /// \param leaf_order int, leaf order.
     /// \param internal_order int, internal order.
