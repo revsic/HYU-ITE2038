@@ -1,15 +1,12 @@
 #include <iostream>
 #include <fstream>
 
-#include "buffer_manager.hpp"
-#include "table_manager.hpp"
+#include "dbms.hpp"
 
 int main(int argc, char* argv[]) {
-    TableManager tables;
-    BufferManager buffers(4);
+    Database dbms(4);
 
-    tableid_t tid = tables.load("datafile", buffers);
-    Table* table = tables.find(tid);
+    tableid_t tid = dbms.open_table("datafile");
 
     bool runnable = true;
     std::istream& in = std::cin;
@@ -25,29 +22,29 @@ int main(int argc, char* argv[]) {
         switch(inst) {
         case 'o':
             in >> value;
-            buffers.release_file(table->fileid());
-            tables.remove(tid);
-            tid = tables.load(value, buffers);
-            table = tables.find(tid);
-            table->print_tree();
+            dbms.close_table(tid);
+
+            tid = dbms.open_table(value);
+            dbms.print_tree(tid);
             break;
         case 'd':
             in >> input;
-            table->remove(input);
-            table->print_tree();
+            dbms.remove(tid, input);
+            dbms.print_tree(tid);
             break;
         case 'i':
             in >> input;
             value = std::to_string(input) + " value";
-            table->insert(
+            dbms.insert(
+                tid,
                 input,
-                reinterpret_cast<const uint8_t*>(value.c_str()),
+                reinterpret_cast<uint8_t const*>(value.c_str()),
                 value.size());
-            table->print_tree();
+            dbms.print_tree(tid);
             break;
         case 'f':
             in >> input;
-            if (table->find(input, &record) == Status::SUCCESS) {
+            if (dbms.find(tid, input, &record) == Status::SUCCESS) {
                 std::cout
                     << "Key: " << input << ' '
                     << "Value: " << record.value << std::endl;
@@ -60,7 +57,7 @@ int main(int argc, char* argv[]) {
             if (input > range) {
                 std::swap(input, range);
             }
-            for (Record const& rec : table->find_range(input, range)) {
+            for (Record const& rec : dbms.find_range(tid, input, range)) {
                 std::cout
                     << "Key: " << rec.key << ' '
                     << "Value: " << rec.value << std::endl;
@@ -70,11 +67,11 @@ int main(int argc, char* argv[]) {
             runnable = false;
             break;
         case 't':
-            table->print_tree();
+            dbms.print_tree(tid);
             break;
         case 'x':
-            table->destroy_tree();
-            table->print_tree();
+            dbms.destroy_tree(tid);
+            dbms.print_tree(tid);
             break;
         default:
             break;
