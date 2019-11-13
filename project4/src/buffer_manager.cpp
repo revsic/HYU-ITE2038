@@ -215,46 +215,8 @@ BufferManager::BufferManager(int num_buffer)
     }
 }
 
-BufferManager::BufferManager(BufferManager&& other) noexcept
-    : capacity(other.capacity)
-    , num_buffer(other.num_buffer)
-    , lru(other.lru)
-    , mru(other.mru)
-    , buffers(std::move(other.buffers))
-{
-    other.capacity = 0;
-    other.num_buffer = 0;
-    other.lru = 0;
-    other.mru = 0;
-    other.buffers = nullptr;
-
-    for (int i = 0; i < capacity; ++i) {
-        buffers[i].manager = this;
-    }
-}
-
 BufferManager::~BufferManager() {
     shutdown();
-}
-
-BufferManager& BufferManager::operator=(BufferManager&& other) noexcept {
-    capacity = other.capacity;
-    num_buffer = other.num_buffer;
-    lru = other.lru;
-    mru = other.mru;
-    buffers = std::move(other.buffers);
-
-    other.capacity = 0;
-    other.num_buffer = 0;
-    other.lru = 0;
-    other.mru = 0;
-    other.buffers = nullptr;
-
-    for (int i = 0; i < capacity; ++i) {
-        buffers[i].manager = this;
-    }
-
-    return *this;
 }
 
 Status BufferManager::shutdown() {
