@@ -41,29 +41,6 @@ FileManager::~FileManager() {
     }
 }
 
-FileManager::FileManager(FileManager&& other) noexcept :
-    fp(other.fp), id(other.id), name(other.name)
-{
-    other.fp = nullptr;
-    other.id = 0;
-    other.name = "";
-}
-
-FileManager& FileManager::operator=(FileManager&& other) noexcept {
-    if (fp != nullptr) {
-        fclose(fp);
-    }
-
-    fp = other.fp;
-    id = other.id;
-    name = other.name;
-
-    other.fp = nullptr;
-    other.id = 0;
-    other.name = "";
-    return *this;
-}
-
 fileid_t FileManager::get_id() const {
     return id;
 }

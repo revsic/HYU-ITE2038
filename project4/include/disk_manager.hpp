@@ -27,13 +27,13 @@ public:
     FileManager(FileManager const&) = delete;
 
     /// Move constructor.
-    FileManager(FileManager&& other) noexcept;
+    FileManager(FileManager&& other) = delete;
 
     /// Default copy assignment, deleted.
     FileManager& operator=(FileManager const&) = delete;
 
     /// Move assignment.
-    FileManager& operator=(FileManager&& other) noexcept;
+    FileManager& operator=(FileManager&& other) = delete;
 
     /// Get file id.
     fileid_t get_id() const;
