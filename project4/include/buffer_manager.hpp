@@ -230,13 +230,13 @@ public:
     BufferManager(BufferManager const&) = delete;
 
     /// Deleted move constructor.
-    BufferManager(BufferManager&&) = delete;
+    BufferManager(BufferManager&&) noexcept;
 
     /// Deleted copy assignment.
     BufferManager& operator=(BufferManager const&) = delete;
 
     /// Deleted move assignment.
-    BufferManager& operator=(BufferManager&&) = delete;
+    BufferManager& operator=(BufferManager&&) noexcept;
 
     /// Shutdown manager.
     /// \return Status, whether success or not.
