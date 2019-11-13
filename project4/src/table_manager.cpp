@@ -118,5 +118,6 @@ Status TableManager::remove(tableid_t id) {
 }
 
 tableid_t TableManager::convert(fileid_t id) {
-    return static_cast<tableid_t>(id);
+    tableid_t tableid = static_cast<tableid_t>(id);
+    return tableid > 0 ? tableid : -tableid;
 }
