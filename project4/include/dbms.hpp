@@ -48,13 +48,31 @@ public:
     /// \return Status, whether success to find the record or not.
     Status find(tableid_t id, prikey_t key, Record* record);
 
-    std::vector<Record> find_range(tableid_t, prikey_t start, prikey_t end);
+    /// Range based search.
+    /// \param id tableid_t, table ID.
+    /// \param start prikey_t, start point.
+    /// \param end prikey_t, end point.
+    /// \return std::vector<Record>, result records.
+    std::vector<Record> find_range(tableid_t id, prikey_t start, prikey_t end);
 
+    /// Insert the record to the tree.
+    /// \param id tableid_t, table ID.
+    /// \param key prikey_t, primary key.
+    /// \param value uint8_t const*, byte sequence.
+    /// \param value_size int, the length of the sequence.
+    /// \return Status, whether success to insert the record or not.
     Status insert(
         tableid_t id, prikey_t key, uint8_t const* value, int value_size);
 
+    /// Remove the record from the tree.
+    /// \param id tableid_t, table ID.
+    /// \param key prikey_t, primary key.
+    /// \return Status, whether success to remove the record or not.
     Status remove(tableid_t id, prikey_t key);
 
+    /// Remove all records and clean up the tree.
+    /// \param id tableid_t, table ID.
+    /// \return Status, whether success to clean up the tree.
     Status destroy_tree(tableid_t id);
 
 private:
