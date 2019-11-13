@@ -43,3 +43,7 @@ Status Database::remove(tableid_t id, prikey_t key) {
 Status Database::destroy_tree(tableid_t id) {
     return wrapper(id, Status::FAILURE, &Table::destroy_tree);
 }
+
+Table const* Database::operator[](tableid_t id) const {
+    return tables.find(id);
+}

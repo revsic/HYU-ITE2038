@@ -75,6 +75,11 @@ public:
     /// \return Status, whether success to clean up the tree.
     Status destroy_tree(tableid_t id);
 
+    /// Get table from table manager.
+    /// \param id tableid_t, table ID.
+    /// \return Table const*, table structure.
+    Table const* operator[](tableid_t id) const;
+
 private:
     BufferManager buffers;
     TableManager tables;
