@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "bptree.hpp"
+#include "bptree_iter.hpp"
 #include "buffer_manager.hpp"
 #include "disk_manager.hpp"
 #include "headers.hpp"
@@ -18,6 +19,8 @@ using tableid_t = int;
 /// Table.
 class Table {
 public:
+    using RecordIterator = BPTreeIterator;
+
     /// NULL-initializing constructor.
     Table();
 
@@ -71,6 +74,12 @@ public:
     /// Free all nodes and clean up the tree.
     /// \return Status, whether success to remove all.
     Status destroy_tree() const;
+
+    /// Get the beginning of the record iterator.
+    RecordIterator begin() const;
+
+    /// Get the end of the record iterator.
+    RecordIterator end() const;
 
     /// Get file ID.
     /// \return fileid_t, file ID.

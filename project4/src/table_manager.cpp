@@ -50,6 +50,14 @@ Status Table::destroy_tree() const {
     return bpt.destroy_tree();
 }
 
+Table::RecordIterator Table::begin() const {
+    return bpt.begin();
+}
+
+Table::RecordIterator Table::end() const {
+    return bpt.end();
+}
+
 fileid_t Table::fileid() const {
     return file.get_id();
 }
