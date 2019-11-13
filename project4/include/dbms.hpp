@@ -18,13 +18,13 @@ public:
     Database(Database const&) = delete;
 
     /// Deleted move constructor.
-    Database(Database&&) = delete;
+    Database(Database&&) noexcept;
 
     /// Deleted copy assignment.
     Database& operator=(Database const&) = delete;
 
     /// Deleted move assignment.
-    Database& operator=(Database&&) = delete;
+    Database& operator=(Database&&) noexcept;
 
     /// Open table with given filename.
     /// \param filename std::string const&, the name of the file.

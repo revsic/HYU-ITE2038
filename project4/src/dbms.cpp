@@ -4,6 +4,18 @@ Database::Database(int num_buffer) : buffers(num_buffer), tables() {
     // Do Nothing
 }
 
+Database::Database(Database&& other) noexcept
+    : buffers(std::move(other.buffers)), tables(std::move(other.tables))
+{
+    // Do Nothing
+}
+
+Database& Database::operator=(Database&& other) noexcept {
+    buffers = std::move(other.buffers);
+    tables = std::move(other.tables);
+    return *this;
+}
+
 tableid_t Database::open_table(std::string const& filename) {
     return tables.load(filename, buffers);
 }
