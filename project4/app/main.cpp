@@ -25,6 +25,7 @@ int main(int argc, char* argv[]) {
             close_table(tid);
 
             tid = open_table(value.c_str());
+            std::cout << "tid: " << tid << std::endl;
             GLOBAL_DB->print_tree(tid);
             break;
         case 'd':
@@ -76,5 +77,6 @@ int main(int argc, char* argv[]) {
         // while (getchar() != '\n');
     }
 
+    shutdown_db();
     return 0;
 }
