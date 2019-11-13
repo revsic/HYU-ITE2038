@@ -22,6 +22,7 @@ test.dSYM
 # db file
 datafile
 testfile
+*.db
 
 # input file
 input.txt
