@@ -7,6 +7,16 @@ class UbufferRecordRef {
 public:
     UbufferRecordRef(int record_index, Ubuffer& buffer);
 
+    UbufferRecordRef(UbufferRecordRef const&) = delete;
+
+    UbufferRecordRef(UbufferRecordRef&&) = delete;
+
+    UbufferRecordRef& operator=(UbufferRecordRef const&) = delete;
+
+    UbufferRecordRef& operator=(UbufferRecordRef&&) = delete;
+
+    ~UbufferRecordRef() = default;
+
     template <typename F>
     inline Status use(RWFlag flag, F&& callback) {
         return buffer.use(flag, [&](Page& page) {
@@ -20,6 +30,16 @@ private:
 
 class BPTreeIterator {
 public:
+    BPTreeIterator(BPTreeIterator const& other);
+
+    BPTreeIterator(BPTreeIterator&& other) noexcept;
+
+    BPTreeIterator& operator=(BPTreeIterator const& other);
+
+    BPTreeIterator& operator=(BPTreeIterator&& other) noexcept;
+
+    ~BPTreeIterator() = default;
+
     static BPTreeIterator begin(BPTree const& tree);
 
     static BPTreeIterator end();

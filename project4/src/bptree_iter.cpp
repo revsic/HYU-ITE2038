@@ -16,6 +16,44 @@ BPTreeIterator::BPTreeIterator(
     // Do Nothing
 }
 
+BPTreeIterator::BPTreeIterator(BPTreeIterator const& other) :
+    pagenum(other.pagenum), record_index(other.record_index),
+    buffer(other.buffer.clone()), tree(other.tree)
+{
+    // Do Nothing
+}
+
+BPTreeIterator::BPTreeIterator(BPTreeIterator&& other) noexcept :
+    pagenum(other.pagenum), record_index(other.record_index),
+    buffer(std::move(other.buffer)), tree(other.tree)
+{
+    other.pagenum = INVALID_PAGENUM;
+    other.record_index = 0;
+    other.buffer = Ubuffer(nullptr);
+    other.tree = nullptr;
+}
+
+BPTreeIterator& BPTreeIterator::operator=(BPTreeIterator const& other) {
+    pagenum = other.pagenum;
+    record_index = other.record_index;
+    buffer = other.buffer.clone();
+    tree = other.tree;
+    return *this;
+}
+
+BPTreeIterator& BPTreeIterator::operator=(BPTreeIterator&& other) noexcept {
+    pagenum = other.pagenum;
+    record_index = other.record_index;
+    buffer = std::move(buffer);
+    tree = other.tree;
+
+    other.pagenum = INVALID_PAGENUM;
+    other.record_index = 0;
+    other.buffer = Ubuffer(nullptr);
+    other.tree = nullptr;
+    return *this;
+}
+
 BPTreeIterator BPTreeIterator::begin(BPTree const& tree) {
     Ubuffer buffer(nullptr);
     pagenum_t leafnum = tree.find_leaf(
