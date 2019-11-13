@@ -33,13 +33,13 @@ public:
     Table(Table const&) = delete;
     
     /// Move constructor.
-    Table(Table&& other) = delete;
+    Table(Table&& other) noexcept;
 
     /// Deleted copy assignment.
     Table& operator=(Table const&) = delete;
 
     /// Move assignment.
-    Table& operator=(Table&& other) = delete;
+    Table& operator=(Table&& other) noexcept;
 
     /// Print tree.
     Status print_tree() const;
