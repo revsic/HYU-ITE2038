@@ -9,6 +9,10 @@ tableid_t Database::open_table(std::string const& filename) {
 }
 
 Status Database::close_table(tableid_t id) {
+    Table const* table = tables.find(id);
+    CHECK_NULL(table);
+
+    buffers.release_file(table->fileid());
     return tables.remove(id);
 }
 
