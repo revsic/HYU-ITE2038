@@ -30,6 +30,7 @@ prikey_t UbufferRecordRef::key() {
     prikey_t res;
     EXIT_ON_FAILURE(use(RWFlag::READ, [&](Record& record) {
         res = record.key;
+        return Status::SUCCESS;
     }));
     return res;
 }
