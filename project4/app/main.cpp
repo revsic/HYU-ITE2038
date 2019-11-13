@@ -1,15 +1,15 @@
 #include <iostream>
 #include <fstream>
 
-#include "dbms.hpp"
+#include "dbapi.hpp"
 
 int main(int argc, char* argv[]) {
-    Database dbms(4);
-
-    tableid_t tid = dbms.open_table("datafile");
+    init_db(4);
+    int tid = open_table("datafile");
 
     bool runnable = true;
     std::istream& in = std::cin;
+    // std::ifstream in("input.txt");
 
     while (!in.eof() && runnable) {
         char inst;
@@ -22,29 +22,26 @@ int main(int argc, char* argv[]) {
         switch(inst) {
         case 'o':
             in >> value;
-            dbms.close_table(tid);
+            close_table(tid);
 
-            tid = dbms.open_table(value);
-            dbms.print_tree(tid);
+            tid = open_table(value.c_str());
+            GLOBAL_DB.print_tree(tid);
             break;
         case 'd':
             in >> input;
-            dbms.remove(tid, input);
-            dbms.print_tree(tid);
+            db_delete(tid, input);
+            GLOBAL_DB.print_tree(tid);
             break;
         case 'i':
             in >> input;
             value = std::to_string(input) + " value";
-            dbms.insert(
-                tid,
-                input,
-                reinterpret_cast<uint8_t const*>(value.c_str()),
-                value.size());
-            dbms.print_tree(tid);
+            db_insert(tid, input, value.c_str());
+            GLOBAL_DB.print_tree(tid);
             break;
         case 'f':
             in >> input;
-            if (dbms.find(tid, input, &record) == Status::SUCCESS) {
+            char arr[1024];
+            if (db_find(tid, input, arr) == 0) {
                 std::cout
                     << "Key: " << input << ' '
                     << "Value: " << record.value << std::endl;
@@ -57,7 +54,7 @@ int main(int argc, char* argv[]) {
             if (input > range) {
                 std::swap(input, range);
             }
-            for (Record const& rec : dbms.find_range(tid, input, range)) {
+            for (Record const& rec : GLOBAL_DB.find_range(tid, input, range)) {
                 std::cout
                     << "Key: " << rec.key << ' '
                     << "Value: " << rec.value << std::endl;
@@ -67,16 +64,16 @@ int main(int argc, char* argv[]) {
             runnable = false;
             break;
         case 't':
-            dbms.print_tree(tid);
+            GLOBAL_DB.print_tree(tid);
             break;
         case 'x':
-            dbms.destroy_tree(tid);
-            dbms.print_tree(tid);
+            GLOBAL_DB.destroy_tree(tid);
+            GLOBAL_DB.print_tree(tid);
             break;
         default:
             break;
         }
-        while (getchar() != '\n');
+        // while (getchar() != '\n');
     }
 
     return 0;
