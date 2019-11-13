@@ -10,13 +10,13 @@ Table::Table(std::string const& filename, BufferManager& manager) :
     // Do Nothing
 }
 
-Table::Table(Table&& other) :
+Table::Table(Table&& other) noexcept :
     file(std::move(other.file)), bpt(std::move(other.bpt))
 {
     bpt.update_file(&file);
 }
 
-Table& Table::operator=(Table&& other) {
+Table& Table::operator=(Table&& other) noexcept {
     file = std::move(other.file);
     bpt = std::move(other.bpt);
     bpt.update_file(&file);
