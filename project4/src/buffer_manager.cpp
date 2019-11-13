@@ -227,6 +227,10 @@ BufferManager::BufferManager(BufferManager&& other) noexcept
     other.lru = 0;
     other.mru = 0;
     other.buffers = nullptr;
+
+    for (int i = 0; i < capacity; ++i) {
+        buffers[i].manager = this;
+    }
 }
 
 BufferManager::~BufferManager() {
@@ -245,6 +249,11 @@ BufferManager& BufferManager::operator=(BufferManager&& other) noexcept {
     other.lru = 0;
     other.mru = 0;
     other.buffers = nullptr;
+
+    for (int i = 0; i < capacity; ++i) {
+        buffers[i].manager = this;
+    }
+
     return *this;
 }
 
