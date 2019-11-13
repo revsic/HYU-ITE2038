@@ -63,6 +63,9 @@ $(SRCDIR)dbms.o:
 $(SRCDIR)dbapi.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)dbapi.o -c $(SRCDIR)dbapi.cpp
 
+$(SRCIDR)join.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)join.o -c $(SRCDIR)join.cpp
+
 $(TARGET_OBJ): $(TARGET_SRC)
 	$(CXX) $(CFLAGS) -o $@ -c $^
 
