@@ -50,6 +50,10 @@ FileManager::FileManager(FileManager&& other) noexcept :
 }
 
 FileManager& FileManager::operator=(FileManager&& other) noexcept {
+    if (fp != nullptr) {
+        fclose(fp);
+    }
+
     fp = other.fp;
     id = other.id;
     name = other.name;
