@@ -3,7 +3,7 @@
 
 #include "dbms.hpp"
 
-extern Database GLOBAL_DB;
+extern std::unique_ptr<Database> GLOBAL_DB;
 
 int init_db(int buf_num);
 
