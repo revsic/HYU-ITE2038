@@ -10,19 +10,6 @@ Table::Table(std::string const& filename, BufferManager& manager) :
     // Do Nothing
 }
 
-Table::Table(Table&& other) noexcept :
-    file(std::move(other.file)), bpt(std::move(other.bpt))
-{
-    bpt.update_file(&file);
-}
-
-Table& Table::operator=(Table&& other) noexcept {
-    file = std::move(other.file);
-    bpt = std::move(other.bpt);
-    bpt.update_file(&file);
-    return *this;
-}
-
 Status Table::print_tree() const {
     bpt.print_tree();
     return Status::SUCCESS;
