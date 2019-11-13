@@ -33,7 +33,7 @@ FileManager::FileManager(std::string const& filename) {
     }
 }
 
-FileManager::FileManager(FileManager&& other) :
+FileManager::FileManager(FileManager&& other) noexcept :
     fp(other.fp), id(other.id), name(std::move(other.name))
 {
     other.fp = nullptr;
@@ -48,7 +48,7 @@ FileManager::~FileManager() {
     }
 }
 
-FileManager& FileManager::operator=(FileManager&& other) {
+FileManager& FileManager::operator=(FileManager&& other) noexcept {
     fp = other.fp;
     id = other.id;
     name = std::move(other.name);
