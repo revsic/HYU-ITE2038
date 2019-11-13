@@ -14,7 +14,7 @@ BPTree::BPTree(FileManager* file, BufferManager* buffers) :
     // Do nothing
 }
 
-BPTree::BPTree(BPTree&& other)
+BPTree::BPTree(BPTree&& other) noexcept
     : leaf_order(other.leaf_order)
     , internal_order(other.internal_order)
     , delayed_merge(other.delayed_merge)
@@ -28,7 +28,7 @@ BPTree::BPTree(BPTree&& other)
     other.buffers = nullptr;
 }
 
-BPTree& BPTree::operator=(BPTree&& other) {
+BPTree& BPTree::operator=(BPTree&& other) noexcept {
     leaf_order = other.leaf_order;
     internal_order = other.internal_order;
     delayed_merge = other.delayed_merge;
