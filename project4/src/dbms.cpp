@@ -12,23 +12,30 @@ Status Database::close_table(tableid_t id) {
     return tables.remove(id);
 }
 
-Status Database::find(tableid_t id, prikey_t key, Record* record) {
-    Table const* table = tables.find(id);
-    CHECK_NULL(table);
-
-    return table->find(key, record);
+Status Database::print_tree(tableid_t id) {
+    return wrapper(id, Status::FAILURE, &Table::print_tree);
 }
 
-Status Database::insert(tableid_t id, prikey_t key, uint8_t const* value, int value_size) {
-    Table const* table = tables.find(id);
-    CHECK_NULL(table);
+Status Database::find(tableid_t id, prikey_t key, Record* record) {
+    return wrapper(id, Status::FAILURE, &Table::find, key, record);
+}
 
-    return table->insert(key, value, value_size);
+std::vector<Record> Database::find_range(
+    tableid_t id, prikey_t start, prikey_t end
+) {
+    return wrapper(id, std::vector<Record>(), &Table::find_range, start, end);
+}
+
+Status Database::insert(
+    tableid_t id, prikey_t key, uint8_t const* value, int value_size
+) {
+    return wrapper(id, Status::FAILURE, &Table::insert, key, value, value_size);
 }
 
 Status Database::remove(tableid_t id, prikey_t key) {
-    Table const* table = tables.find(id);
-    CHECK_NULL(table);
+    return wrapper(id, Status::FAILURE, &Table::remove, key);
+}
 
-    return table->remove(key);
+Status Database::destroy_tree(tableid_t id) {
+    return wrapper(id, Status::FAILURE, &Table::destroy_tree);
 }
