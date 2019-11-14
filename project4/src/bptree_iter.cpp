@@ -75,7 +75,7 @@ BPTreeIterator& BPTreeIterator::operator=(BPTreeIterator&& other) noexcept {
     pagenum = other.pagenum;
     record_index = other.record_index;
     num_key = other.num_key;
-    buffer = std::move(buffer);
+    buffer = std::move(other.buffer);
     tree = other.tree;
 
     other.pagenum = INVALID_PAGENUM;
