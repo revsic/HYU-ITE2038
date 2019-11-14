@@ -1,3 +1,6 @@
+#include <random>
+#include <vector>
+
 #include "bptree_iter.hpp"
 
 struct BPTreeIteratorTest {
@@ -264,11 +267,62 @@ TEST_SUITE(BPTreeIteratorTest::cmp_operator, {
 })
 
 TEST_SUITE(BPTreeIteratorTest::deref_operator, {
-    
+    BufferManager manager(4);
+    FileManager file("testfile");
+
+    Ubuffer buffer = manager.buffering(file, 0);
+    TEST_SUCCESS(buffer.use(RWFlag::WRITE, [&](Page& page) {
+        page.page_header().number_of_keys = 3;
+        page.page_header().special_page_number = INVALID_PAGENUM;
+        for (int i = 0; i < 3; ++i) {
+            page.records()[i].key = i;
+        }
+        return Status::SUCCESS;
+    }))
+
+    BPTree tree(nullptr, nullptr);
+    BPTreeIterator iter(
+        0, 0, 3, std::move(buffer), &tree);
+
+    for (int i = 0; i < 3; ++i) {
+        TEST((*iter).key() == i);
+        ++iter;
+    }
+
+    manager.~BufferManager();
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BPTreeIteratorTest::integrate, {
+    BufferManager manager(100);
+    FileManager file("testfile");
+    
+    uint8_t tmp[5];
+    BPTree tree(&file, &manager);
+    tree.test_config(4, 5, true);
 
+    std::vector<int> values;
+    for (int i = 0; i < 20; ++i) {
+        values.push_back(i);
+    }
+
+    std::random_device rd;
+    std::default_random_engine gen(rd());
+    for (int i = 0; i < 20; ++i) {
+        int idx = gen() % values.size();
+        tree.insert(values[idx], tmp, 5);
+        values.erase(values.begin() + idx);
+    }
+
+    int i = 0;
+    for (auto rec : tree) {
+        TEST(i++ == rec.key());
+    }
+
+    manager.~BufferManager();
+    file.~FileManager();
+    remove("testfile");
 })
 
 int bptree_iter_test() {
