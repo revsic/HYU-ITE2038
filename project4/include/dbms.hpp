@@ -3,6 +3,7 @@
 
 #include "buffer_manager.hpp"
 #include "table_manager.hpp"
+#include "join.hpp"
 
 /// Database management system.
 class Database {
@@ -74,6 +75,21 @@ public:
     /// \param id tableid_t, table ID.
     /// \return Status, whether success to clean up the tree.
     Status destroy_tree(tableid_t id);
+
+    /// Natural join on primary key.
+    /// \param F typename, Status(Record&).
+    /// \param id1 tableid_t, left table id.
+    /// \param id2 tableid_t, right table id.
+    /// \param callback F&&, callback for found keys.
+    /// \return Status, whether success to join or not.
+    template <typename F>
+    Status prikey_join(tableid_t id1, tableid_t id2, F&& callback) {
+        Table const* table1 = (*this)[id1];
+        Table const* table2 = (*this)[id2];
+        CHECK_NULL(table1);
+        CHECK_NULL(table2);
+        return JoinOper::set_merge(table1, table2, std::forward<F>(callback));
+    }
 
     /// Get table from table manager.
     /// \param id tableid_t, table ID.
