@@ -4,6 +4,13 @@
 #include "table_manager.hpp"
 
 namespace JoinOper {
+
+/// Set based merge.
+/// \param F typename, callback Status(Record&).
+/// \param table1 Table const*, left table pointer.
+/// \param table2 Table const*, right table pointer.
+/// \param callback F&&, callback.
+/// \return Status, whether success to merge or not.
 template <typename F>
 Status set_merge(
     Table const* table1, Table const* table2, F&& callback
