@@ -49,3 +49,27 @@ int shutdown_db() {
     GLOBAL_DB.reset();
     return 0;
 }
+
+int join_table(int table_id_1, int table_id_2, char const* pathname) {
+    FILE* fp = fopen(pathname, "w");
+    if (fp == nullptr) {
+        return 1;
+    }
+
+    int res = static_cast<int>(GLOBAL_DB->prikey_join(table_id_1, table_id_2,
+        [&](Record& rec1, Record& rec2) {
+            fprintf(
+                fp,
+                "%d,%s,%d,%s\n",
+                rec1.key, rec1.value,
+                rec2.key, rec2.value);
+            return Status::SUCCESS;
+        }));
+
+    fclose(fp);
+    if (res != 0) {
+        remove(pathname);
+    }
+
+    return res;
+}
