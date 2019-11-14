@@ -22,10 +22,14 @@
     - unit test (all pass)
 - bpt
     - on-disk b+tree
+    - support record based iterator
     - unit test (all pass)
 - table manager
     - table manager.
-    - unit test
+    - unit test (all pass)
+- join
+    - primary key based natural join
+    - unit test (all pass)
 
 ### Next project
 - buffer manager
