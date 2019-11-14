@@ -12,6 +12,7 @@ struct BPTreeIteratorTest {
     TEST_NAME(inc_operator);
     TEST_NAME(cmp_operator);
     TEST_NAME(deref_operator);
+    TEST_NAME(integrate);
 };
 
 TEST_SUITE(BPTreeIteratorTest::ctor, {
@@ -180,14 +181,93 @@ TEST_SUITE(BPTreeIteratorTest::end, {
 })
 
 TEST_SUITE(BPTreeIteratorTest::inc_operator, {
+    BufferManager manager(100);
+    FileManager file("testfile");
+    
+    uint8_t tmp[5];
+    BPTree tree(&file, &manager);
+    tree.test_config(4, 5, true);
+    for (int i = 0; i < 20; ++i) {
+        tree.insert(i, tmp, 5);
+    }
 
+    auto iter = BPTreeIterator::begin(tree);
+    Ubuffer buf = manager.buffering(file, 1);
+
+    int num_key;
+    TEST_SUCCESS(buf.use(RWFlag::READ, [&](Page& page) {
+        num_key = page.page_header().number_of_keys;
+        return Status::SUCCESS;
+    }));
+
+    for (int i = 0; i < 20; ++i) {
+        if (i != 0 && i % 2 == 0) {
+            pagenum_t next;
+            TEST_SUCCESS(buf.use(RWFlag::READ, [&](Page& page) {
+                next = page.page_header().special_page_number;
+                return Status::SUCCESS;
+            }))
+
+            buf = manager.buffering(file, next);
+            TEST_SUCCESS(buf.use(RWFlag::READ, [&](Page& page) {
+                num_key = page.page_header().number_of_keys;
+                return Status::SUCCESS;
+            }));
+        }
+
+        TEST(iter.pagenum == buf.safe_pagenum());
+        TEST(iter.record_index == i % 2);
+        TEST(iter.num_key == num_key);
+        TEST(iter.buffer.safe_pagenum() == buf.safe_pagenum());
+        TEST(iter.tree == &tree);
+        
+        ++iter;
+    }
+
+    TEST(iter == BPTreeIterator::end());
+
+    manager.~BufferManager();
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BPTreeIteratorTest::cmp_operator, {
+    BufferManager manager(4);
+    FileManager file("testfile");
 
+    Ubuffer buffer = manager.buffering(file, 0);
+
+    BPTree tree(nullptr, nullptr);
+    BPTreeIterator iter(
+        2, 1, 10, std::move(buffer), &tree);
+
+    BPTreeIterator iter2(
+        2, 1, 10, std::move(buffer), &tree);
+    
+    TEST(iter == iter2);
+
+    BPTreeIterator iter3(
+        3, 1, 10, std::move(buffer), &tree);
+    TEST(iter != iter3);
+
+    BPTreeIterator iter4(
+        2, 2, 10, std::move(buffer), &tree);
+    TEST(iter != iter4);
+
+    BPTreeIterator iter5(
+        3, 2, 10, std::move(buffer), &tree);
+    TEST(iter != iter5);
+
+    manager.~BufferManager();
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BPTreeIteratorTest::deref_operator, {
+    
+})
+
+TEST_SUITE(BPTreeIteratorTest::integrate, {
 
 })
 
@@ -201,5 +281,6 @@ int bptree_iter_test() {
         && BPTreeIteratorTest::end_test()
         && BPTreeIteratorTest::inc_operator_test()
         && BPTreeIteratorTest::cmp_operator_test()
-        && BPTreeIteratorTest::deref_operator_test();
+        && BPTreeIteratorTest::deref_operator_test()
+        && BPTreeIteratorTest::integrate_test();
 }

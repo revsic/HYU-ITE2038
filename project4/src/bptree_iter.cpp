@@ -122,7 +122,7 @@ BPTreeIterator& BPTreeIterator::operator++() {
     } else {
         buffer = tree->buffering(pagenum);
         EXIT_ON_FAILURE(buffer.use(RWFlag::READ, [&](Page& page) {
-            num_key = page.page_header().special_page_number;
+            num_key = page.page_header().number_of_keys;
             return Status::SUCCESS;
         }))
     }
