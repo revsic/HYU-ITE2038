@@ -149,11 +149,34 @@ TEST_SUITE(BPTreeIteratorTest::move_assign, {
 })
 
 TEST_SUITE(BPTreeIteratorTest::begin, {
+    BufferManager manager(100);
+    FileManager file("testfile");
+    
+    uint8_t buf[5];
+    BPTree tree(&file, &manager);
+    for (int i = 0; i < 20; ++i) {
+        tree.insert(i, buf, 5);
+    }
 
+    auto iter = BPTreeIterator::begin(tree);
+    TEST(iter.pagenum == 1);
+    TEST(iter.record_index == 0);
+    TEST(iter.num_key == 20);
+    TEST(iter.buffer.safe_pagenum() == 1);
+    TEST(iter.tree == &tree);
+
+    manager.~BufferManager();
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BPTreeIteratorTest::end, {
-
+    auto iter = BPTreeIterator::end();
+    TEST(iter.pagenum == INVALID_PAGENUM);
+    TEST(iter.record_index == 0);
+    TEST(iter.num_key == 0);
+    TEST(iter.buffer.buffer() == nullptr);
+    TEST(iter.tree == nullptr);
 })
 
 TEST_SUITE(BPTreeIteratorTest::inc_operator, {
