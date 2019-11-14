@@ -1,12 +1,7 @@
 #include "dbms.hpp"
 
-Database::Database(int num_buffer) : buffers(num_buffer), tables() {
+Database::Database(int num_buffer) : tables(), buffers(num_buffer) {
     // Do Nothing
-}
-
-Database::~Database() {
-    buffers.~BufferManager();
-    tables.~TableManager();
 }
 
 tableid_t Database::open_table(std::string const& filename) {

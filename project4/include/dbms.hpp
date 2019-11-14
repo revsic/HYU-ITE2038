@@ -12,7 +12,7 @@ public:
     Database(int num_buffer);
 
     /// Default destructor.
-    ~Database();
+    ~Database() = default;
 
     /// Deleted copy constructor.
     Database(Database const&) = delete;
@@ -81,8 +81,8 @@ public:
     Table const* operator[](tableid_t id) const;
 
 private:
-    BufferManager buffers;
     TableManager tables;
+    BufferManager buffers;
 
     template <typename R, typename F, typename... Args>
     inline R wrapper(tableid_t id, R&& default_value, F&& callback, Args&&... args) {
