@@ -45,6 +45,11 @@ int close_table(int table_id);
 /// \return int, whether success to shutdown the db or not.
 int shutdown_db();
 
+/// Join two table naturally based on primary key.
+/// \param table_id_1 int, left table ID.
+/// \param table_id_2 int, right table ID.
+/// \param pathname char const*, output path name.
+/// \return int, whether success to join tables or not.
 int join_table(int table_id_1, int table_id_2, char const* pathname);
 
 #endif
