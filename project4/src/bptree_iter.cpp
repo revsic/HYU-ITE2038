@@ -45,14 +45,14 @@ BPTreeIterator::BPTreeIterator(
 }
 
 BPTreeIterator::BPTreeIterator(BPTreeIterator const& other) :
-    pagenum(other.pagenum), record_index(other.record_index), num_key(num_key),
+    pagenum(other.pagenum), record_index(other.record_index), num_key(other.num_key),
     buffer(other.buffer.clone()), tree(other.tree)
 {
     // Do Nothing
 }
 
 BPTreeIterator::BPTreeIterator(BPTreeIterator&& other) noexcept :
-    pagenum(other.pagenum), record_index(other.record_index), num_key(num_key),
+    pagenum(other.pagenum), record_index(other.record_index), num_key(other.num_key),
     buffer(std::move(other.buffer)), tree(other.tree)
 {
     other.pagenum = INVALID_PAGENUM;
