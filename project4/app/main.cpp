@@ -22,11 +22,14 @@ int main(int argc, char* argv[]) {
         switch(inst) {
         case 'o':
             in >> value;
-            close_table(tid);
-
             tid = open_table(value.c_str());
+
             std::cout << "tid: " << tid << std::endl;
             GLOBAL_DB->print_tree(tid);
+            break;
+        case 'c':
+            in >> input;
+            close_table(input);
             break;
         case 'd':
             in >> input;
@@ -70,6 +73,9 @@ int main(int argc, char* argv[]) {
             GLOBAL_DB->destroy_tree(tid);
             GLOBAL_DB->print_tree(tid);
             break;
+        case 'j':
+            in >> input >> range >> value;
+            join_table(input, range, value.c_str());
         default:
             break;
         }
