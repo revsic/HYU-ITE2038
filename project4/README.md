@@ -4,7 +4,7 @@ Primary key based Natural Join 구현.
 
 ## 0. C++ Reimplementation
 
-이번 과제부터 C++의 사용이 가능해져 14년도 표준에 맞추어 DB를 재구현하였다. 기본적으로 [project3](../project3)의 코드 구조를 따랐으며, 세부 구현체는 매크로나 조건부 컴파일 대신 cpp의 feature를 최대한 활용하였다. 다만, 아직 최적화를 진행하지 않아, 기존의 C 구현체에 비해 2배 정도 속도가 느려졌다.
+이번 과제부터 C++의 사용이 가능해져 14년도 표준에 맞추어 DB를 재구현하였다. 기본적으로 [project3](../project3)의 코드 구조를 따랐으며, 세부 구현체는 매크로나 조건부 컴파일 대신 cpp의 feature를 최대한 활용하였다. 다만, 아직 최적화를 진행하지 않아, 기존의 C 구현체보다 2배 정도 속도가 느려졌다.
 
 | name | function | source | methods |
 | ---- | -------- | ------ | ------- |
@@ -22,7 +22,7 @@ Primary key based Natural Join 구현.
 
 가장 먼저 생각한 것은 sort merge join이다. 현재 인자로 받아오는 두 테이블 모두 B+Tree 기반의 index 구조에 Record가 저장되어 있고, primary key에 대해 정렬된 상태이다. 
 
-Sort-Merge join은 두 테이블이 정렬된 상태에서 Merge operation을 통해 동일한 key를 가진 record를 가져오는 join 방식이다. 현재 Table이 모두 primary key에 대해 정렬되어 있어 조건을 만족하므로, Merge만을 구현하여 Nautral join을 구현할 수 있었다.
+Sort-Merge join은 두 테이블이 정렬된 상태에서 Merge operation을 통해 같은 key를 가진 record를 가져오는 join 방식이다. 현재 Table이 모두 primary key에 대해 정렬되어 있어 조건을 만족하므로, Merge만을 구현하여 Natural join을 구현할 수 있었다.
 
 더군다나, 현재 index가 중복을 지원하지 않아 multiset이 아닌 set을 기반으로 한 merge가 가능하고, O(#table1 + #table2) 시간 안에 Join이 가능하다. 
 
@@ -38,7 +38,7 @@ if (key1 == key2) {
 }
 ```
 
-또한 보다 단순한 구현을 위해 B+Tree의 Record를 순회할 수 있는 BPTreeIterator을 만들어 buffering을 직접 호출하지 않고도 record에 대한 순회가 가능하도록 하였다. 
+또한 더 단순한 구현을 위해 B+Tree의 Record를 순회할 수 있는 BPTreeIterator 을 만들어 buffering을 직접 호출하지 않고도 record에 대한 순회가 가능하도록 하였다. 
 
 ```c++
 for (auto record_ref : *table1) {
@@ -46,7 +46,7 @@ for (auto record_ref : *table1) {
 }
 ```
 
-현재 join 구현체에서는 range based for 보다는 직접 iterator을 들고 순회하는게 더 좋을 듯 하여 iterator을 저장하고 있다.
+현재 join 구현체에서는 range based for보다는 직접 iterator을 들고 순회하는 게 더 좋을 듯하여 iterator을 저장하고 있다.
 
 ```c++
 auto iter1 = table1->begin();
@@ -56,7 +56,7 @@ auto end1 = table1->end();
 auto end2 = table2->end();
 ```
 
-이는 [dbms.hpp](./include/dbms.hpp)에 `Database::prikey_join`으로 wrapping되어 있고, csv 포맷으로 저장하기 위해 [dbapi.hpp](./include/dbapi.hpp)의 join table에서는 record를 csv 포맷으로 저장하는 callback을 `prikey_join`에 인자로 주고 있다.
+이는 [dbms.hpp](./include/dbms.hpp)에 `Database::prikey_join`으로 wrapping 되어 있고, csv 포맷으로 저장하기 위해 [dbapi.hpp](./include/dbapi.hpp)의 join table에서는 record를 csv 포맷으로 저장하는 callback을 `prikey_join`에 인자로 주고 있다.
 
 ```c++
 Status res = GLOBAL_DB->prikey_join(table_id_1, table_id_2,
