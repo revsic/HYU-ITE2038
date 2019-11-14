@@ -3,6 +3,10 @@
 
 #include "bptree.hpp"
 
+#ifdef TEST_MODULE
+#include "test.hpp"
+#endif
+
 class UbufferRecordRef {
 public:
     UbufferRecordRef(int record_index, Ubuffer* buffer);
@@ -65,6 +69,10 @@ private:
     int num_key;
     Ubuffer buffer;
     BPTree const* tree;
+
+#ifdef TEST_MODULE
+    friend struct BPTreeIteratorTest;
+#endif
 };
 
 #endif
