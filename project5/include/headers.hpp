@@ -121,17 +121,16 @@ public:
     /// \param T callback type, Status(pagenum_t, Status(Page&)).
     /// \param page_proc T, callback for writing other relative pages
     /// with pagenum.
-    /// \param fp FILE*, file pointer for extending free pages if there is no more free pages.
     /// \return pagenum_t, created page number.
     template <typename T>
-    static pagenum_t create(T&& page_proc, FILE* fp) {
+    static pagenum_t create(T&& page_proc) {
         Status res;
         pagenum_t freepage;
-        res = page_proc(FILE_HEADER_PAGENUM, [&freepage, &page_proc, fp](Page& page) {
+        res = page_proc(FILE_HEADER_PAGENUM, [&freepage, &page_proc](Page& page) {
             FileHeader& filehdr = page.file_header();
             if (filehdr.free_page_number == 0) {
                 CHECK_SUCCESS(extend_free(
-                    page_proc, filehdr, fp,
+                    page_proc, filehdr,
                     std::max(static_cast<uint64_t>(1), filehdr.number_of_pages)));
             }
 
@@ -217,19 +216,15 @@ private:
     /// \param page_proc T, callback for writing other relative pages
     /// with pagenum.
     /// \param header FileHeader&, file header.
-    /// \param fp FILE*, file pointer.
     /// \param num int, the number of requested free pages.
     /// \return Status, whether success or failure.
     template <typename T>
-    static Status extend_free(T&& page_proc, FileHeader& header, FILE* fp, int num) {
+    static Status extend_free(T&& page_proc, FileHeader& header, int num) {
         if (num < 1) {
             return Status::FAILURE;
         }
 
-        long size = fsize(fp);
-        pagenum_t last = fsize(fp) / PAGE_SIZE - 1;
-        CHECK_TRUE(fresize(fp, size + num * PAGE_SIZE));
-
+        pagenum_t last = header.number_of_pages;
         pagenum_t prev = header.free_page_number;
         for (int i = 1; i <= num; ++i) {
             CHECK_SUCCESS(page_proc(last + i, [prev](Page& page) {
