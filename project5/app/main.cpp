@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
             break;
         case 'f':
             in >> input;
-            if (db_find(tid, input, arr) == 0) {
+            if (db_find(tid, input, arr, INVALID_TRXID) == 0) {
                 std::cout
                     << "Key: " << input << ' '
                     << "Value: " << arr << std::endl;

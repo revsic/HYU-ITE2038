@@ -23,7 +23,7 @@ int db_insert(int table_id, int64_t key, char const* value) {
         strlen(value) + 1));
 }
 
-int db_find(int table_id, int64_t key, char* ret_val) {
+int db_find(int table_id, int64_t key, char* ret_val, int trx_id) {
     Record rec;
     Status res = GLOBAL_DB->find(table_id, key, &rec);
     if (res == Status::FAILURE) {

@@ -42,7 +42,7 @@ int run(std::string const& filename, int bufsize) {
             break;
         case 2:
             ifs >> table_id >> input;
-            db_find(tables[table_id - 1], input, nullptr);
+            db_find(tables[table_id - 1], input, nullptr, INVALID_TRXID);
             break;
         case 3:
             ifs >> table_id >> input;

@@ -31,8 +31,9 @@ int db_insert(int table_id, int64_t key, char const* value);
 /// \param table_id, int, table ID.
 /// \param key int64_t, primary key.
 /// \param ret_val char*, nullable, at least 120 bytes array for writing result.
+/// \param trx_id, int, transaction id.
 /// \return int, 0 for success to find, 1 for not exists.
-int db_find(int table_id, int64_t key, char* ret_val);
+int db_find(int table_id, int64_t key, char* ret_val, int trx_id);
 
 /// Delete the records by key.
 /// \param table_id int, table ID.
