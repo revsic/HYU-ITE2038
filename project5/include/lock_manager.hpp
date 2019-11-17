@@ -12,6 +12,7 @@ enum class LockMode {
 
 class Lock {
 public:
+    Lock() = default;
 
 private:
     tableid_t tid;
