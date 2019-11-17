@@ -9,6 +9,8 @@
 
 using trxid_t = int;
 
+constexpr trxid_t INVALID_TRXID = 0;
+
 enum class TrxState {
     IDLE = 0,
     RUNNING = 1,

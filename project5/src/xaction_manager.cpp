@@ -18,6 +18,10 @@ trxid_t TransactionManager::new_trx() {
         last_id = 0;
     }
 
+    if (trxs.find(id) == trxs.end()) {
+        return INVALID_TRXID;
+    }
+
     trxs.emplace(id, Transaction(id));
     return id;
 }
