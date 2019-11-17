@@ -2,9 +2,13 @@
 #define DBAPI_HPP
 
 #include "dbms.hpp"
+#include "xaction_manager.hpp"
 
 /// Global DBMS for db api.
 extern std::unique_ptr<Database> GLOBAL_DB;
+
+/// Global transaction manager.
+extern TransactionManager GLOBAL_TRXMNG;
 
 /// Initialize database.
 /// \param buf_num int, the number of the buffer.
@@ -51,5 +55,14 @@ int shutdown_db();
 /// \param pathname char const*, output path name.
 /// \return int, whether success to join tables or not.
 int join_table(int table_id_1, int table_id_2, char const* pathname);
+
+/// Start transaction.
+/// \return int, transaction ID if success else 0.
+int begin_trx();
+
+/// Finish transaction.
+/// \param tid int, transaction ID.
+/// \return given tid if success else 0.
+int end_trx(int tid);
 
 #endif

@@ -4,6 +4,8 @@
 
 std::unique_ptr<Database> GLOBAL_DB = nullptr;
 
+TransactionManager GLOBAL_TRXMNG;
+
 int init_db(int buf_num) {
     GLOBAL_DB = std::make_unique<Database>(buf_num);
     return 0;
@@ -72,4 +74,15 @@ int join_table(int table_id_1, int table_id_2, char const* pathname) {
     }
 
     return res;
+}
+
+int begin_trx() {
+    return GLOBAL_TRXMNG.new_trx();
+}
+
+int end_trx(int tid) {
+    if (GLOBAL_TRXMNG.end_trx(tid) == Status::SUCCESS) {
+        return tid;
+    }
+    return 0;
 }
