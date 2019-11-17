@@ -8,8 +8,14 @@
     - create, new method run on buffer (not primitive api)
     - lock metadata (ex mru lru pin)
     - try lock
+- bptree
+    - bpt_update
 - transaction manager
+    - all
+    - unit test
 - lock manager
+    - all
+    - unit test
 
 ### Done
 - headers
