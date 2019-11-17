@@ -67,6 +67,12 @@ $(SRCDIR)dbapi.o:
 $(SRCDIR)join.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)join.o -c $(SRCDIR)join.cpp
 
+$(SRCDIR)xaction_manager.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)xaction_manager.o -c $(SRCDIR)xaction_manager.cpp
+
+$(SRCDIR)lock_manager.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)lock_manager.o -c $(SRCDIR)lock_manager.cpp
+
 $(TARGET_OBJ): $(TARGET_SRC)
 	$(CXX) $(CFLAGS) -o $@ -c $^
 
