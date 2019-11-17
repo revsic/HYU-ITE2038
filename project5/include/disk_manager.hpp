@@ -97,7 +97,7 @@ private:
     Status file_create(std::string const& filename);
 
     /// Read-write callback for abstracted page api.
-    /// \param T callback type, Status(Page*).
+    /// \param T callback type, Status(Page&).
     /// \param pagenum pagenum_t, page ID.
     /// \param func T, callback.
     /// \return Status, whether success or not.
