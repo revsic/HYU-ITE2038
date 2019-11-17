@@ -3,8 +3,8 @@
 
 #include "lock_manager.hpp"
 
-#include <atomic>
 #include <list>
+#include <mutex>
 #include <unordered_map>
 
 using trxid_t = int;
@@ -17,10 +17,10 @@ enum class TrxState {
 
 class Transaction {
 public:
-    Transaction(size_t id);
+    Transaction(trxid_t id);
 
 private:
-    size_t id;
+    trxid_t id;
     TrxState state;
     std::list<Lock> locks;
 };
@@ -34,9 +34,10 @@ public:
     Status end_trx(trxid_t id);
 
 private:
-    std::unordered_map<trxid_t, Transaction> trxs;
+    std::mutex mtx;
 
-    static std::atomic<trxid_t> next_id;
+    trxid_t last_id;
+    std::unordered_map<trxid_t, Transaction> trxs;
 };
 
 #endif
