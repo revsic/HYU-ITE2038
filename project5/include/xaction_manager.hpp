@@ -24,7 +24,7 @@ public:
 private:
     trxid_t id;
     TrxState state;
-    std::list<Lock> locks;
+    std::list<Lock*> locks;
 };
 
 class TransactionManager {
