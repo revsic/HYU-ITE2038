@@ -24,6 +24,7 @@ public:
 private:
     trxid_t id;
     TrxState state;
+    Lock* wait;
     std::list<Lock*> locks;
 };
 

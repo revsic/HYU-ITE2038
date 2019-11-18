@@ -1,7 +1,7 @@
 #include "xaction_manager.hpp"
 
 Transaction::Transaction(trxid_t id) :
-    id(id), state(TrxState::IDLE), locks()
+    id(id), state(TrxState::IDLE), wait(nullptr), locks()
 {
     // Do Nothing
 }
