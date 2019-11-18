@@ -1,15 +1,23 @@
 # Transaction Manager
 
+이번 과제는 Concurrency Control을 위한 Transaction과 Lock Manager 지원을 목표로 한다.
+
+## Transaction Manager
+
+## Lock Manager
+
 ## Works
 
 ### TODO
 - buffer manager
-    - searching policy
-    - create, new method run on buffer (not primitive api)
-    - lock metadata (ex mru lru pin)
-    - try lock
+    - renew structure (too complicated)
+    - searching policy (free list, allocated list)
+    - new_page, free_page method run on buffer (not primitive api)
+    - concurrency control
+        - global lock
+        - pin -> rwlock
 - bptree
-    - bpt_update
+    - update method
 - transaction manager
     - all
     - unit test
