@@ -128,6 +128,8 @@ public:
         pagenum_t freepage;
         res = page_proc(FILE_HEADER_PAGENUM, [&freepage, &page_proc](Page& page) {
             FileHeader& filehdr = page.file_header();
+DBG(filehdr.number_of_pages)
+DBG(filehdr.free_page_number)
             if (filehdr.free_page_number == 0) {
                 CHECK_SUCCESS(extend_free(
                     page_proc, filehdr,
@@ -135,8 +137,11 @@ public:
             }
 
             freepage = filehdr.free_page_number;
+DBG(freepage)
+DBG(filehdr.number_of_pages)
             CHECK_SUCCESS(page_proc(freepage, [&filehdr](Page& freep) {
                 filehdr.free_page_number = freep.free_page().next_page_number;
+DBG(filehdr.free_page_number)
                 return Status::SUCCESS;
             }));
             return Status::SUCCESS;
@@ -223,12 +228,15 @@ private:
         if (num < 1) {
             return Status::FAILURE;
         }
-
+DBG(num)
         pagenum_t last = header.number_of_pages;
         pagenum_t prev = header.free_page_number;
         for (int i = 1; i <= num; ++i) {
+DBG(prev)
+DBG(last + i)
             CHECK_SUCCESS(page_proc(last + i, [prev](Page& page) {
                 page.free_page().next_page_number = prev;
+DBG(page.free_page().next_page_number)
                 return Status::SUCCESS;
             }));
             prev = last + i;

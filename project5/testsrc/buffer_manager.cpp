@@ -1,3 +1,5 @@
+#include <map>
+
 #include "buffer_manager.hpp"
 #include "disk_manager.hpp"
 #include "test.hpp"
@@ -562,14 +564,22 @@ TEST_SUITE(BufferManagerTest::buffering, {
     remove("testfile");
 })
 
+std::map<int, bool> ids;
 TEST_SUITE(BufferManagerTest::new_page, {
     BufferManager manager(5);
     FileManager file("testfile");
 
     for (int i = 0; i < 13; ++i) {
+DBG("---------------------------------------------")
+DBG(manager.buffering(file, FILE_HEADER_PAGENUM).page().file_header().number_of_pages)
         Ubuffer ubuf = manager.new_page(file);
-        TEST(&manager.buffers[i % 5] == ubuf.buf);
+DBG(ubuf.pagenum)
+DBG(ubuf.buf->pagenum)
+DBG("---------------------------------------------")
+        ids[ubuf.pagenum] = true;
     }
+DBG(ids.size())
+    TEST(ids.size() == 13);
 
     TEST_SUCCESS(manager.shutdown());
     file.~FileManager();

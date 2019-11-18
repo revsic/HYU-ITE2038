@@ -78,10 +78,16 @@ Status Buffer::unchecked_load(FileManager& file, pagenum_t pagenum) {
 
 Status Buffer::new_page(FileManager& file) {
     pagenum_t res = Page::create([&](pagenum_t target, auto&& func) {
-        return manager->buffering(file, target, false).use(
-            RWFlag::WRITE, std::forward<decltype(func)>(func));
+DBG(target)
+DBG(manager->num_buffer)
+        Ubuffer buffer = manager->buffering(file, target, false);
+DBG(buffer.buffer())
+        return buffer.use(RWFlag::WRITE, std::forward<decltype(func)>(func));
+        // return manager->buffering(file, target, false).use(
+        //     RWFlag::WRITE, std::forward<decltype(func)>(func));
     });
-
+DBG(res)
+DBG(manager->buffering(file, FILE_HEADER_PAGENUM).page().file_header().number_of_pages)
     if (res == INVALID_PAGENUM) {
         return Status::FAILURE;
     }
@@ -250,8 +256,10 @@ Ubuffer BufferManager::buffering(
     FileManager& file, pagenum_t pagenum, bool checked
 ) {
     int idx = find(file.get_id(), pagenum);
+DBG(idx)
     if (idx == -1) {
         idx = load(file, pagenum, checked);
+DBG(idx)
         // if find and load both failed
         if (idx == -1) {
             return Ubuffer(nullptr);
