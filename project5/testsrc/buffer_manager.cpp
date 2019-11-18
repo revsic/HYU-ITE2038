@@ -93,14 +93,17 @@ TEST_SUITE(BufferTest::load, {
 })
 
 TEST_SUITE(BufferTest::new_page, {
-    Buffer buf;
+    BufferManager manager(4);
     FileManager file("testfile");
-    TEST_SUCCESS(buf.init(10, nullptr));
+
+    int idx = manager.alloc();
+    Buffer& buf = manager.buffers[idx];
     TEST_SUCCESS(buf.new_page(file));
 
     TEST(buf.pagenum != INVALID_PAGENUM);
     TEST(buf.file == &file);
 
+    manager.~BufferManager();
     file.~FileManager();
     remove("testfile");
 })

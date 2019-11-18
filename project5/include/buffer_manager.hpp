@@ -102,6 +102,12 @@ private:
     /// \return Status, whether success or not.
     Status load(FileManager& file, pagenum_t pagenum);
 
+    /// Load page frame from file manager without result validation.
+    /// \param file FileManager&, file manager.
+    /// \param pagenum pagenum_t, page ID.
+    /// \return Status, whether success or not.
+    Status unchecked_load(FileManager& file, pagenum_t pagenum);
+
     /// Create new page frame from file manager.
     /// \param file FileManager&, file manager.
     /// \return Status, whether success or not.
@@ -248,8 +254,9 @@ public:
     /// Return requested buffer.
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
+    /// \param checked bool, whether validate read page or not.
     /// \return Ubuffer, buffer for user provision.
-    Ubuffer buffering(FileManager& file, pagenum_t pagenum);
+    Ubuffer buffering(FileManager& file, pagenum_t pagenum, bool checked = true);
 
     /// Create page with given file manager.
     /// \param file FileManager&, file manager.
@@ -287,8 +294,9 @@ private:
     /// Load page frame to buffer arrays.
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
+    /// \param checked bool, whether validate read page or not.
     /// \return int, buffer index.
-    int load(FileManager& file, pagenum_t pagenum);
+    int load(FileManager& file, pagenum_t pagenum, bool checked = true);
 
     /// Release buffer block.
     /// \param idx int, buffer index.
