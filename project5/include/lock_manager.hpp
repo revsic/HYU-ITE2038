@@ -10,6 +10,14 @@ enum class LockMode {
     EXCLUSIVE = 1,
 };
 
+enum class LockLevel {
+    INVALID = 0,
+    DATABASE = 1,
+    TABLE = 2,
+    PAGE = 3,
+    RECORD = 4,
+};
+
 class Lock {
 public:
     Lock() = default;
@@ -19,6 +27,7 @@ private:
     pagenum_t pid;
     int record_idx;
     LockMode mode;
+    LockLevel level;
     Transaction* backref;
 
 };
