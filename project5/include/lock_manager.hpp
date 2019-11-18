@@ -1,6 +1,9 @@
 #ifndef LOCK_MANAGER_HPP
 #define LOCK_MANAGER_HPP
 
+#include <list>
+#include <unordered_map>
+
 #include "table_manager.hpp"
 
 class Transaction;
@@ -18,6 +21,22 @@ enum class LockLevel {
     RECORD = 4,
 };
 
+struct HashableID {
+    tableid_t tid;
+    pagenum_t pid;
+    int record_idx;
+    LockLevel level;
+};
+
+namespace std {
+    template <>
+    struct hash<HashableID> {
+        size_t operator()(const HashableID&) const {
+            return 0;
+        }
+    };
+}
+
 class Lock {
 public:
     Lock() = default;
@@ -30,6 +49,14 @@ private:
     LockLevel level;
     Transaction* backref;
 
+};
+
+class LockManager {
+public:
+    LockManager() = default;
+
+private:
+    std::unordered_map<HashableID, std::list<Lock>> page_locks;
 };
 
 #endif
