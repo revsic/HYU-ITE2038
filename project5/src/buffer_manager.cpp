@@ -69,32 +69,13 @@ Status Buffer::load(FileManager& file, pagenum_t pagenum) {
     return Status::SUCCESS;
 }
 
-Status Buffer::unchecked_load(FileManager& file, pagenum_t pagenum) {
-    file.page_read(pagenum, frame);
-    this->pagenum = pagenum;
-    this->file = &file;
-    return Status::SUCCESS;
-}
-
 Status Buffer::new_page(FileManager& file) {
-    pagenum_t res = Page::create([&](pagenum_t target, auto&& func) {
-DBG(target)
-DBG(manager->num_buffer)
-        Ubuffer buffer = manager->buffering(file, target, false);
-DBG(buffer.buffer())
-        return buffer.use(RWFlag::WRITE, std::forward<decltype(func)>(func));
-        // return manager->buffering(file, target, false).use(
-        //     RWFlag::WRITE, std::forward<decltype(func)>(func));
-    });
-DBG(res)
-DBG(manager->buffering(file, FILE_HEADER_PAGENUM).page().file_header().number_of_pages)
+    // primitive page creation
+    pagenum_t res = file.page_create();
     if (res == INVALID_PAGENUM) {
         return Status::FAILURE;
     }
-
-    this->pagenum = res;
-    this->file = &file;
-    return Status::SUCCESS;
+    return load(file, res);
 }
 
 Status Buffer::link_neighbor() {
@@ -252,14 +233,10 @@ Status BufferManager::shutdown() {
     return Status::SUCCESS;
 }
 
-Ubuffer BufferManager::buffering(
-    FileManager& file, pagenum_t pagenum, bool checked
-) {
+Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum) {
     int idx = find(file.get_id(), pagenum);
-DBG(idx)
     if (idx == -1) {
-        idx = load(file, pagenum, checked);
-DBG(idx)
+        idx = load(file, pagenum);
         // if find and load both failed
         if (idx == -1) {
             return Ubuffer(nullptr);
@@ -269,10 +246,19 @@ DBG(idx)
 }
 
 Ubuffer BufferManager::new_page(FileManager& file) {
-    int idx = alloc();
-    // if find and allocation both failed
+    int idx = find(file.get_id(), FILE_HEADER_PAGENUM);
     if (idx == -1) {
-        return Ubuffer(nullptr);
+        idx = alloc();
+        // if find and allocation both failed
+        if (idx == -1) {
+            return Ubuffer(nullptr);
+        }
+    } else {
+        // if file header buffer exists
+        if (release_block(idx) == Status::FAILURE) {
+            return Ubuffer(nullptr);
+        }
+        ++num_buffer;
     }
 
     // create new page
@@ -290,10 +276,17 @@ Ubuffer BufferManager::new_page(FileManager& file) {
 }
 
 Status BufferManager::free_page(FileManager& file, pagenum_t pagenum) {
-    return Page::release([&](pagenum_t target, auto&& func) {
-        return buffering(file, target).use(
-            RWFlag::WRITE, std::forward<decltype(func)>(func));
-    }, pagenum);
+    int idx = find(file.get_id(), pagenum);
+    if (idx != -1) {
+        CHECK_SUCCESS(release_block(idx));
+    }
+
+    // release file header for consistentcy
+    idx = find(file.get_id(), FILE_HEADER_PAGENUM);
+    if (idx != -1) {
+        CHECK_SUCCESS(release_block(idx));
+    }
+    return file.page_free(pagenum);
 }
 
 int BufferManager::alloc() {
@@ -317,21 +310,14 @@ int BufferManager::alloc() {
     return idx;
 }
 
-int BufferManager::load(FileManager& file, pagenum_t pagenum, bool checked) {
+int BufferManager::load(FileManager& file, pagenum_t pagenum) {
     int idx = alloc();
     if (idx == -1) {
         return -1;
     }
     // load buffer
     Buffer& buffer = buffers[idx];
-    Status res;
-    if (checked) {
-        res = buffer.load(file, pagenum);
-    } else {
-        res = buffer.unchecked_load(file, pagenum);
-    }
-
-    if (res == Status::FAILURE) {
+    if (buffer.load(file, pagenum) == Status::FAILURE) {
         --num_buffer;
         buffer.init(idx, this);
         return -1;
