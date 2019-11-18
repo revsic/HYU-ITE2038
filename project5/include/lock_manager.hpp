@@ -2,6 +2,7 @@
 #define LOCK_MANAGER_HPP
 
 #include <list>
+#include <mutex>
 #include <unordered_map>
 
 #include "table_manager.hpp"
@@ -56,6 +57,7 @@ public:
     LockManager() = default;
 
 private:
+    std::mutex mtx;
     std::unordered_map<HashableID, std::list<Lock>> page_locks;
 };
 
