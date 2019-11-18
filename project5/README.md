@@ -45,7 +45,83 @@ Shared 권한을 요청한 TRX은 서로 접근을 공유할 수 있으며, Excl
 
 ## 2. Design
 
+### 2.1. Lock Structure
 
+현재 구상 중인 Lock의 자료 구조는 다음과 같다. 권한을 표현하기 위한 Lock Mode와 Lock을 설치하는 유닛의 단위로 Lock Level을 두었다. 이는 추후 Record 수가 기하급수적으로 증가할 때보다 상위 레벨에서부터 Lock을 잡아오는 방식을 구현하기 위함이다.
+
+```c++
+enum class LockMode { SHARED = 0, EXCLUSIVE = 1 };
+
+enum class LockLevel { INVALID = 0, DATABASE = 1, TABLE = 2, PAGE = 3, RECORD = 4 };
+
+struct Lock {
+    tableid_t tid;
+    pagenum_t pid;
+    int record_idx;
+    LockMode mode;
+    LockLevel level;
+    Transaction* backref;
+};
+```
+
+Lock은 각각 어디에 설치되었는지를 나타내기 위해 Table ID tid, Page ID pid, Record Index record_idx로 구성되어 있으며, 해당 Lock이 현재 어떤 Transaction에 연결되어 있는지 확인하기 위해 back reference 포인터를 추가하였다.
+
+```c++
+struct HashablePID {
+    tableid_t tid;
+    pagenum_t pid;
+};
+
+struct LockManager {
+    std::mutex mtx;
+    std::unordered_map<HashablePID, std::list<Lock>> page_locks;
+}
+```
+
+Lock Manager은 Lock Level에 따라 Hash Map을 통해 키와 lock을 관리하고, TRX의 요구에 따라 lock을 생성, 대기 상태 활성화, 접근 제어, deadlock 관리를 진행한다. 필요에 따라 bitmap을 통해 record level lock을 page level에서 구현하는 방식도 고려하고 있다.
+
+### 2.2 Transaction structure
+
+트랜잭션은 생성과 즉시 TRX ID를 부여받으며, Operation 중에는 Lock Manager와 통신하며 작업에 필요한 Lock을 획득, 사용자가 end_trx() 메소드를 호출하기 전까지 획득한 lock을 보존하는 역할을 한다. 이 과정에서 end_trx()까지 정상 호출되면 lock을 release하고, 그 전에 deadlock이 발생한 경우 abort 하게 된다.
+
+```c++
+enum class TrxState { IDLE = 0, RUNNING = 1, WAITING = 2 };
+
+struct Transaction {
+    trxid_t id;
+    TrxState state;
+    Lock* wait;
+    std::list<Lock*> locks;
+};
+```
+
+TRX Manager은 global lock을 가지고 있다가 새로운 TRX을 요청받으면 last id를 통해 TRX ID를 발급, 새 트랜잭션을 Hash Map에 추가한다. 이는 end_trx() 나 abort_trx()함수가 호출될 때까지 유지되며, end_trx()와 함께 commit 되거나 abort_trx와 함께 abort 되는 Transaction의 주기를 관리한다.
+
+```c++
+struct TransactionManager {
+    std::mutex mtx;
+    trxid_t lastid;
+    std::unordered_map<trxid_t, Transaction> trxs;
+};
+```
+
+### 2.3. Deadlock detection
+
+Deadlock detection은 Lock의 backref와 Transaction이 가지고 있는 lock list를 통해 가능하다.
+
+하나의 TRX을 선택하고, 소유하고 있는 lock을 순회한다. 해당 lock이 가리키는 page ID의 lock 리스트에서 backref의 wait ptr이 하나라도 선택된 TRX의 lock 리스트의 element를 가리킨다면 Deadlock이므로 Abort 한다. 이는 재귀적으로 다음 TRX에 대해서도 검사해 나갈 수 있으며, N개의 TRX이 연관된 Cycle을 찾을 수 있게 한다. 이는 Graph 탐색 문제이므로 DP를 통해 최적화할 수도 있을 듯하다.
+
+### 2.4. Buffer Pin and RWLock
+
+일전에 buffer의 pin이 RW Lock의 역할을 할 것을 이야기한 적이 있다. 실제로 read에서는 접근을 공유할 수 있었고, write에서는 하나의 접근만이 용납된다는 점에서 RW Lock과 같다. 현재는 단순 int로 이루어져 있으므로 `std::atomic<int>` 혹은 `std::shared_lock`을 통해 thread-safe 한 pin을 구현할 예정이다.
+
+### 2.5. Buffer Manager
+
+Buffer manager에 대해서는 현재 MRU, LRU 리스트 보존, buffer searching, allocating 과정이 thread-safe 하지 않기 때문에 global mutex를 추가해서 안전성을 확보해야 한다.
+
+### 2.6. Strict 2-Phase-Lock
+
+S2PL 구현을 위해서 TRX는 operation 과정에서 lock을 잡기만 할 뿐 release 하지 않기로 하였다. 추후 TRX 성공 및 Commit 후에 Lock을 Release 하는 방식으로 구현할 예정이다.
 
 ## Works
 
