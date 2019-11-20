@@ -286,14 +286,14 @@ private:
     int num_buffer;                         /// number of the element.
     Buffer* lru;                            /// least recently used block index.
     Buffer* mru;                            /// most recently used block index.
-    std::unique_ptr<Buffer[]> buffers;      /// buffer array.
-    std::unique_ptr<Buffer*[]> usages;      /// usage array.
+    std::unique_ptr<Buffer[]> dummy;      /// buffer array.
+    std::unique_ptr<Buffer*[]> buffers;      /// usage array.
 
     friend class Buffer;
 
     /// Allocate buffer frame.
     /// \return int, index value.
-    int alloc();
+    int allocate_block();
 
     /// Load page frame to buffer arrays.
     /// \param file FileManager&, file manager.

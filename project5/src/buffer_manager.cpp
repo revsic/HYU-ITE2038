@@ -104,9 +104,9 @@ Status Buffer::append_mru(bool link) {
 }
 
 Status Buffer::release() {
-    CHECK_TURE(is_allocated);
+    CHECK_TRUE(is_allocated);
     // waiting pin
-    std::unique_lock lock(pin);
+    std::unique_lock<std::shared_timed_mutex> lock(pin);
     CHECK_SUCCESS(link_neighbor());
     // if is dirty
     if (is_dirty) {
@@ -120,7 +120,7 @@ Ubuffer::Ubuffer(Buffer* buf, pagenum_t pagenum, FileManager* file)
     // Do Nothing
 }
 
-Ubuffer::Ubuffer(Buffer& buf) : Ubuffer(&buf, buf.pagenum, buf.file) {
+Ubuffer::Ubuffer(Buffer& buf) : Ubuffer(&buf, buf.to_pagenum(), buf.to_file()) {
     // Do Nothing
 }
 
@@ -157,7 +157,7 @@ Page& Ubuffer::page() {
 }
 
 Status Ubuffer::reload() {
-    CHECK_TURE(file != nullptr
+    CHECK_TRUE(file != nullptr
         && buf != nullptr
         && buf->manager != nullptr);
     // rebuffering, shallow copy
@@ -168,9 +168,9 @@ Status Ubuffer::reload() {
 
 Status Ubuffer::check_and_reload() {
     if (buf != nullptr && file != nullptr
-        && buf->file != nullptr
-        && buf->file->get_id() == file->get_id()
-        && buf->pagenum == pagenum
+        && buf->to_file() != nullptr
+        && buf->to_file()->get_id() == file->get_id()
+        && buf->to_pagenum() == pagenum
     ) {
         return Status::SUCCESS;
     }
@@ -186,26 +186,26 @@ BufferManager::BufferManager(int num_buffer)
     , num_buffer(0)
     , lru(nullptr)
     , mru(nullptr)
-    , buffers(std::make_unique<Buffer[]>(capacity))
-    , usages(std::make_unique<Buffer*[]>(capacity))
+    , dummy(std::make_unique<Buffer[]>(capacity))
+    , buffers(std::make_unique<Buffer*[]>(capacity))
 {
     // initialize all buffers before use
     for (int i = 0; i < capacity; ++i) {
-        buffers[i].clear(this);
-        usages[i] = &buffers[i];
+        dummy[i].clear(this);
+        buffers[i] = &dummy[i];
     }
 }
 
 Status BufferManager::shutdown() {
     CHECK_NULL(buffers);
     for (int i = 0; i < num_buffer; ++i) {
-        usages[i]->release();
+        buffers[i]->release();
     }
     capacity = 0;
     num_buffer = 0;
     lru = mru = nullptr;
+    dummy.reset();
     buffers.reset();
-    usages.reset();
     return Status::SUCCESS;
 }
 
@@ -265,68 +265,45 @@ Status BufferManager::free_page(FileManager& file, pagenum_t pagenum) {
     return file.page_free(pagenum);
 }
 
-int BufferManager::alloc() {
+int BufferManager::allocate_block() {
     if (num_buffer < capacity) {
         return num_buffer++;
     }
-
-    int idx = release(ReleaseLRU::inst());
-
-    int idx;
-    // find buffer, linear search
-    if (num_buffer < capacity) {
-        for (idx = 0;
-             idx < capacity && buffers[idx].file != nullptr;
-             ++idx)
-            {}
-        if (idx == capacity) {
-            return -1;
-        }
-    } else {
-        idx = release(ReleaseLRU::inst());
-        if (idx == -1) {
-            return -1;
-        }
-    }
-    num_buffer++;
-    return idx;
+    return release(ReleaseLRU::inst());
 }
 
 int BufferManager::load(FileManager& file, pagenum_t pagenum) {
-    int idx = alloc();
+    int idx = allocate_block();
     if (idx == -1) {
         return -1;
     }
-    // load buffer
-    Buffer& buffer = buffers[idx];
-    if (buffer.load(file, pagenum) == Status::FAILURE) {
-        --num_buffer;
-        buffer.init(idx, this);
-        return -1;
-    }
-    // update mru
-    if (buffer.append_mru(false) == Status::FAILURE) {
+    // load buffer and update mru
+    Buffer& buffer = *buffers[idx];
+    if (buffer.load(file, pagenum) == Status::FAILURE
+        || buffer.append_mru(false) == Status::FAILURE
+    ) {
+        release_block(idx);
         return -1;
     }
     return idx;
 }
 
 Status BufferManager::release_block(int idx) {
-    // index bound check
-    CHECK_TRUE(0 <= idx && idx < capacity);
-    CHECK_NULL(buffers[idx].file);
-    // release buffer
-    CHECK_SUCCESS(buffers[idx].release());
-    
-    --num_buffer;
+    if (buffers[idx]->is_allocated) {
+        buffers[idx]->release();
+    }
+    std::swap(buffers[idx], buffers[--num_buffer]);
     return Status::SUCCESS;
 }
 
 Status BufferManager::release_file(fileid_t fileid) {
     // release all files which have id same as given.
-    for (int i = 0; i < capacity; ++i) {
-        FileManager* file = buffers[i].file;
-        if (file != nullptr && file->get_id() == fileid) {
+    for (int i = num_buffer - 1; i >= 0; --i) {
+        Buffer* buffer = buffers[i];
+        if (buffer->is_allocated
+            && buffer->file != nullptr
+            && buffer->file->get_id() == fileid
+        ) {
             CHECK_SUCCESS(release_block(i));
         }
     }
