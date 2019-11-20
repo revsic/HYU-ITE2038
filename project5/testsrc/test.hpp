@@ -27,8 +27,8 @@ int name##_test() {                                         \
 int fileio_test();
 int headers_test();
 int disk_manager_test();
-int buffer_manager_test();
-int bptree_test();
-int table_manager_test();
-int bptree_iter_test();
-int join_test();
+// int buffer_manager_test();
+// int bptree_test();
+// int table_manager_test();
+// int bptree_iter_test();
+// int join_test();
