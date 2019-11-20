@@ -4,11 +4,11 @@ TEST_SUITE(unit, {
     TEST(fileio_test());
     TEST(headers_test());
     TEST(disk_manager_test());
-    TEST(buffer_manager_test());
-    TEST(bptree_test());
-    TEST(table_manager_test());
-    TEST(bptree_iter_test());
-    TEST(join_test());
+    // TEST(buffer_manager_test());
+    // TEST(bptree_test());
+    // TEST(table_manager_test());
+    // TEST(bptree_iter_test());
+    // TEST(join_test());
 })
 
 int main() {
