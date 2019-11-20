@@ -2,6 +2,7 @@
 #define BUFFER_MANAGER_HPP
 
 #include <memory>
+#include <shared_mutex>
 
 #include "disk_manager.hpp"
 #include "headers.hpp"
@@ -13,12 +14,6 @@
 
 /// Buffer manager.
 class BufferManager;
-
-/// Read, write flag for buffer handling.
-enum class RWFlag {
-    READ = 0,                   /// read buffer
-    WRITE = 1,                  /// write buffer
-};
 
 /// Buffer structure.
 class Buffer {
@@ -45,56 +40,69 @@ public:
     /// \return Page&, page frame.
     Page& page();
 
-    /// Start to use buffer.
-    /// \param flag RWFlag, read write flag.
-    /// \return Status, whether success or not.
-    Status start_use(RWFlag flag);
+    /// Get page frame.
+    /// \return Page const&, page frame.
+    Page const& page() const;
 
-    /// Finish to use buffer.
-    /// \param flag RWFlag, read write flag.
+    /// Adjacent buffers.
+    struct Adjacent { Buffer *prev, *next; };
+
+    /// Get adjacent buffers.
+    /// \return Adjacent, adjacent buffers, prev use and next use.
+    Adjacent adjacent_buffers();
+
+    /// Get file manager.
+    /// \return FileManager*, file manager pointer.
+    FileManager* to_file();
+
+    /// Get file manager.
+    /// \return FileManager const*, file manager as constant pointer.
+    FileManager const* to_file() const;
+
+    /// Get page ID.
+    /// \return pagenum_t, page ID.
+    pagenum_t to_pagenum() const;
+
+    /// Read buffer.
+    /// \param F typename, callback type, Status(Page const&).
+    /// \param callback F&&, callback.
     /// \return Status, whether success or not.
-    Status end_use(RWFlag flag);
+    template <typename F>
+    inline Status read(F&& callback) {
+        std::shared_lock lock(pin);
+        CHECK_SUCCESS(callback(static_cast<Page const&>(page())));
+        return append_mru(true);
+    }
+
+    /// Write buffer.
+    /// \param F typename, callback type, Status(Page&).
+    /// \param callback F&&, callback.
+    /// \return Status, whether success or not.
+    template <typename F>
+    inline Status write(F&& callback) {
+        std::unique_lock lock(pin);
+        CHECK_SUCCESS(callback(page()));
+        is_dirty = true;
+        return append_mru(true);
+    }
 
 private:
-    Page frame;                 /// page frame.
-    pagenum_t pagenum;          /// page ID.
-    bool is_dirty;              /// whether any values are written in this page frame.
-    int pin;                    /// whether block is used now.
-    int prev_use;               /// previous used block, for page replacement policy.
-    int next_use;               /// next used block, for page replacement policy.
-    int block_idx;              /// index of the block in buffer manager.
-    FileManager* file;          /// file pointer which current page exist.
-    BufferManager* manager;     /// buffer manager which current buffer exist.
-
-    friend class ReleaseLRU;
-
-    friend class ReleaseMRU;
-
-    friend class Ubuffer;
+    Page frame;                     /// page frame.
+    pagenum_t pagenum;              /// page ID.
+    bool is_allocated;              /// whether buffer is allocated or not.
+    bool is_dirty;                  /// whether any values are written in this page frame.
+    std::shared_timed_mutex pin;    /// whether block is used now.
+    Buffer* prev_use;               /// previous used block, for page replacement policy.
+    Buffer* next_use;               /// next used block, for page replacement policy.
+    FileManager* file;              /// file pointer which current page exist.
+    BufferManager* manager;         /// buffer manager which current buffer exist.
 
     friend class BufferManager;
 
-    /// Start to read buffer.
+    /// Clear buffer with given block index and manager.
+    /// \param parent BufferManager*, buffer manager.
     /// \return Status, whether success or not.
-    Status start_read();
-
-    /// Start to write buffer.
-    /// \return Status, whether success or not.
-    Status start_write();
-
-    /// Finish to read buffer.
-    /// \return Status, whether success or not.
-    Status end_read();
-    
-    /// Finish to write buffer.
-    /// \return Status, whether success or not.
-    Status end_write();
-
-    /// Initialize buffer with given block index and manager.
-    /// \param block_idx int, the index of the block in manager.
-    /// \param manager BufferManager*, buffer manager.
-    /// \return Status, whether success or not.
-    Status init(int block_idx, BufferManager* manager);
+    Status clear(BufferManager* parent);
 
     /// Load page frame from file manager.
     /// \param file FileManager&, file manager.
@@ -108,10 +116,12 @@ private:
     Status new_page(FileManager& file);
 
     /// Link neighbor blocks as prev_use and next_use.
+    /// WARNING: this method is not thread safe on manage usage.
     /// \return Status, whether success or not.
     Status link_neighbor();
 
     /// Append block to MRU.
+    /// WARNING: this method is not thread safe on manager usage.
     /// \param link bool, link neighbors or not.
     /// \return Status, whether success or not.
     Status append_mru(bool link);
@@ -153,9 +163,6 @@ public:
     /// Move assignment.
     Ubuffer& operator=(Ubuffer&& ubuffer) noexcept;
 
-    /// Clone ubuffer.
-    Ubuffer clone() const;
-
     /// Get buffer pointer.
     /// \return Buffer*, buffer pointer.
     Buffer* buffer();
@@ -170,23 +177,29 @@ public:
 
     /// Check buffer consistentcy.
     /// \return Status, whether success or not.
-    Status check();
+    Status check_and_reload();
 
     /// Get page ID safely.
     /// \return pagenum_t, page ID.
-    pagenum_t safe_pagenum();
+    pagenum_t to_pagenum() const;
 
-    /// Use buffer frame safely.
-    /// \param flag RWFlag, read write flag.
-    /// \param callback void(Page&), callback.
+    /// Read buffer frame safely.
+    /// \param callback Status(Page&), callback.
     /// \return Status, whether success or not.
     template <typename F>
-    inline Status use(RWFlag flag, F&& callback) {
-        CHECK_SUCCESS(check());
-        CHECK_SUCCESS(buf->start_use(flag));
-        Status res = callback(page());
-        CHECK_SUCCESS(buf->end_use(flag));
-        return res;
+    inline Status read(F&& callback) {
+        CHECK_SUCCESS(check_and_reload());
+        return buf->read(std::forward<F>(callback));
+    }
+
+    /// WRite buffer frame safely.
+    /// \param callback Status(Page&), callback.
+    /// \return Status, whether success or not.
+    template <typename F>
+    inline Status write(F&& callback) {
+        CHECK_SUCCESS(check_and_reload());
+        return buf->write(std::forward<F>(callback));
+
     }
 
 private:
@@ -227,7 +240,7 @@ public:
     BufferManager(int num_buffer);
 
     /// Destructor.
-    ~BufferManager();
+    ~BufferManager() = default;
 
     /// Deleted copy constructor.
     BufferManager(BufferManager const&) = delete;
@@ -268,15 +281,13 @@ public:
     Status release_file(fileid_t fileid);
 
 private:
+    std::mutex mtx;                         /// lock for buffer manager.
     int capacity;                           /// buffer array size.
     int num_buffer;                         /// number of the element.
-    int lru;                                /// least recently used block index.
-    int mru;                                /// most recently used block index.
+    Buffer* lru;                            /// least recently used block index.
+    Buffer* mru;                            /// most recently used block index.
     std::unique_ptr<Buffer[]> buffers;      /// buffer array.
-
-    friend class ReleaseLRU;
-
-    friend class ReleaseMRU;
+    std::unique_ptr<Buffer*[]> usages;      /// usage array.
 
     friend class Buffer;
 

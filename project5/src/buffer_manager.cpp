@@ -1,7 +1,7 @@
 #include "buffer_manager.hpp"
 
 Buffer::Buffer() {
-    init(-1, nullptr);
+    clear(nullptr);
 }
 
 Buffer::~Buffer() {
@@ -12,52 +12,34 @@ Page& Buffer::page() {
     return frame;
 }
 
-Status Buffer::start_use(RWFlag flag) {
-    return flag == RWFlag::READ
-        ? start_read()
-        : start_write();
+Page const& Buffer::page() const {
+    return frame;
 }
 
-Status Buffer::end_use(RWFlag flag) {
-    return flag == RWFlag::READ
-        ? end_read()
-        : end_write();
+Buffer::Adjacent Buffer::adjacent_buffers() {
+    return { prev_use, next_use };
 }
 
-Status Buffer::start_read() {
-    while (pin < 0)
-        {}
-    ++pin;
-    return Status::SUCCESS;
+FileManager* Buffer::to_file() {
+    return file;
 }
 
-Status Buffer::start_write() {
-    while (pin != 0)
-        {}
-    --pin;
-    return Status::SUCCESS;
+FileManager const* Buffer::to_file() const {
+    return file;
 }
 
-Status Buffer::end_read() {
-    --pin;
-    return append_mru(true);
+pagenum_t Buffer::to_pagenum() const {
+    return pagenum;
 }
 
-Status Buffer::end_write() {
-    ++pin;
-    is_dirty = true;
-    return append_mru(true);
-}
-
-Status Buffer::init(int block_idx, BufferManager* manager) {
+Status Buffer::clear(BufferManager* parent) {
     pagenum = INVALID_PAGENUM;
+    is_allocated = false;
     is_dirty = false;
-    pin = 0;
-    prev_use = -1;
-    next_use = -1;
+    prev_use = nullptr;
+    next_use = nullptr;
     file = nullptr;
-    this->block_idx = block_idx;
-    this->manager = manager;
+    manager = parent;
     return Status::SUCCESS;
 }
 
@@ -65,33 +47,39 @@ Status Buffer::load(FileManager& file, pagenum_t pagenum) {
     // buffer must be initialized by buffer init before loading
     CHECK_SUCCESS(file.page_read(pagenum, frame));
     this->pagenum = pagenum;
+    this->is_allocated = true;
     this->file = &file;
     return Status::SUCCESS;
 }
 
 Status Buffer::new_page(FileManager& file) {
-    // primitive page creation
-    pagenum_t res = file.page_create();
-    if (res == INVALID_PAGENUM) {
-        return Status::FAILURE;
-    }
-    return load(file, res);
+    pagenum_t pid = Page::create([&](pagenum_t target, auto&& callback) {
+        return manager->buffering(&file, target).read(
+            std::forward<delctype(callback)>(callback));
+    });
+
+    CHECK_TRUE(pid != INVALID_PAGENUM);
+    this->pagenum = pid;
+    this->is_allocated = true;
+    this->file = &file;
+
+    return Status::SUCCESS;
 }
 
 Status Buffer::link_neighbor() {
     // don't use unconnected node from lru to mru
     CHECK_NULL(manager);
     // if mru buffer
-    if (next_use == -1) {
+    if (next_use == nullptr) {
         manager->mru = prev_use;
     } else {
-        manager->buffers[next_use].prev_use = prev_use;
+        next_use->prev_use = prev_use;
     }
     // if lru buffer
-    if (prev_use == -1) {
+    if (prev_use == nullptr) {
         manager->lru = next_use;
     } else {
-        manager->buffers[prev_use].next_use = next_use;
+        prev_use->next_use = next_use;
     }
     return Status::SUCCESS;
 }
@@ -103,32 +91,28 @@ Status Buffer::append_mru(bool link) {
     }
 
     prev_use = manager->mru;
-    next_use = -1;
+    next_use = nullptr;
     // update mru block
-    if (manager->mru != -1) {
-        manager->buffers[manager->mru].next_use = block_idx;
+    if (manager->mru != nullptr) {
+        manager->mru->next_use = this;
     }
-    manager->mru = block_idx;
-    if (manager->lru == -1) {
-        manager->lru = block_idx;
+    manager->mru = this;
+    if (manager->lru == nullptr) {
+        manager->lru = this;
     }
     return Status::SUCCESS;
 }
 
 Status Buffer::release() {
-    CHECK_NULL(file);
+    CHECK_TURE(is_allocated);
     // waiting pin
-    while (pin)
-        {}
-
-    // write mode
-    --pin;
+    std::unique_lock lock(pin);
     CHECK_SUCCESS(link_neighbor());
-
+    // if is dirty
     if (is_dirty) {
         CHECK_SUCCESS(file->page_write(pagenum, frame));
     }
-    return init(block_idx, manager);
+    return clear(manager);
 }
 
 Ubuffer::Ubuffer(Buffer* buf, pagenum_t pagenum, FileManager* file)
@@ -164,10 +148,6 @@ Ubuffer& Ubuffer::operator=(Ubuffer&& ubuffer) noexcept {
     return *this;
 }
 
-Ubuffer Ubuffer::clone() const {
-    return buf->manager->buffering(*file, pagenum);
-}
-
 Buffer* Ubuffer::buffer() {
     return buf;
 }
@@ -177,14 +157,18 @@ Page& Ubuffer::page() {
 }
 
 Status Ubuffer::reload() {
+    CHECK_TURE(file != nullptr
+        && buf != nullptr
+        && buf->manager != nullptr);
     // rebuffering, shallow copy
     *this = buf->manager->buffering(*file, pagenum);
     CHECK_NULL(buf);
     return Status::SUCCESS;
 }
 
-Status Ubuffer::check() {
-    if (buf->file != NULL
+Status Ubuffer::check_and_reload() {
+    if (buf != nullptr && file != nullptr
+        && buf->file != nullptr
         && buf->file->get_id() == file->get_id()
         && buf->pagenum == pagenum
     ) {
@@ -193,43 +177,35 @@ Status Ubuffer::check() {
     return reload();
 }
 
-pagenum_t Ubuffer::safe_pagenum() {
-    EXIT_ON_FAILURE(check());
-    return buf->pagenum;
+pagenum_t Ubuffer::to_pagenum() const {
+    return pagenum;
 }
 
 BufferManager::BufferManager(int num_buffer)
     : capacity(num_buffer)
     , num_buffer(0)
-    , lru(-1)
-    , mru(-1)
-    , buffers(nullptr)
+    , lru(nullptr)
+    , mru(nullptr)
+    , buffers(std::make_unique<Buffer[]>(capacity))
+    , usages(std::make_unique<Buffer*[]>(capacity))
 {
-    if (capacity > 0) {
-        buffers = std::make_unique<Buffer[]>(capacity);
-        if (buffers == nullptr) {
-            capacity = 0;
-            return;
-        }
-    }
-
     // initialize all buffers before use
     for (int i = 0; i < capacity; ++i) {
-        buffers[i].init(i, this);
+        buffers[i].clear(this);
+        usages[i] = &buffers[i];
     }
-}
-
-BufferManager::~BufferManager() {
-    shutdown();
 }
 
 Status BufferManager::shutdown() {
     CHECK_NULL(buffers);
-    for (int i = 0; i < capacity; ++i) {
-        release_block(i);
+    for (int i = 0; i < num_buffer; ++i) {
+        usages[i]->release();
     }
     capacity = 0;
+    num_buffer = 0;
+    lru = mru = nullptr;
     buffers.reset();
+    usages.reset();
     return Status::SUCCESS;
 }
 
@@ -290,6 +266,12 @@ Status BufferManager::free_page(FileManager& file, pagenum_t pagenum) {
 }
 
 int BufferManager::alloc() {
+    if (num_buffer < capacity) {
+        return num_buffer++;
+    }
+
+    int idx = release(ReleaseLRU::inst());
+
     int idx;
     // find buffer, linear search
     if (num_buffer < capacity) {
