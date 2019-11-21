@@ -49,19 +49,7 @@ public:
 
     /// Get adjacent buffers.
     /// \return Adjacent, adjacent buffers, prev use and next use.
-    Adjacent adjacent_buffers();
-
-    /// Get file manager.
-    /// \return FileManager*, file manager pointer.
-    FileManager* to_file();
-
-    /// Get file manager.
-    /// \return FileManager const*, file manager as constant pointer.
-    FileManager const* to_file() const;
-
-    /// Get page ID.
-    /// \return pagenum_t, page ID.
-    pagenum_t to_pagenum() const;
+    Adjacent adjacent_buffers() const;
 
     /// Read buffer.
     /// \param F typename, callback type, Status(Page const&).
@@ -69,9 +57,12 @@ public:
     /// \return Status, whether success or not.
     template <typename F>
     inline Status read(F&& callback) {
-        std::shared_lock lock(pin);
+        ++pin;
+        std::shared_lock<std::shared_timed_mutex> lock(mtx);
         CHECK_SUCCESS(callback(static_cast<Page const&>(page())));
-        return append_mru(true);
+        CHECK_SUCCESS(append_mru(true));
+        --pin;
+        return Status::SUCCESS;
     }
 
     /// Write buffer.
@@ -80,29 +71,37 @@ public:
     /// \return Status, whether success or not.
     template <typename F>
     inline Status write(F&& callback) {
-        std::unique_lock lock(pin);
+        ++pin;
+        std::unique_lock<std::shared_timed_mutex> lock(mtx);
         CHECK_SUCCESS(callback(page()));
+        CHECK_SUCCESS(append_mru(true));
         is_dirty = true;
-        return append_mru(true);
+        --pin;
+        return Status::SUCCESS;
     }
 
 private:
     Page frame;                     /// page frame.
     pagenum_t pagenum;              /// page ID.
+    int index;                      /// block index from manager.
     bool is_allocated;              /// whether buffer is allocated or not.
     bool is_dirty;                  /// whether any values are written in this page frame.
-    std::shared_timed_mutex pin;    /// whether block is used now.
+    std::atomic<int> pin;           /// the number of the blocks attaching this buffer.
+    std::shared_timed_mutex mtx;    /// whether block is used now.
     Buffer* prev_use;               /// previous used block, for page replacement policy.
     Buffer* next_use;               /// next used block, for page replacement policy.
     FileManager* file;              /// file pointer which current page exist.
     BufferManager* manager;         /// buffer manager which current buffer exist.
 
+    friend class Ubuffer;
+
     friend class BufferManager;
 
     /// Clear buffer with given block index and manager.
+    /// \param index int, index of the block in buffer.
     /// \param parent BufferManager*, buffer manager.
     /// \return Status, whether success or not.
-    Status clear(BufferManager* parent);
+    Status clear(int index, BufferManager* parent);
 
     /// Load page frame from file manager.
     /// \param file FileManager&, file manager.
@@ -163,13 +162,13 @@ public:
     /// Move assignment.
     Ubuffer& operator=(Ubuffer&& ubuffer) noexcept;
 
-    /// Get buffer pointer.
-    /// \return Buffer*, buffer pointer.
-    Buffer* buffer();
-
     /// Get page frame.
     /// \return Page&, page frame.
     Page& page();
+
+    /// Get page frame.
+    /// \return Page const&, page frame.
+    Page const& page() const;
 
     /// Reload buffer.
     /// \return Status, whether success or not.
@@ -224,13 +223,13 @@ private:
 struct ReleasePolicy {
     /// Initial searching state.
     /// \param manager BufferManager const&, buffer manager.
-    /// \return int, index of the buffer array.
-    virtual int init(BufferManager const& manager) const = 0;
+    /// \return Buffer*, initial buffer.
+    virtual Buffer* init(BufferManager const& manager) const = 0;
 
     /// Next buffer index.
     /// \param buffer Buffer const&, buffer.
-    /// \return int, index of the buffer array.
-    virtual int next(Buffer const& buffer) const = 0;
+    /// \return int, target buffer.
+    virtual Buffer* next(Buffer const& buffer) const = 0;
 };
 
 /// Buffer manager.
@@ -253,6 +252,14 @@ public:
 
     /// Deleted move assignment.
     BufferManager& operator=(BufferManager&&) = delete;
+
+    /// Get mru buffer.
+    /// \return Buffer*, mru buffer.
+    Buffer* most_recently_used() const;
+
+    /// Get lru buffer.
+    /// \return Buffer*, lru buffer.
+    Buffer* least_recently_used() const;
 
     /// Shutdown manager.
     /// \return Status, whether success or not.
@@ -326,36 +333,36 @@ private:
 /// Release least recently used buffer.
 struct ReleaseLRU : ReleasePolicy {
     /// Initialize searching state.
-    /// \return int, index of lru block.
-    int init(BufferManager const& manager) const override {
-        return manager.lru;
+    /// \return Buffer*, index of lru block.
+    Buffer* init(BufferManager const& manager) const override {
+        return manager.least_recently_used();
     }
     /// Next searhing state.
-    /// \return int, next usage.
-    int next(Buffer const& buffer) const override {
-        return buffer.next_use;
+    /// \return Buffer*, next usage.
+    Buffer* next(Buffer const& buffer) const override {
+        return buffer.adjacent_buffers().next;
     }
     /// Get instance.
-    static ReleaseLRU& inst() {
+    static ReleaseLRU const& inst() {
         static ReleaseLRU lru;
         return lru;
     }
 };
 
-/// Release most recenly used buffer.
+/// Release most recently used buffer.
 struct ReleaseMRU : ReleasePolicy {
     /// Initialize searching state.
-    /// \return int, idnex of mru block.
-    int init(BufferManager const& manager) const override {
-        return manager.mru;
+    /// \return Buffer*, idnex of mru block.
+    Buffer* init(BufferManager const& manager) const override {
+        return manager.most_recently_used();
     }
     /// Next searching state.
-    /// \return int, previous usage.
-    int next(Buffer const& buffer) const override {
-        return buffer.prev_use;
+    /// \return Buffer*, previous usage.
+    Buffer* next(Buffer const& buffer) const override {
+        return buffer.adjacent_buffers().prev;
     }
     /// Get instance.
-    static ReleaseMRU& inst() {
+    static ReleaseMRU const& inst() {
         static ReleaseMRU mru;
         return mru;
     }
