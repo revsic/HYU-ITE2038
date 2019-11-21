@@ -195,6 +195,7 @@ Buffer* BufferManager::least_recently_used() const {
 }
 
 Status BufferManager::shutdown() {
+    std::unique_lock<std::mutex> lock(mtx);
     CHECK_NULL(buffers);
     for (int i = 0; i < num_buffer; ++i) {
         buffers[i]->release();
@@ -207,6 +208,7 @@ Status BufferManager::shutdown() {
 }
 
 Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum) {
+    std::unique_lock<std::mutex> lock(mtx);
     int idx = find(file.get_id(), pagenum);
     if (idx == -1) {
         idx = load(file, pagenum);
@@ -219,6 +221,7 @@ Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum) {
 }
 
 Ubuffer BufferManager::new_page(FileManager& file) {
+    std::unique_lock<std::mutex> lock(mtx);
     int idx = allocate_block();
     if (idx == -1) {
         return Ubuffer(nullptr);
@@ -236,6 +239,7 @@ Ubuffer BufferManager::new_page(FileManager& file) {
 }
 
 Status BufferManager::free_page(FileManager& file, pagenum_t pagenum) {
+    std::unique_lock<std::mutex> lock(mtx);
     int idx = find(file.get_id(), pagenum);
     if (idx != -1) {
         CHECK_SUCCESS(release_block(idx));
