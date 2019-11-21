@@ -1,6 +1,7 @@
 #ifndef BUFFER_MANAGER_HPP
 #define BUFFER_MANAGER_HPP
 
+#include <atomic>
 #include <memory>
 #include <shared_mutex>
 
