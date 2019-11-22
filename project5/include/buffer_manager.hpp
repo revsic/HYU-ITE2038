@@ -55,32 +55,32 @@ public:
     Adjacent adjacent_buffers() const;
 
     /// Read buffer (thread-safe).
-    /// \param F typename, callback type, Status(Page const&).
+    /// \param F typename, callback type, R(Page const&).
     /// \param callback F&&, callback.
-    /// \return Status, whether success or not.
+    /// \return R, return value of callback.
     template <typename F>
-    inline Status read(F&& callback) {
+    inline auto read(F&& callback) {
         ++pin;
         std::shared_lock<std::shared_timed_mutex> lock(mtx);
-        CHECK_SUCCESS(callback(static_cast<Page const&>(page())));
-        CHECK_SUCCESS(append_mru(true));
+        auto res = callback(static_cast<Page const&>(page()));
+        append_mru(true);
         --pin;
-        return Status::SUCCESS;
+        return res;
     }
 
     /// Write buffer (thread-safe).
-    /// \param F typename, callback type, Status(Page&).
+    /// \param F typename, callback type, R(Page&).
     /// \param callback F&&, callback.
-    /// \return Status, whether success or not.
+    /// \return R, return value of callback.
     template <typename F>
-    inline Status write(F&& callback) {
+    inline auto write(F&& callback) {
         ++pin;
         std::unique_lock<std::shared_timed_mutex> lock(mtx);
-        CHECK_SUCCESS(callback(page()));
-        CHECK_SUCCESS(append_mru(true));
+        auto res = callback(page());
+        append_mru(true);
         is_dirty = true;
         --pin;
-        return Status::SUCCESS;
+        return res;
     }
 
 private:
@@ -196,11 +196,11 @@ public:
     pagenum_t to_pagenum() const;
 
     /// Read buffer frame safely.
-    /// \param callback Status(Page const&), callback.
-    /// \return Status, whether success or not.
+    /// \param callback R(Page const&), callback.
+    /// \return R, return value of callback.
     template <typename F>
-    inline Status read(F&& callback) {
-        CHECK_SUCCESS(check_and_reload());
+    inline auto read(F&& callback) {
+        check_and_reload();
         return buf->read(std::forward<F>(callback));
     }
 
@@ -217,10 +217,10 @@ public:
 
     /// Write buffer frame safely.
     /// \param callback Status(Page&), callback.
-    /// \return Status, whether success or not.
+    /// \return Status, return value of callback.
     template <typename F>
-    inline Status write(F&& callback) {
-        CHECK_SUCCESS(check_and_reload());
+    inline auto write(F&& callback) {
+        check_and_reload();
         return buf->write(std::forward<F>(callback));
     }
 
