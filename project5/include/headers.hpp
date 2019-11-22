@@ -118,7 +118,7 @@ public:
     }
 
     /// Create page.
-    /// \param T callback type, Status(pagenum_t, Status(Page&)).
+    /// \param T callback type, Status(pagenum_t, bool, Status(Page&)).
     /// \param page_proc T, callback for writing other relative pages
     /// with pagenum.
     /// \return pagenum_t, created page number.
@@ -126,21 +126,27 @@ public:
     static pagenum_t create(T&& page_proc) {
         Status res;
         pagenum_t freepage;
-        res = page_proc(FILE_HEADER_PAGENUM, [&freepage, &page_proc](Page& page) {
-            FileHeader& filehdr = page.file_header();
-            if (filehdr.free_page_number == 0) {
-                CHECK_SUCCESS(extend_free(
-                    page_proc, filehdr,
-                    std::max(static_cast<uint64_t>(1), filehdr.number_of_pages)));
-            }
+        res = page_proc(
+            FILE_HEADER_PAGENUM, false,
+            [&freepage, &page_proc](Page& page) {
+                FileHeader& filehdr = page.file_header();
+                if (filehdr.free_page_number == 0) {
+                    CHECK_SUCCESS(extend_free(
+                        page_proc, filehdr,
+                        std::max(static_cast<uint64_t>(1),
+                                 filehdr.number_of_pages)));
+                }
 
-            freepage = filehdr.free_page_number;
-            CHECK_SUCCESS(page_proc(freepage, [&filehdr](Page& freep) {
-                filehdr.free_page_number = freep.free_page().next_page_number;
+                freepage = filehdr.free_page_number;
+                CHECK_SUCCESS(page_proc(
+                    freepage, false,
+                    [&filehdr](Page& freep) {
+                        filehdr.free_page_number =
+                            freep.free_page().next_page_number;
+                        return Status::SUCCESS;
+                    }));
                 return Status::SUCCESS;
-            }));
-            return Status::SUCCESS;
-        });
+            });
 
         if (res == Status::FAILURE) {
             return INVALID_PAGENUM;
@@ -227,7 +233,7 @@ private:
         pagenum_t last = header.number_of_pages;
         pagenum_t prev = header.free_page_number;
         for (int i = 1; i <= num; ++i) {
-            CHECK_SUCCESS(page_proc(last + i, [prev](Page& page) {
+            CHECK_SUCCESS(page_proc(last + i, true, [prev](Page& page) {
                 page.free_page().next_page_number = prev;
                 return Status::SUCCESS;
             }));
