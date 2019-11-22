@@ -96,7 +96,7 @@ $(TARGET_TESTAPP): $(TARGET_TESTAPP_SRC)
 	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt -lpthread
 
 clean:
-	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(TARGET_PERF) $(OBJS_FOR_LIB) $(LIBS)* *.db
+	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(TARGET_PERF) $(TARGET_TESTAPP) $(OBJS_FOR_LIB) $(LIBS)* *.db
 
 library: $(OBJS_FOR_LIB)
 	g++ -shared -Wl,-soname,libbpt.so -o $(LIBS)libbpt.so $(OBJS_FOR_LIB)
