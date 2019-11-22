@@ -546,21 +546,20 @@ TEST_SUITE(BufferManagerTest::buffering, {
 })
 
 TEST_SUITE(BufferManagerTest::new_page, {
-//     BufferManager manager(5);
-//     FileManager file("testfile");
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-//     std::vector<int> indices;
-//     for (int i = 0; i < 13; ++i) {
-//         Ubuffer ubuf = manager.new_page(file);
-// DBG(ubuf.pagenum)
-//         TEST(std::find(indices.begin(), indices.end(), ubuf.pagenum)
-//             == indices.end());
-//         indices.push_back(ubuf.pagenum);
-//     }
+    std::vector<int> indices;
+    for (int i = 0; i < 13; ++i) {
+        Ubuffer ubuf = manager.new_page(file);
+        TEST(std::find(indices.begin(), indices.end(), ubuf.pagenum)
+            == indices.end());
+        indices.push_back(ubuf.pagenum);
+    }
 
-//     TEST_SUCCESS(manager.shutdown());
-//     file.~FileManager();
-//     remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::free_page, {
