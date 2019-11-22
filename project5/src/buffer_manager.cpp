@@ -33,9 +33,11 @@ Status Buffer::clear(int idx, BufferManager* parent) {
     return Status::SUCCESS;
 }
 
-Status Buffer::load(FileManager& file, pagenum_t pagenum) {
+Status Buffer::load(FileManager& file, pagenum_t pagenum, bool virtual_page) {
     // buffer must be initialized by buffer init before loading
-    CHECK_SUCCESS(file.page_read(pagenum, frame));
+    if (!virtual_page) {
+        CHECK_SUCCESS(file.page_read(pagenum, frame));
+    }
     this->pagenum = pagenum;
     this->is_allocated = true;
     this->file = &file;
@@ -44,7 +46,7 @@ Status Buffer::load(FileManager& file, pagenum_t pagenum) {
 
 Status Buffer::new_page(FileManager& file) {
     pagenum_t pid = Page::create([&](pagenum_t target, auto&& callback) {
-        return manager->buffering(file, target).write(
+        return manager->buffering(file, target, true).write(
             std::forward<decltype(callback)>(callback));
     });
 
@@ -195,7 +197,7 @@ Buffer* BufferManager::least_recently_used() const {
 }
 
 Status BufferManager::shutdown() {
-    std::unique_lock<std::mutex> lock(mtx);
+    std::unique_lock<std::recursive_mutex> lock(mtx);
     CHECK_NULL(buffers);
     for (int i = 0; i < num_buffer; ++i) {
         buffers[i]->release();
@@ -207,11 +209,11 @@ Status BufferManager::shutdown() {
     return Status::SUCCESS;
 }
 
-Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum) {
-    std::unique_lock<std::mutex> lock(mtx);
+Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum, bool virtual_page) {
+    std::unique_lock<std::recursive_mutex> lock(mtx);
     int idx = find(file.get_id(), pagenum);
     if (idx == -1) {
-        idx = load(file, pagenum);
+        idx = load(file, pagenum, virtual_page);
         // if find and load both failed
         if (idx == -1) {
             return Ubuffer(nullptr);
@@ -221,7 +223,7 @@ Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum) {
 }
 
 Ubuffer BufferManager::new_page(FileManager& file) {
-    std::unique_lock<std::mutex> lock(mtx);
+    std::unique_lock<std::recursive_mutex> lock(mtx);
     int idx = allocate_block();
     if (idx == -1) {
         return Ubuffer(nullptr);
@@ -239,7 +241,7 @@ Ubuffer BufferManager::new_page(FileManager& file) {
 }
 
 Status BufferManager::free_page(FileManager& file, pagenum_t pagenum) {
-    std::unique_lock<std::mutex> lock(mtx);
+    std::unique_lock<std::recursive_mutex> lock(mtx);
     int idx = find(file.get_id(), pagenum);
     if (idx != -1) {
         CHECK_SUCCESS(release_block(idx));
@@ -257,14 +259,14 @@ int BufferManager::allocate_block() {
     return release(ReleaseLRU::inst());
 }
 
-int BufferManager::load(FileManager& file, pagenum_t pagenum) {
+int BufferManager::load(FileManager& file, pagenum_t pagenum, bool virtual_page) {
     int idx = allocate_block();
     if (idx == -1) {
         return -1;
     }
     // load buffer and update mru
     Buffer& buffer = *buffers[idx];
-    if (buffer.load(file, pagenum) == Status::FAILURE
+    if (buffer.load(file, pagenum, virtual_page) == Status::FAILURE
         || buffer.append_mru(false) == Status::FAILURE
     ) {
         release_block(idx);

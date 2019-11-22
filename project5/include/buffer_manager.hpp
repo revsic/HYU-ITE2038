@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <shared_mutex>
 
 #include "disk_manager.hpp"
@@ -107,8 +108,10 @@ private:
     /// Load page frame from file manager.
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
+    /// \param virtual_page bool, make virtual page or not.
     /// \return Status, whether success or not.
-    Status load(FileManager& file, pagenum_t pagenum);
+    Status load(
+        FileManager& file, pagenum_t pagenum, bool virtual_page = false);
 
     /// Create new page frame from file manager.
     /// \param file FileManager&, file manager.
@@ -269,8 +272,10 @@ public:
     /// Return requested buffer.
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
+    /// \param virtual_page bool, virtualize page or not.
     /// \return Ubuffer, buffer for user provision.
-    Ubuffer buffering(FileManager& file, pagenum_t pagenum);
+    Ubuffer buffering(
+        FileManager& file, pagenum_t pagenum, bool virtual_page = false);
 
     /// Create page with given file manager.
     /// \param file FileManager&, file manager.
@@ -289,7 +294,7 @@ public:
     Status release_file(fileid_t fileid);
 
 private:
-    std::mutex mtx;                         /// lock for buffer manager.
+    std::recursive_mutex mtx;               /// lock for buffer manager.
     int capacity;                           /// buffer array size.
     int num_buffer;                         /// number of the element.
     Buffer* lru;                            /// least recently used block index.
@@ -306,8 +311,9 @@ private:
     /// Load page frame to buffer arrays.
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
+    /// \param virtual_page bool, virtualize page or not.
     /// \return int, buffer index.
-    int load(FileManager& file, pagenum_t pagenum);
+    int load(FileManager& file, pagenum_t pagenum, bool virtual_page = false);
 
     /// Release buffer block.
     /// \param idx int, buffer index.
