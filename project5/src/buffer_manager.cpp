@@ -141,6 +141,14 @@ Ubuffer& Ubuffer::operator=(Ubuffer&& ubuffer) noexcept {
     return *this;
 }
 
+Buffer* Ubuffer::buffer() {
+    return buf;
+}
+
+Buffer const* Ubuffer::buffer() const {
+    return buf;
+}
+
 Page& Ubuffer::page() {
     return buf->page();
 }
