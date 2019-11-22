@@ -95,8 +95,9 @@ Status FileManager::file_create(std::string const& filename) {
 pagenum_t FileManager::page_create() const {
     // use page create abstraction
     return Page::create(
-        [this](pagenum_t target, auto&& func) {
-            return page_callback(target, std::forward<decltype(func)>(func));
+        [this](pagenum_t target, bool virtual_page, auto&& func) {
+            return page_callback(
+                target, virtual_page, std::forward<decltype(func)>(func));
         });
 }
 
@@ -104,7 +105,8 @@ Status FileManager::page_free(pagenum_t pagenum) const {
     // use page release abstraction
     return Page::release(
         [this](pagenum_t target, auto&& func) { 
-            return page_callback(target, std::forward<decltype(func)>(func));
+            return page_callback(
+                target, false, std::forward<decltype(func)>(func));
         }, pagenum);
 }
 

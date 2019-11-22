@@ -99,12 +99,17 @@ private:
     /// Read-write callback for abstracted page api.
     /// \param T callback type, Status(Page&).
     /// \param pagenum pagenum_t, page ID.
+    /// \param virtual_page bool, virtual page support.
     /// \param func T, callback.
     /// \return Status, whether success or not.
     template <typename T>
-    inline Status page_callback(pagenum_t pagenum, T&& func) const {
+    inline Status page_callback(
+        pagenum_t pagenum, bool virtual_page, T&& func
+    ) const {
         Page page;
-        page_read(pagenum, page);
+        if (!virtual_page) {
+            CHECK_SUCCESS(page_read(pagenum, page));
+        }
         CHECK_SUCCESS(func(page));
         CHECK_SUCCESS(page_write(pagenum, page));
         return Status::SUCCESS;
