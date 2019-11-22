@@ -38,22 +38,22 @@ public:
     /// Deleted move assignment.
     Buffer& operator=(Buffer&&) = delete;
 
-    /// Get page frame.
+    /// Get page frame (nonblock).
     /// \return Page&, page frame.
     Page& page();
 
-    /// Get page frame.
+    /// Get page frame (nonblock).
     /// \return Page const&, page frame.
     Page const& page() const;
 
     /// Adjacent buffers.
     struct Adjacent { Buffer *prev, *next; };
 
-    /// Get adjacent buffers.
+    /// Get adjacent buffers (nonblock).
     /// \return Adjacent, adjacent buffers, prev use and next use.
     Adjacent adjacent_buffers() const;
 
-    /// Read buffer.
+    /// Read buffer (thread-safe).
     /// \param F typename, callback type, Status(Page const&).
     /// \param callback F&&, callback.
     /// \return Status, whether success or not.
@@ -67,7 +67,7 @@ public:
         return Status::SUCCESS;
     }
 
-    /// Write buffer.
+    /// Write buffer (thread-safe).
     /// \param F typename, callback type, Status(Page&).
     /// \param callback F&&, callback.
     /// \return Status, whether success or not.
@@ -99,13 +99,13 @@ private:
 
     friend class BufferManager;
 
-    /// Clear buffer with given block index and manager.
+    /// Clear buffer with given block index and manager (nonblock).
     /// \param index int, index of the block in buffer.
     /// \param parent BufferManager*, buffer manager.
     /// \return Status, whether success or not.
     Status clear(int index, BufferManager* parent);
 
-    /// Load page frame from file manager.
+    /// Load page frame from file manager (nonblock).
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
     /// \param virtual_page bool, make virtual page or not.
@@ -113,23 +113,23 @@ private:
     Status load(
         FileManager& file, pagenum_t pagenum, bool virtual_page = false);
 
-    /// Create new page frame from file manager.
+    /// Create new page frame from file manager (nonblock).
     /// \param file FileManager&, file manager.
     /// \return Status, whether success or not.
     Status new_page(FileManager& file);
 
-    /// Link neighbor blocks as prev_use and next_use.
+    /// Link neighbor blocks as prev_use and next_use (nonblock).
     /// WARNING: this method is not thread safe on manage usage.
     /// \return Status, whether success or not.
     Status link_neighbor();
 
-    /// Append block to MRU.
+    /// Append block to MRU (nonblock).
     /// WARNING: this method is not thread safe on manager usage.
     /// \param link bool, link neighbors or not.
     /// \return Status, whether success or not.
     Status append_mru(bool link);
 
-    /// Release page frame.
+    /// Release page frame (nonblock).
     /// \return Status, whether success or not.
     Status release();
 
@@ -257,19 +257,19 @@ public:
     /// Deleted move assignment.
     BufferManager& operator=(BufferManager&&) = delete;
 
-    /// Get mru buffer.
+    /// Get mru buffer (nonblock).
     /// \return Buffer*, mru buffer.
     Buffer* most_recently_used() const;
 
-    /// Get lru buffer.
+    /// Get lru buffer (nonblock).
     /// \return Buffer*, lru buffer.
     Buffer* least_recently_used() const;
 
-    /// Shutdown manager.
+    /// Shutdown manager (thread-safe).
     /// \return Status, whether success or not.
     Status shutdown();
 
-    /// Return requested buffer.
+    /// Return requested buffer. (thread-safe)
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
     /// \param virtual_page bool, virtualize page or not.
@@ -277,18 +277,18 @@ public:
     Ubuffer buffering(
         FileManager& file, pagenum_t pagenum, bool virtual_page = false);
 
-    /// Create page with given file manager.
+    /// Create page with given file manager (thread-safe).
     /// \param file FileManager&, file manager.
     /// \return Ubuffer, buffer for user provision.
     Ubuffer new_page(FileManager& file);
 
-    /// Release page from file manager.
+    /// Release page from file manager (thread-safe).
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
     /// \return Status, whether success or not.
     Status free_page(FileManager& file, pagenum_t pagenum);
 
-    /// Release all buffer blocks relative to given file id.
+    /// Release all buffer blocks relative to given file id (thread-safe).
     /// \param fileid fileid_t, file ID.
     /// \return Status, whether success or not.
     Status release_file(fileid_t fileid);
@@ -304,27 +304,27 @@ private:
 
     friend class Buffer;
 
-    /// Allocate buffer frame.
+    /// Allocate buffer frame (nonblock).
     /// \return int, index value.
     int allocate_block();
 
-    /// Load page frame to buffer arrays.
+    /// Load page frame to buffer arrays (nonblock).
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
     /// \param virtual_page bool, virtualize page or not.
     /// \return int, buffer index.
     int load(FileManager& file, pagenum_t pagenum, bool virtual_page = false);
 
-    /// Release buffer block.
+    /// Release buffer block (nonblock).
     /// \param idx int, buffer index.
     /// \return Status, whether sucess or not.
     Status release_block(int idx);
 
-    /// Release buffer with given policy.
+    /// Release buffer with given policy (nonblock).
     /// \return int, released index.
     int release(ReleasePolicy const& policy);
 
-    /// Find buffers with given file ID and page ID.
+    /// Find buffers with given file ID and page ID (nonblock).
     /// \param fileid fileid_t, file ID.
     /// \param pagenum pagenum_t, page ID.
     /// \return int, found index.
