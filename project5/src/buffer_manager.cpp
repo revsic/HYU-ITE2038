@@ -45,11 +45,11 @@ Status Buffer::load(FileManager& file, pagenum_t pagenum, bool virtual_page) {
 }
 
 Status Buffer::new_page(FileManager& file) {
-    pagenum_t pid = Page::create([&](pagenum_t target, auto&& callback) {
-        return manager->buffering(
-            file, target, target != INVALID_PAGENUM).write(
-            std::forward<decltype(callback)>(callback));
-    });
+    pagenum_t pid = Page::create(
+        [&](pagenum_t target, bool virtual_page, auto&& callback) {
+            return manager->buffering(file, target, virtual_page).write(
+                std::forward<decltype(callback)>(callback));
+        });
 
     CHECK_TRUE(pid != INVALID_PAGENUM);
     this->pagenum = pid;
