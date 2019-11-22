@@ -286,6 +286,7 @@ Status BufferManager::release_block(int idx) {
 }
 
 Status BufferManager::release_file(fileid_t fileid) {
+    std::unique_lock<std::recursive_mutex> lock(mtx);
     // release all files which have id same as given.
     for (int i = num_buffer - 1; i >= 0; --i) {
         Buffer* buffer = buffers[i];
