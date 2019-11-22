@@ -5,6 +5,7 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
+#include <type_traits>
 
 #include "disk_manager.hpp"
 #include "headers.hpp"
@@ -187,7 +188,7 @@ public:
     pagenum_t to_pagenum() const;
 
     /// Read buffer frame safely.
-    /// \param callback Status(Page&), callback.
+    /// \param callback Status(Page const&), callback.
     /// \return Status, whether success or not.
     template <typename F>
     inline Status read(F&& callback) {
@@ -195,14 +196,35 @@ public:
         return buf->read(std::forward<F>(callback));
     }
 
-    /// WRite buffer frame safely.
+    /// Read buffer without check return value.
+    /// \param callback R(Page const&), callback.
+    /// \return Status, whether scucess or not.
+    template <typename F>
+    inline Status read_void(F&& callback) {
+        return read([&](Page const& page) {
+            callback(page);
+            return Status::SUCCESS;
+        });
+    }
+
+    /// Write buffer frame safely.
     /// \param callback Status(Page&), callback.
     /// \return Status, whether success or not.
     template <typename F>
     inline Status write(F&& callback) {
         CHECK_SUCCESS(check_and_reload());
         return buf->write(std::forward<F>(callback));
+    }
 
+    /// Write buffer without checking return type.
+    /// \param callback R(Page&), callback.
+    /// \return Status, whether success or not.
+    template <typename F>
+    inline Status write_void(F&& callback) {
+        return write([&](Page& page) {
+            callback(page);
+            return Status::SUCCESS;
+        });
     }
 
 private:
