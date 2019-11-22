@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <vector>
+
 #include "buffer_manager.hpp"
 #include "disk_manager.hpp"
 #include "test.hpp"
@@ -113,16 +116,16 @@ TEST_SUITE(BufferTest::load, {
 })
 
 TEST_SUITE(BufferTest::new_page, {
-    // Buffer buf;
-    // FileManager file("testfile");
-    // TEST_SUCCESS(buf.init(10, nullptr));
-    // TEST_SUCCESS(buf.new_page(file));
+    BufferManager manager(5);
+    FileManager file("testfile");
+    TEST(0 == manager.allocate_block());
+    TEST_SUCCESS(manager.buffers[0]->new_page(file));
+    TEST(manager.buffers[0]->pagenum != INVALID_PAGENUM);
+    TEST(manager.buffers[0]->file == &file);
 
-    // TEST(buf.pagenum != INVALID_PAGENUM);
-    // TEST(buf.file == &file);
-
-    // file.~FileManager();
-    // remove("testfile");
+    manager.shutdown();
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferTest::link_neighbor, {
@@ -302,18 +305,18 @@ TEST_SUITE(BufferTest::release, {
 })
 
 TEST_SUITE(BufferManagerTest::constructor, {
-    // BufferManager manager(5);
+    BufferManager manager(5);
 
-    // TEST(manager.capacity == 5);
-    // TEST(manager.num_buffer == 0);
-    // TEST(manager.lru == -1);
-    // TEST(manager.mru == -1);
-    // TEST(manager.buffers != NULL);
+    TEST(manager.capacity == 5);
+    TEST(manager.num_buffer == 0);
+    TEST(manager.lru == nullptr);
+    TEST(manager.mru == nullptr);
+    TEST(manager.buffers != nullptr);
 
-    // int i;
-    // for (i = 0; i < 5; ++i) {
-    //     TEST(manager.buffers[i].file == nullptr);
-    // }
+    int i;
+    for (i = 0; i < 5; ++i) {
+        TEST(manager.buffers[i]->file == nullptr);
+    }
 })
 
 TEST_SUITE(BufferManagerTest::mru_lru, {
@@ -321,246 +324,255 @@ TEST_SUITE(BufferManagerTest::mru_lru, {
 })
 
 TEST_SUITE(BufferManagerTest::shutdown, {
-    // BufferManager manager(5);
-    // FileManager file("testfile");
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // for (int i = 0; i < 3; ++i) {
-    //     manager.load(file, FILE_HEADER_PAGENUM);
-    // }
+    for (int i = 0; i < 3; ++i) {
+        manager.load(file, FILE_HEADER_PAGENUM);
+    }
 
-    // TEST_SUCCESS(manager.shutdown());
-    // file.~FileManager();
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
 
-    // TEST(manager.num_buffer == 0);
-    // TEST(manager.capacity == 0);
-    // remove("testfile");
+    TEST(manager.num_buffer == 0);
+    TEST(manager.capacity == 0);
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::allocate_block, {
-    // BufferManager manager(5);
-    // FileManager file;
+    BufferManager manager(5);
+    FileManager file;
 
-    // for (int i = 0; i < 13; ++i) {
-    //     TEST(i % 5 == manager.alloc());
-    //     manager.buffers[i % 5].file = &file;
-    //     TEST_SUCCESS(manager.buffers[i % 5].append_mru(false));
-    // }
+    for (int i = 0; i < 13; ++i) {
+        TEST(i % 5 == manager.allocate_block());
+        manager.buffers[i % 5]->file = &file;
+        TEST_SUCCESS(manager.buffers[i % 5]->append_mru(i >= 5));
+    }
 
-    // for (int i = 0; i < 5; ++i) {
-    //     manager.buffers[i].file = nullptr;
-    // }
+    for (int i = 0; i < 5; ++i) {
+        manager.buffers[i]->file = nullptr;
+    }
 })
 
 TEST_SUITE(BufferManagerTest::load, {
-    // BufferManager manager(5);
-    // FileManager file("testfile");
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // int idx = manager.load(file, FILE_HEADER_PAGENUM);
-    // TEST(idx == 0);
-    // TEST(manager.num_buffer == 1);
-    // TEST(manager.mru == 0);
-    // TEST(manager.lru == 0);
+    int idx = manager.load(file, FILE_HEADER_PAGENUM);
+    TEST(idx == 0);
+    TEST(manager.num_buffer == 1);
+    TEST(manager.mru == manager.buffers[0]);
+    TEST(manager.lru == manager.buffers[0]);
 
-    // Buffer* buffer = &manager.buffers[idx];
-    // TEST(buffer->block_idx == 0);
-    // TEST(buffer->prev_use == -1);
-    // TEST(buffer->next_use == -1);
-    // TEST(buffer->pagenum == FILE_HEADER_PAGENUM);
+    Buffer* buffer = manager.buffers[idx];
+    TEST(buffer->index == 0);
+    TEST(buffer->prev_use == nullptr);
+    TEST(buffer->next_use == nullptr);
+    TEST(buffer->pagenum == FILE_HEADER_PAGENUM);
 
-    // idx = manager.load(file, FILE_HEADER_PAGENUM);
-    // TEST(idx == 1);
-    // TEST(manager.num_buffer == 2);
-    // TEST(manager.mru == 1);
-    // TEST(manager.lru == 0);
-    // TEST(buffer->prev_use == -1);
-    // TEST(buffer->next_use == 1);
+    idx = manager.load(file, FILE_HEADER_PAGENUM);
+    TEST(idx == 1);
+    TEST(manager.num_buffer == 2);
+    TEST(manager.mru == manager.buffers[1]);
+    TEST(manager.lru == manager.buffers[0]);
+    TEST(buffer->prev_use == nullptr);
+    TEST(buffer->next_use == manager.buffers[1]);
 
-    // buffer = &manager.buffers[idx];
-    // TEST(buffer->block_idx == 1);
-    // TEST(buffer->prev_use == 0);
-    // TEST(buffer->next_use == -1);
+    buffer = manager.buffers[idx];
+    TEST(buffer->index == 1);
+    TEST(buffer->prev_use == manager.buffers[0]);
+    TEST(buffer->next_use == nullptr);
 
-    // manager.shutdown();
-    // file.~FileManager();
-    // remove("testfile");
+    manager.shutdown();
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::release_block, {
-    // BufferManager manager(5);
-    // FileManager file("testfile");
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // int idx = manager.load(file, FILE_HEADER_PAGENUM);
-    // TEST(idx == 0);
+    int idx = manager.load(file, FILE_HEADER_PAGENUM);
+    TEST(idx == 0);
 
-    // idx = manager.load(file, FILE_HEADER_PAGENUM);
-    // TEST(idx == 1);
+    idx = manager.load(file, FILE_HEADER_PAGENUM);
+    TEST(idx == 1);
 
-    // TEST_SUCCESS(manager.release_block(1));
-    // TEST(manager.num_buffer == 1);
-    // TEST(manager.lru == 0);
-    // TEST(manager.mru == 0);
-    // TEST(manager.buffers[0].next_use == -1);
-    // TEST(manager.buffers[0].prev_use == -1);
+    TEST_SUCCESS(manager.release_block(1));
+    TEST(manager.num_buffer == 1);
+    TEST(manager.lru == manager.buffers[0]);
+    TEST(manager.mru == manager.buffers[0]);
+    TEST(manager.buffers[0]->next_use == nullptr);
+    TEST(manager.buffers[0]->prev_use == nullptr);
 
-    // TEST_SUCCESS(manager.shutdown());
-    // file.~FileManager();
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::release_file, {
-    // BufferManager manager(5);
+    BufferManager manager(5);
 
-    // FileManager file1("testfile");
-    // FileManager file2("testfile2");
+    FileManager file1("testfile");
+    FileManager file2("testfile2");
 
-    // TEST(0 == manager.load(file1, FILE_HEADER_PAGENUM));
+    TEST(0 == manager.load(file1, FILE_HEADER_PAGENUM));
 
-    // TEST(1 == manager.load(file2, FILE_HEADER_PAGENUM));
-    // TEST(2 == manager.load(file2, FILE_HEADER_PAGENUM));
+    TEST(1 == manager.load(file2, FILE_HEADER_PAGENUM));
+    TEST(2 == manager.load(file2, FILE_HEADER_PAGENUM));
 
-    // TEST_SUCCESS(manager.release_file(file2.get_id()));
-    // TEST(manager.num_buffer == 1);
-    // TEST(manager.buffers[0].file == &file1);
-    // TEST(manager.buffers[1].file == nullptr);
-    // TEST(manager.buffers[2].file == nullptr);
+    TEST_SUCCESS(manager.release_file(file2.get_id()));
+    TEST(manager.num_buffer == 1);
+    TEST(manager.buffers[0]->file == &file1);
+    TEST(manager.buffers[1]->file == nullptr);
+    TEST(manager.buffers[2]->file == nullptr);
 
-    // TEST_SUCCESS(manager.shutdown());
-    // file1.~FileManager();
-    // file2.~FileManager();
-    // remove("testfile");
-    // remove("testfile2");
+    TEST_SUCCESS(manager.shutdown());
+    file1.~FileManager();
+    file2.~FileManager();
+    remove("testfile");
+    remove("testfile2");
 })
 
 TEST_SUITE(BufferManagerTest::release, {
-    // BufferManager manager(5);
-    // FileManager file("testfile");
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // for (int i = 0; i < 4; ++i) {
-    //     TEST(-1 != manager.load(file, FILE_HEADER_PAGENUM));
-    // }
-    // TEST(manager.lru == 0);
+    for (int i = 0; i < 4; ++i) {
+        TEST(-1 != manager.load(file, FILE_HEADER_PAGENUM));
+    }
+    TEST(manager.lru == manager.buffers[0]);
 
-    // // case 1. lru
-    // // 0 -> 1 -> 2 -> 3
-    // TEST(0 == manager.release(ReleaseLRU::inst()));
-    // TEST(manager.lru == 1);
-    // TEST(manager.buffers[1].next_use == 2);
+    // case 1. lru
+    // 0 -> 1 -> 2 -> 3 (0 1 2 3)
+    TEST(0 == manager.release(ReleaseLRU::inst()));
+    TEST_SUCCESS(manager.release_block(0));
+    TEST(manager.lru == manager.buffers[1]);
+    TEST(manager.buffers[1]->next_use == manager.buffers[2]);
 
-    // // case 2. lru is pinned
-    // // 1 -> 2 -> 3
-    // manager.buffers[1].pin++;
-    // TEST(2 == manager.release(ReleaseLRU::inst()));
-    // TEST(manager.lru == 1);
+    // case 2. lru is pinned
+    // 1 -> 2 -> 3 (3 1 2)
+    manager.buffers[1]->pin++;
+    TEST(2 == manager.release(ReleaseLRU::inst()));
+    TEST_SUCCESS(manager.release_block(2))
+    TEST(manager.lru == manager.buffers[1]);
 
-    // // case 3. mru
-    // // 1 -> 3 -> 0 
-    // manager.buffers[3].pin++;
-    // TEST(0 == manager.load(file, FILE_HEADER_PAGENUM));
-    // TEST(0 == manager.release(ReleaseLRU::inst()));
-    // TEST(manager.lru == 1);
+    // case 3. mru
+    // 1 -> 3 -> 2 (3 1 2)
+    manager.buffers[0]->pin++;
+    TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
+    TEST(2 == manager.release(ReleaseLRU::inst()));
+    TEST_SUCCESS(manager.release_block(2));
+    TEST(manager.lru == manager.buffers[1]);
 
-    // // case 1. mru
-    // // 1 -> 3 -> 0
-    // manager.buffers[1].pin = 0;
-    // manager.buffers[3].pin = 0;
-    // TEST(0 == manager.load(file, FILE_HEADER_PAGENUM));
-    // TEST(0 == manager.release(ReleaseMRU::inst()));
+    // case 1. mru
+    // 1 -> 3 -> 2 (3 1 2)
+    manager.buffers[0]->pin = 0;
+    manager.buffers[1]->pin = 0;
+    TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
+    TEST(2 == manager.release(ReleaseMRU::inst()));
+    TEST_SUCCESS(manager.release_block(2));
 
-    // // case 2. mru is pinned
-    // // 1 -> 3 -> 0
-    // TEST(0 == manager.load(file, FILE_HEADER_PAGENUM));
-    // manager.buffers[0].pin++;
+    // case 2. mru is pinned
+    // 1 -> 3 -> 2 (3 1 2)
+    TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
+    manager.buffers[2]->pin++;
 
-    // TEST(3 == manager.release(ReleaseMRU::inst()));
+    TEST(0 == manager.release(ReleaseMRU::inst()));
+    TEST_SUCCESS(manager.release_block(0));
 
-    // // case 3. lru
-    // // 1 -> 0 -> 2
-    // TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
-    // manager.buffers[2].pin++;
+    // case 3. lru
+    // 1 -> 0 -> 2 (2 1 0)
+    TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
+    manager.buffers[2]->pin++;
 
-    // TEST(1 == manager.release(ReleaseMRU::inst()));
+    TEST(1 == manager.release(ReleaseMRU::inst()));
 
-    // manager.buffers[0].pin = 0;
-    // manager.buffers[2].pin = 0;
+    manager.buffers[0]->pin = 0;
+    manager.buffers[2]->pin = 0;
 
-    // TEST_SUCCESS(manager.shutdown());
-    // file.~FileManager();
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::find, {
-    // BufferManager manager(5);
-    // FileManager file("testfile");
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // pagenum_t pagenum[3];
-    // for (int i = 0; i < 3; ++i) {
-    //     pagenum[i] = file.page_create();
-    //     TEST(pagenum[i] != INVALID_PAGENUM);
-    //     TEST(i == manager.load(file, pagenum[i]));
-    // }
+    pagenum_t pagenum[3];
+    for (int i = 0; i < 3; ++i) {
+        pagenum[i] = file.page_create();
+        TEST(pagenum[i] != INVALID_PAGENUM);
+        TEST(i == manager.load(file, pagenum[i]));
+    }
 
-    // for (int i = 0; i < 3; ++i) {
-    //     TEST(i == manager.find(file.get_id(), pagenum[i]));
-    // }
+    for (int i = 0; i < 3; ++i) {
+        TEST(i == manager.find(file.get_id(), pagenum[i]));
+    }
 
-    // TEST_SUCCESS(manager.shutdown());
-    // file.~FileManager();
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::buffering, {
-    // BufferManager manager(5);
-    // FileManager file("testfile");
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // pagenum_t pagenum[10];
-    // for (int i = 0; i < 10; ++i) {
-    //     pagenum[i] = file.page_create();
-    //     TEST(pagenum[i] != INVALID_PAGENUM);
+    pagenum_t pagenum[10];
+    for (int i = 0; i < 10; ++i) {
+        pagenum[i] = file.page_create();
+        TEST(pagenum[i] != INVALID_PAGENUM);
 
-    //     Ubuffer ubuf = manager.buffering(file, pagenum[i]);
-    //     TEST(ubuf.pagenum == ubuf.buf->pagenum);
-    //     TEST(ubuf.file == ubuf.buf->file);
-    //     TEST(pagenum[i] == ubuf.buf->pagenum);
-    //     TEST(&manager.buffers[i % 5] == ubuf.buf);
-    // }
+        Ubuffer ubuf = manager.buffering(file, pagenum[i]);
+        TEST(ubuf.pagenum == ubuf.buf->pagenum);
+        TEST(ubuf.file == ubuf.buf->file);
+        TEST(pagenum[i] == ubuf.buf->pagenum);
+        TEST(manager.buffers[i % 5] == ubuf.buf);
+    }
 
-    // for (int i = 9; i >= 5; --i) {
-    //     Ubuffer ubuf = manager.buffering(file, pagenum[i]);
-    //     TEST(ubuf.pagenum == ubuf.buf->pagenum);
-    //     TEST(ubuf.file == ubuf.buf->file);
-    //     TEST(pagenum[i] == ubuf.buf->pagenum);
-    //     TEST(&manager.buffers[i % 5] == ubuf.buf);
-    // }
+    for (int i = 9; i >= 5; --i) {
+        Ubuffer ubuf = manager.buffering(file, pagenum[i]);
+        TEST(ubuf.pagenum == ubuf.buf->pagenum);
+        TEST(ubuf.file == ubuf.buf->file);
+        TEST(pagenum[i] == ubuf.buf->pagenum);
+        TEST(manager.buffers[i % 5] == ubuf.buf);
+    }
 
-    // TEST_SUCCESS(manager.shutdown());
-    // file.~FileManager();
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::new_page, {
-    // BufferManager manager(5);
-    // FileManager file("testfile");
+//     BufferManager manager(5);
+//     FileManager file("testfile");
 
-    // for (int i = 0; i < 13; ++i) {
-    //     Ubuffer ubuf = manager.new_page(file);
-    //     TEST(&manager.buffers[i % 5] == ubuf.buf);
-    // }
+//     std::vector<int> indices;
+//     for (int i = 0; i < 13; ++i) {
+//         Ubuffer ubuf = manager.new_page(file);
+// DBG(ubuf.pagenum)
+//         TEST(std::find(indices.begin(), indices.end(), ubuf.pagenum)
+//             == indices.end());
+//         indices.push_back(ubuf.pagenum);
+//     }
 
-    // TEST_SUCCESS(manager.shutdown());
-    // file.~FileManager();
-    // remove("testfile");
+//     TEST_SUCCESS(manager.shutdown());
+//     file.~FileManager();
+//     remove("testfile");
 })
 
 TEST_SUITE(BufferManagerTest::free_page, {
-    // BufferManager manager(5);
-    // FileManager file("testfile");
+    BufferManager manager(5);
+    FileManager file("testfile");
 
-    // Ubuffer ubuf = manager.new_page(file);
-    // TEST_SUCCESS(manager.free_page(file, ubuf.buf->pagenum));
+    Ubuffer ubuf = manager.new_page(file);
+    TEST_SUCCESS(manager.free_page(file, ubuf.buf->pagenum));
 
-    // TEST_SUCCESS(manager.shutdown());
-    // file.~FileManager();
-    // remove("testfile");
+    TEST_SUCCESS(manager.shutdown());
+    file.~FileManager();
+    remove("testfile");
 })
 
 int buffer_manager_test() {
