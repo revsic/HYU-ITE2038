@@ -20,6 +20,9 @@ TARGET_TEST_SRC:=$(TESTSRC)*.cpp
 # perf source file
 TARGET_PERF_SRC:=$(APPDIR)perf.cpp
 
+# test purpose application file
+TARGET_TESTAPP_SRC:=$(APPDIR)testapp.cpp
+
 SRCS_FOR_LIB:=$(wildcard $(SRCDIR)*.cpp)
 OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.cpp=.o)
 
@@ -28,12 +31,13 @@ OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.cpp=.o)
 # -I: include path
 # -std=c++14: c++ standard 14
 # -O3: optimization level 3
-CFLAGS+= -fPIC -I $(INC) -std=c++14 -O3
+CFLAGS+= -fPIC -I $(INC) -std=c++14 -g # -O3
 
 # target file
 TARGET=main
 TARGET_TEST=test
 TARGET_PERF=perf
+TARGET_TESTAPP=testapp
 
 all: $(TARGET)
 
@@ -78,14 +82,18 @@ $(TARGET_OBJ): $(TARGET_SRC)
 
 $(TARGET): $(TARGET_OBJ)
 	make static_library
-	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
+	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt -lpthread
 
 $(TARGET_TEST): $(SRCS_FOR_LIB) $(TARGET_TEST_SRC)
 	$(CXX) $(CFLAGS) -DTEST_MODULE -I $(TESTSRC) -o $@ $^ -lpthread
 
 $(TARGET_PERF): $(TARGET_PERF_SRC)
 	make static_library
-	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt
+	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt -lpthread
+
+$(TARGET_TESTAPP): $(TARGET_TESTAPP_SRC)
+	make static_library
+	$(CXX) $(CFLAGS) -o $@ $^ -L $(LIBS) -lbpt -lpthread
 
 clean:
 	rm $(TARGET) $(TARGET_OBJ) $(TARGET_TEST) $(TARGET_PERF) $(OBJS_FOR_LIB) $(LIBS)* *.db

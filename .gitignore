@@ -11,6 +11,7 @@
 main
 test
 perf
+testapp
 
 # mac files
 .DS_Store
