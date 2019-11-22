@@ -59,10 +59,9 @@ void BPTree::test_config(int leaf_order,
 }
 
 void BPTree::print_leaves() const {
-    pagenum_t pagenum;
     Ubuffer buffer = buffering(FILE_HEADER_PAGENUM);
-    buffer.read_void([&](Page const& page) {
-        pagenum = page.file_header().root_page_number;
+    pagenum_t pagenum = buffer.read([&](Page const& page) {
+        return page.file_header().root_page_number;
     });
 
     if (pagenum == INVALID_PAGENUM) {
@@ -111,10 +110,9 @@ void BPTree::print_leaves() const {
 }
 
 void BPTree::print_tree() const {
-    pagenum_t root;
     Ubuffer buffer = buffering(FILE_HEADER_PAGENUM);
-    buffer.read_void([&](Page const& page) {
-        root = page.file_header().root_page_number;
+    pagenum_t root = buffer.read([&](Page const& page) {
+        return page.file_header().root_page_number;
     });
 
     if (root == INVALID_PAGENUM) {
@@ -195,73 +193,68 @@ void BPTree::print_tree() const {
     std::cout << std::endl;
 }
 
-// Status BPTree::find(prikey_t key, Record* record) const {
-//     Ubuffer buffer(nullptr);
-//     pagenum_t c = find_leaf(key, buffer);
-//     if (c == INVALID_PAGENUM) {
-//         return Status::FAILURE;
-//     }
-//     return find_key_from_leaf(key, buffer, record);
-// }
+Status BPTree::find(prikey_t key, Record* record) const {
+    Ubuffer buffer(nullptr);
+    pagenum_t c = find_leaf(key, buffer);
+    if (c == INVALID_PAGENUM) {
+        return Status::FAILURE;
+    }
+    return find_key_from_leaf(key, buffer, record);
+}
 
-// std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) const {
-//     std::vector<Record> retn;
+std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) const {
+    std::vector<Record> retn;
 
-//     Ubuffer buffer(nullptr);
-//     pagenum_t leaf = find_leaf(start, buffer);
-//     if (leaf == INVALID_PAGENUM) {
-//         return retn;
-//     }
+    Ubuffer buffer(nullptr);
+    pagenum_t leaf = find_leaf(start, buffer);
+    if (leaf == INVALID_PAGENUM) {
+        return retn;
+    }
 
-//     int i;
-//     Status res = buffer.use(RWFlag::READ, [&](Page& page) {
-//         Record* rec = page.records();
-//         int num_key = page.page_header().number_of_keys;
-//         for (i = 0; i < num_key && rec[i].key < start; ++i)
-//             {}
+    int i;
+    Status res = buffer.read([&](Page const& page) {
+        Record const* rec = page.records();
+        int num_key = page.page_header().number_of_keys;
+        for (i = 0; i < num_key && rec[i].key < start; ++i)
+            {}
 
-//         if (i == num_key) {
-//             return Status::FAILURE;
-//         }
-//         return Status::SUCCESS;
-//     });
+        if (i == num_key) {
+            return Status::FAILURE;
+        }
+        return Status::SUCCESS;
+    });
 
-//     if (res == Status::FAILURE) {
-//         return retn;
-//     }
+    if (res == Status::FAILURE) {
+        return retn;
+    }
 
-//     while (true) {
-//         pagenum_t next;
-//         res = buffer.use(RWFlag::READ, [&](Page& page) {
-//             Record* rec = page.records();
-//             int num_key = page.page_header().number_of_keys;
-//             for (; i < num_key && rec[i].key <= end; ++i) {
-//                 retn.push_back(rec[i]);
-//             }
+    while (true) {
+        pagenum_t next;
+        buffer.read_void([&](Page const& page) {
+            Record const* rec = page.records();
+            int num_key = page.page_header().number_of_keys;
+            for (; i < num_key && rec[i].key <= end; ++i) {
+                retn.push_back(rec[i]);
+            }
 
-//             if (i < num_key && rec[i].key > end) {
-//                 next = INVALID_PAGENUM;
-//             } else {
-//                 next = page.page_header().special_page_number;
-//             }
-//             return Status::SUCCESS;
-//         });
+            if (i < num_key && rec[i].key > end) {
+                next = INVALID_PAGENUM;
+            } else {
+                next = page.page_header().special_page_number;
+            }
+        });
+        if (next == INVALID_PAGENUM) {
+            break;
+        }
 
-//         if (res == Status::FAILURE) {
-//             return std::vector<Record>();
-//         }
-//         if (next == INVALID_PAGENUM) {
-//             break;
-//         }
-
-//         i = 0;
-//         buffer = buffering(next);
-//         if (buffer.buffer() == nullptr) {
-//             return std::vector<Record>();
-//         }
-//     }
-//     return retn;
-// }
+        i = 0;
+        buffer = buffering(next);
+        if (buffer.buffer() == nullptr) {
+            return std::vector<Record>();
+        }
+    }
+    return retn;
+}
 
 // Status BPTree::insert(
 //     prikey_t key, const uint8_t* value, int value_size
@@ -379,113 +372,103 @@ Status BPTree::free_page(pagenum_t pagenum) const {
 }
 
 int BPTree::path_to_root(pagenum_t pagenum) const {
-    pagenum_t root;
-    EXIT_ON_FAILURE(
-        buffering(FILE_HEADER_PAGENUM).read_void([&](Page const& page) {
-            root = page.file_header().root_page_number;
-        })
-    );
+    pagenum_t root = buffering(FILE_HEADER_PAGENUM).read(
+        [&](Page const& page) {
+            return page.file_header().root_page_number;
+        });
 
     int length = 0;
     for (; root != pagenum; ++length) {
-        EXIT_ON_FAILURE(
-            buffering(pagenum).read_void([&](Page const& page) {
-                pagenum = page.page_header().parent_page_number;
-            })
-        );
+        pagenum = buffering(pagenum).read([&](Page const& page) {
+            return page.page_header().parent_page_number;
+        });
     }
     return length;
 }
 
-// // find
-// pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) const {
-//     buffer = buffering(FILE_HEADER_PAGENUM);
+// find
+pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) const {
+    buffer = buffering(FILE_HEADER_PAGENUM);
 
-//     pagenum_t page;
-//     EXIT_ON_FAILURE(
-//         buffer.use(RWFlag::READ, [&](Page& bufpage) {
-//             page = bufpage.file_header().root_page_number;
-//             return Status::SUCCESS;
-//         })
-//     );
+    pagenum_t page = buffer.read([&](Page const& page) {
+        return page.file_header().root_page_number;
+    });
 
-//     if (page == INVALID_PAGENUM) {
-//         return page;
-//     }
+    if (page == INVALID_PAGENUM) {
+        return page;
+    }
 
-//     bool runnable = true;
-//     while (runnable) {
-//         buffer = buffering(page);
-//         EXIT_ON_FAILURE(
-//             buffer.use(RWFlag::READ, [&](Page& bufpage) {
-//                 Internal* ent = bufpage.entries();
-//                 PageHeader& header = bufpage.page_header();
-//                 if (header.is_leaf) {
-//                     runnable = false;
-//                     return Status::SUCCESS;
-//                 }
+    bool runnable = true;
+    while (runnable) {
+        buffer = buffering(page);
+        EXIT_ON_FAILURE(
+            buffer.read_void([&](Page const& bufpage) {
+                Internal const* ent = bufpage.entries();
+                PageHeader const& header = bufpage.page_header();
+                if (header.is_leaf) {
+                    runnable = false;
+                    return;
+                }
 
-//                 int i;
-//                 for (i = 0;
-//                      i < header.number_of_keys && key >= ent[i].key;
-//                      ++i) {}
+                int i;
+                for (i = 0;
+                     i < header.number_of_keys && key >= ent[i].key;
+                     ++i) {}
 
-//                 --i;
-//                 if (i < 0) {
-//                     page = header.special_page_number;
-//                 } else {
-//                     page = ent[i].pagenum;
-//                 }
+                --i;
+                if (i < 0) {
+                    page = header.special_page_number;
+                } else {
+                    page = ent[i].pagenum;
+                }
+            })
+        );
+    }
 
-//                 return Status::SUCCESS;
-//             })
-//         );
-//     }
+    return page;
+}
 
-//     return page;
-// }
+Status BPTree::find_key_from_leaf(
+    prikey_t key, Ubuffer& buffer, Record* record
+) const {
+    return buffer.read([&](Page const& page) {
+        if (!page.page_header().is_leaf) {
+            return Status::FAILURE;
+        }
 
-// Status BPTree::find_key_from_leaf(
-//     prikey_t key, Ubuffer& buffer, Record* record
-// ) const {
-//     return buffer.use(RWFlag::READ, [&](Page& page) {
-//         if (!page.page_header().is_leaf) {
-//             return Status::FAILURE;
-//         }
-
-//         int i, num_key = page.page_header().number_of_keys;
-//         for (i = 0; i < num_key && page.records()[i].key != key; ++i)
-//             {}
+        int i, num_key = page.page_header().number_of_keys;
+        for (i = 0; i < num_key && page.records()[i].key != key; ++i)
+            {}
         
-//         if (i < num_key) {
-//             if (record != nullptr) {
-//                 std::memcpy(record, &page.records()[i], sizeof(Record));
-//             }
-//             return Status::SUCCESS;
-//         }
-//         return Status::FAILURE;
-//     });
-// }
+        if (i < num_key) {
+            if (record != nullptr) {
+                std::memcpy(record, &page.records()[i], sizeof(Record));
+            }
+            return Status::SUCCESS;
+        }
+        return Status::FAILURE;
+    });
+}
 
-// Status BPTree::find_pagenum_from_internal(
-//     pagenum_t pagenum, Ubuffer& buffer, int& idx
-// ) const {
-//     return buffer.use(RWFlag::READ, [&](Page& page) {
-//         if (page.page_header().special_page_number == pagenum) {
-//             idx = -1;
-//             return Status::SUCCESS;
-//         }
-//         int num_key = page.page_header().number_of_keys;
-//         for (idx = 0;
-//              idx < num_key && page.entries()[idx].pagenum != pagenum;
-//              ++idx)
-//             {}
-//         if (idx == num_key) {
-//             return Status::FAILURE;
-//         }
-//         return Status::SUCCESS;
-//     });
-// }
+Status BPTree::find_pagenum_from_internal(
+    pagenum_t pagenum, Ubuffer& buffer, int& idx
+) const {
+    return buffer.read([&](Page const& page) {
+        if (page.page_header().special_page_number == pagenum) {
+            idx = -1;
+            return Status::SUCCESS;
+        }
+        int num_key = page.page_header().number_of_keys;
+        for (idx = 0;
+             idx < num_key && page.entries()[idx].pagenum != pagenum;
+             ++idx)
+            {}
+        if (idx == num_key) {
+            return Status::FAILURE;
+        }
+        return Status::SUCCESS;
+    });
+}
 
 // // insert
 // Status BPTree::write_record(
