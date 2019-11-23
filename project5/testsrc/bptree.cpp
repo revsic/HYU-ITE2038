@@ -819,146 +819,149 @@ TEST_SUITE(BPTreeTest::insert, {
 })
 
 TEST_SUITE(BPTreeTest::remove_record_from_leaf, {
-    // FileManager file("testfile");
-    // BufferManager buffers(4);
-    // BPTree bpt(&file, &buffers);
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // Ubuffer buf = bpt.create_page(true);
-    // buf.page().page_header().number_of_keys = 5;
-    // for (int i = 0; i < 5; ++i) {
-    //     buf.page().records()[i].key = i;
-    // }
+    Ubuffer buf = bpt.create_page(true);
+    buf.page().page_header().number_of_keys = 5;
+    for (int i = 0; i < 5; ++i) {
+        buf.page().records()[i].key = i;
+    }
 
-    // TEST_SUCCESS(bpt.remove_record_from_leaf(0, buf));
-    // TEST(buf.page().page_header().number_of_keys == 4);
-    // for (int i = 0; i < 4; ++i) {
-    //     TEST(buf.page().records()[i].key == i + 1);
-    // }
+    TEST_SUCCESS(bpt.remove_record_from_leaf(0, buf));
+    TEST(buf.page().page_header().number_of_keys == 4);
+    for (int i = 0; i < 4; ++i) {
+        TEST(buf.page().records()[i].key == i + 1);
+    }
 
-    // TEST_SUCCESS(bpt.remove_record_from_leaf(4, buf));
-    // TEST(buf.page().page_header().number_of_keys == 3);
-    // for (int i = 0; i < 3; ++i) {
-    //     TEST(buf.page().records()[i].key == i + 1);
-    // }
+    TEST_SUCCESS(bpt.remove_record_from_leaf(4, buf));
+    TEST(buf.page().page_header().number_of_keys == 3);
+    for (int i = 0; i < 3; ++i) {
+        TEST(buf.page().records()[i].key == i + 1);
+    }
 
-    // TEST_SUCCESS(bpt.remove_record_from_leaf(2, buf));
-    // TEST(buf.page().page_header().number_of_keys == 2);
-    // TEST(buf.page().records()[0].key == 1);
-    // TEST(buf.page().records()[1].key == 3);
+    TEST_SUCCESS(bpt.remove_record_from_leaf(2, buf));
+    TEST(buf.page().page_header().number_of_keys == 2);
+    TEST(buf.page().records()[0].key == 1);
+    TEST(buf.page().records()[1].key == 3);
 
-    // TEST_SUCCESS(bpt.remove_record_from_leaf(1, buf));
-    // TEST(buf.page().page_header().number_of_keys == 1);
-    // TEST(buf.page().records()[0].key == 3);
+    TEST_SUCCESS(bpt.remove_record_from_leaf(1, buf));
+    TEST(buf.page().page_header().number_of_keys == 1);
+    TEST(buf.page().records()[0].key == 3);
 
-    // TEST_SUCCESS(bpt.remove_record_from_leaf(3, buf));
-    // TEST(buf.page().page_header().number_of_keys == 0);
+    TEST_SUCCESS(bpt.remove_record_from_leaf(3, buf));
+    TEST(buf.page().page_header().number_of_keys == 0);
 
-    // bpt_test_postprocess(file, buffers);
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::remove_entry_from_internal, {
-    // FileManager file("testfile");
-    // BufferManager buffers(4);
-    // BPTree bpt(&file, &buffers);
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // Ubuffer buf = bpt.create_page(false);
-    // Page& page = buf.page();
+    Ubuffer buf = bpt.create_page(false);
+    Page& page = buf.page();
 
-    // page.page_header().number_of_keys = 5;
-    // for (int i = 0; i < 5; ++i) {
-    //     page.entries()[i].key = i;
-    // }
+    page.page_header().number_of_keys = 5;
+    for (int i = 0; i < 5; ++i) {
+        page.entries()[i].key = i;
+    }
 
-    // TEST_SUCCESS(bpt.remove_entry_from_internal(0, buf));
-    // TEST(page.page_header().number_of_keys == 4);
-    // for (int i = 0; i < 4; ++i) {
-    //     TEST(page.entries()[i].key == i + 1);
-    // }
+    TEST_SUCCESS(bpt.remove_entry_from_internal(0, buf));
+    TEST(page.page_header().number_of_keys == 4);
+    for (int i = 0; i < 4; ++i) {
+        TEST(page.entries()[i].key == i + 1);
+    }
 
-    // TEST_SUCCESS(bpt.remove_entry_from_internal(4, buf));
-    // TEST(page.page_header().number_of_keys == 3);
-    // for (int i = 0; i < 3; ++i) {
-    //     TEST(page.entries()[i].key == i + 1);
-    // }
+    TEST_SUCCESS(bpt.remove_entry_from_internal(4, buf));
+    TEST(page.page_header().number_of_keys == 3);
+    for (int i = 0; i < 3; ++i) {
+        TEST(page.entries()[i].key == i + 1);
+    }
     
-    // TEST_SUCCESS(bpt.remove_entry_from_internal(2, buf));
-    // TEST(page.page_header().number_of_keys == 2);
-    // TEST(page.entries()[0].key == 1);
-    // TEST(page.entries()[1].key == 3);
+    TEST_SUCCESS(bpt.remove_entry_from_internal(2, buf));
+    TEST(page.page_header().number_of_keys == 2);
+    TEST(page.entries()[0].key == 1);
+    TEST(page.entries()[1].key == 3);
 
-    // TEST_SUCCESS(bpt.remove_entry_from_internal(1, buf));
-    // TEST(page.page_header().number_of_keys == 1);
-    // TEST(page.entries()[0].key == 3);
+    TEST_SUCCESS(bpt.remove_entry_from_internal(1, buf));
+    TEST(page.page_header().number_of_keys == 1);
+    TEST(page.entries()[0].key == 3);
 
-    // TEST_SUCCESS(bpt.remove_entry_from_internal(3, buf));
-    // TEST(page.page_header().number_of_keys == 0);
+    TEST_SUCCESS(bpt.remove_entry_from_internal(3, buf));
+    TEST(page.page_header().number_of_keys == 0);
 
-    // bpt_test_postprocess(file, buffers);
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::shrink_root, {
-    // FileManager file("testfile");
-    // BufferManager buffers(4);
-    // BPTree bpt(&file, &buffers);
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // // case 0. no shrink
-    // Ubuffer node = bpt.create_page(true);
-    // Ubuffer filehdr = bpt.buffering(FILE_HEADER_PAGENUM);
-    // TEST_SUCCESS(node.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 1;
-    //     page.records()[0].key = 10;
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(filehdr.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.file_header().root_page_number = node.to_pagenum();
-    //     return Status::SUCCESS;
-    // }))
+    // case 0. no shrink
+    Ubuffer node = bpt.create_page(true);
+    Ubuffer filehdr = bpt.buffering(FILE_HEADER_PAGENUM);
+    node.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 1;
+        page.records()[0].key = 10;
+        return Status::SUCCESS;
+    });
+    filehdr.write_void([&](Page& page) {
+        page.file_header().root_page_number = node.to_pagenum();
+    });
 
-    // TEST_SUCCESS(bpt.shrink_root());
-    // TEST_SUCCESS(filehdr.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.file_header().root_page_number == node.to_pagenum());
-    //     return Status::SUCCESS;
-    // }))
+    TEST_SUCCESS(bpt.shrink_root());
+    TEST_SUCCESS(filehdr.read([&](Page const& page) {
+        TEST_STATUS(page.file_header().root_page_number == node.to_pagenum());
+        return Status::SUCCESS;
+    }))
 
-    // TEST_SUCCESS(node.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 1);
-    //     TEST_STATUS(page.records()[0].key == 10);
-    //     return Status::SUCCESS;
-    // }))
+    TEST_SUCCESS(node.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.records()[0].key == 10);
+        return Status::SUCCESS;
+    }))
 
-    // // case 1. leaf root
-    // TEST_SUCCESS(node.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 0;
-    //     return Status::SUCCESS;
-    // }))
+    // case 1. leaf root
+    node.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 0;
+    });
 
-    // TEST_SUCCESS(bpt.shrink_root());
-    // TEST_SUCCESS(filehdr.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.file_header().root_page_number == INVALID_PAGENUM);
-    //     return Status::SUCCESS;
-    // }))
+    TEST_SUCCESS(bpt.shrink_root());
+    TEST_SUCCESS(filehdr.read([&](Page const& page) {
+        TEST_STATUS(page.file_header().root_page_number == INVALID_PAGENUM);
+        return Status::SUCCESS;
+    }))
 
-    // // case 2. internal root
-    // node = bpt.create_page(true);
-    // pagenum_t nodenum = node.to_pagenum();
+    // case 2. internal root
+    node = bpt.create_page(true);
+    pagenum_t nodenum = node.to_pagenum();
 
-    // node = bpt.create_page(false);
-    // TEST_SUCCESS(filehdr.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.file_header().root_page_number = node.to_pagenum();
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(node.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().special_page_number = nodenum;
-    //     return Status::SUCCESS;
-    // }))
+    node = bpt.create_page(false);
+DBG(node.to_pagenum())
+node.read_void([&](Page const& page) {
+DBG(page.page_header().number_of_keys)
+});
+    filehdr.write_void([&](Page& page) {
+        page.file_header().root_page_number = node.to_pagenum();
+DBG(page.file_header().root_page_number)
+    });
+    node.write_void([&](Page& page) {
+        page.page_header().special_page_number = nodenum;
+    });
 
-    // TEST_SUCCESS(bpt.shrink_root());
-    // TEST_SUCCESS(filehdr.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.file_header().root_page_number == nodenum);
-    //     return Status::SUCCESS;
-    // }))
+    TEST_SUCCESS(bpt.shrink_root());
+    TEST_SUCCESS(filehdr.read([&](Page const& page) {
+DBG(page.file_header().root_page_number)
+DBG(nodenum)
+        TEST_STATUS(page.file_header().root_page_number == nodenum);
+        return Status::SUCCESS;
+    }))
 
-    // bpt_test_postprocess(file, buffers);
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::merge_nodes, {
