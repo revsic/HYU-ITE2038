@@ -256,41 +256,37 @@ std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) const {
     return retn;
 }
 
-// Status BPTree::insert(
-//     prikey_t key, const uint8_t* value, int value_size
-// ) const {
-//     Ubuffer leaf_page(nullptr);
-//     pagenum_t leaf = find_leaf(key, leaf_page);
-//     if (leaf != INVALID_PAGENUM
-//         && find_key_from_leaf(key, leaf_page, nullptr) == Status::SUCCESS) {
-//         return Status::FAILURE;
-//     }
+Status BPTree::insert(
+    prikey_t key, const uint8_t* value, int value_size
+) const {
+    Ubuffer leaf_page(nullptr);
+    pagenum_t leaf = find_leaf(key, leaf_page);
+    if (leaf != INVALID_PAGENUM
+        && find_key_from_leaf(key, leaf_page, nullptr) == Status::SUCCESS) {
+        return Status::FAILURE;
+    }
 
-//     Record record;
-//     CHECK_SUCCESS(write_record(record, key, value, value_size));
+    Record record;
+    CHECK_SUCCESS(write_record(record, key, value, value_size));
 
-//     pagenum_t root;
-//     CHECK_SUCCESS(
-//         buffering(FILE_HEADER_PAGENUM).use(RWFlag::READ, [&](Page& page) {
-//             root = page.file_header().root_page_number;
-//             return Status::SUCCESS;
-//         })
-//     );
-//     if (root == INVALID_PAGENUM) {
-//         return new_tree(record);
-//     }
+    pagenum_t root = buffering(FILE_HEADER_PAGENUM).read(
+        [&](Page const& page) {
+            return page.file_header().root_page_number;
+        });
 
-//     int num_key;
-//     CHECK_SUCCESS(leaf_page.use(RWFlag::READ, [&](Page& page) {
-//         num_key = page.page_header().number_of_keys;
-//         return Status::SUCCESS;
-//     }));
-//     if (num_key < leaf_order - 1) {
-//         return insert_to_leaf(std::move(leaf_page), record);
-//     }
+    if (root == INVALID_PAGENUM) {
+        return new_tree(record);
+    }
 
-//     return insert_and_split_leaf(std::move(leaf_page), record);
-// }
+    int num_key = leaf_page.read([&](Page const& page) {
+        return page.page_header().number_of_keys;
+    });
+    if (num_key < leaf_order - 1) {
+        return insert_to_leaf(std::move(leaf_page), record);
+    }
+
+    return insert_and_split_leaf(std::move(leaf_page), record);
+}
 
 // Status BPTree::remove(prikey_t key) const {
 //     Ubuffer leaf_page(nullptr);
@@ -567,184 +563,162 @@ Status BPTree::insert_and_split_leaf(Ubuffer leaf, Record const& rec) const {
     return insert_to_parent(std::move(leaf), key, std::move(new_page));
 }
 
-// Status BPTree::insert_to_node(
-//     Ubuffer node, int index, Internal const& entry
-// ) const {
-//     return node.use(RWFlag::WRITE, [&](Page& page) {
-//         PageHeader& header = page.page_header();
-//         if (header.number_of_keys >= internal_order) {
-//             return Status::FAILURE;
-//         }
+Status BPTree::insert_to_node(
+    Ubuffer node, int index, Internal const& entry
+) const {
+    return node.write([&](Page& page) {
+        PageHeader& header = page.page_header();
+        if (header.number_of_keys >= internal_order) {
+            return Status::FAILURE;
+        }
 
-//         Internal* ent = page.entries();
-//         for (int i = header.number_of_keys; i > index; --i) {
-//             ent[i] = ent[i - 1];
-//         }
-//         ent[index] = entry;
-//         header.number_of_keys++;
-//         return Status::SUCCESS;
-//     });
-// }
+        Internal* ent = page.entries();
+        for (int i = header.number_of_keys; i > index; --i) {
+            ent[i] = ent[i - 1];
+        }
+        ent[index] = entry;
+        header.number_of_keys++;
+        return Status::SUCCESS;
+    });
+}
 
-// Status BPTree::insert_and_split_node(
-//     Ubuffer node, int index, Internal const& entry
-// ) const {
-//     pagenum_t parent_num;
-//     Ubuffer new_node = create_page(false);
-//     auto temp = std::make_unique<Internal[]>(internal_order);
-//     CHECK_SUCCESS(node.use(RWFlag::READ, [&](Page& page) {
-//         Internal* ent = page.entries();
-//         PageHeader& header = page.page_header();
+Status BPTree::insert_and_split_node(
+    Ubuffer node, int index, Internal const& entry
+) const {
+    pagenum_t parent_num;
+    Ubuffer new_node = create_page(false);
+    auto temp = std::make_unique<Internal[]>(internal_order);
+    node.read_void([&](Page const& page) {
+        Internal const* ent = page.entries();
+        PageHeader const& header = page.page_header();
 
-//         parent_num = header.parent_page_number;
-//         for (int i = 0, j = 0; j < header.number_of_keys; ++i, ++j) {
-//             if (i == index) {
-//                 ++i;
-//             }
-//             temp[i] = ent[j];
-//         }
-//         temp[index] = entry;
-//         return Status::SUCCESS;
-//     }));
+        parent_num = header.parent_page_number;
+        for (int i = 0, j = 0; j < header.number_of_keys; ++i, ++j) {
+            if (i == index) {
+                ++i;
+            }
+            temp[i] = ent[j];
+        }
+        temp[index] = entry;
+    });
 
-//     int split = cut(internal_order);
-//     CHECK_SUCCESS(node.use(RWFlag::WRITE, [&](Page& page) {
-//         Internal* ent = page.entries();
-//         PageHeader& header = page.page_header();
+    int split = cut(internal_order);
+    node.write_void([&](Page& page) {
+        Internal* ent = page.entries();
+        PageHeader& header = page.page_header();
 
-//         header.number_of_keys = 0;
-//         for (int i = 0; i < split - 1; ++i) {
-//             ent[i] = temp[i];
-//             header.number_of_keys++;
-//         }
-//         return Status::SUCCESS;
-//     }));
+        header.number_of_keys = 0;
+        for (int i = 0; i < split - 1; ++i) {
+            ent[i] = temp[i];
+            header.number_of_keys++;
+        }
+    });
 
-//     int k_prime;
-//     CHECK_SUCCESS(new_node.use(RWFlag::WRITE, [&](Page& page) {
-//         Internal* ent = page.entries();
-//         PageHeader& header = page.page_header();
+    int k_prime;
+    new_node.write_void([&](Page& page) {
+        Internal* ent = page.entries();
+        PageHeader& header = page.page_header();
 
-//         k_prime = temp[split - 1].key;
-//         header.special_page_number = temp[split - 1].pagenum;
-//         for (int i = split, j = 0; i < internal_order; ++i, ++j) {
-//             ent[j] = temp[i];
-//             header.number_of_keys++;
-//         }
+        k_prime = temp[split - 1].key;
+        header.special_page_number = temp[split - 1].pagenum;
+        for (int i = split, j = 0; i < internal_order; ++i, ++j) {
+            ent[j] = temp[i];
+            header.number_of_keys++;
+        }
 
-//         header.parent_page_number = parent_num;
-//         return Status::SUCCESS;
-//     }));
+        header.parent_page_number = parent_num;
+    });
 
-//     parent_num = new_node.to_pagenum();
-//     CHECK_SUCCESS(new_node.use(RWFlag::READ, [&](Page& page) {
-//         Internal* ent = page.entries();
-//         PageHeader& header = page.page_header();
+    parent_num = new_node.to_pagenum();
+    new_node.read_void([&](Page const& page) {
+        Internal const* ent = page.entries();
+        PageHeader const& header = page.page_header();
 
-//         for (int i = -1; i < static_cast<int>(header.number_of_keys); ++i) {
-//             pagenum_t temp_pagenum = i == -1
-//                 ? header.special_page_number
-//                 : ent[i].pagenum;
-            
-//             CHECK_SUCCESS(
-//                 buffering(temp_pagenum).use(RWFlag::WRITE, [&](Page& page) {
-//                     page.page_header().parent_page_number = parent_num;
-//                     return Status::SUCCESS;
-//                 })
-//             );
-//         }
-//         return Status::SUCCESS;
-//     }));
+        for (int i = -1; i < static_cast<int>(header.number_of_keys); ++i) {
+            pagenum_t temp_pagenum = i == -1
+                ? header.special_page_number
+                : ent[i].pagenum;
 
-//     return insert_to_parent(std::move(node), k_prime, std::move(new_node));
-// }
+            buffering(temp_pagenum).write_void([&](Page& page) {
+                page.page_header().parent_page_number = parent_num;
+            });
+        }
+    });
 
-// Status BPTree::insert_to_parent(
-//     Ubuffer left, prikey_t key, Ubuffer right
-// ) const {
-//     pagenum_t parent_num;
-//     pagenum_t left_num = left.to_pagenum();
-//     pagenum_t right_num = right.to_pagenum();
-//     CHECK_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
-//         parent_num = page.page_header().parent_page_number;
-//         return Status::SUCCESS;
-//     }));
+    return insert_to_parent(std::move(node), k_prime, std::move(new_node));
+}
 
-//     if (parent_num == INVALID_PAGENUM) {
-//         return insert_new_root(std::move(left), key, std::move(right));
-//     }
+Status BPTree::insert_to_parent(
+    Ubuffer left, prikey_t key, Ubuffer right
+) const {
+    pagenum_t left_num = left.to_pagenum();
+    pagenum_t right_num = right.to_pagenum();
+    pagenum_t parent_num = left.read([&](Page const& page) {
+        return page.page_header().parent_page_number;
+    });
 
-//     int idx;
-//     Ubuffer parent_page = buffering(parent_num);
-//     CHECK_SUCCESS(find_pagenum_from_internal(left_num, parent_page, idx));
+    if (parent_num == INVALID_PAGENUM) {
+        return insert_new_root(std::move(left), key, std::move(right));
+    }
 
-//     int num_key;
-//     CHECK_SUCCESS(parent_page.use(RWFlag::READ, [&](Page& page) {
-//         num_key = page.page_header().number_of_keys;
-//         return Status::SUCCESS;
-//     }));
+    int idx;
+    Ubuffer parent_page = buffering(parent_num);
+    CHECK_SUCCESS(find_pagenum_from_internal(left_num, parent_page, idx));
 
-//     Internal entry = { key, right_num };
-//     if (num_key < internal_order - 1) {
-//         return insert_to_node(std::move(parent_page), idx + 1, entry);
-//     }
-//     return insert_and_split_node(std::move(parent_page), idx + 1, entry);
-// }
+    int num_key = parent_page.read([&](Page const& page) {
+        return page.page_header().number_of_keys;
+    });
 
-// Status BPTree::insert_new_root(
-//     Ubuffer left, prikey_t key, Ubuffer right
-// ) const {
-//     Ubuffer root = create_page(false);
-//     pagenum_t root_num = root.to_pagenum();
-//     CHECK_SUCCESS(root.use(RWFlag::WRITE, [&](Page& page) {
-//         PageHeader& header = page.page_header();
-//         header.number_of_keys++;
-//         header.special_page_number = left.to_pagenum();
+    Internal entry = { key, right_num };
+    if (num_key < internal_order - 1) {
+        return insert_to_node(std::move(parent_page), idx + 1, entry);
+    }
+    return insert_and_split_node(std::move(parent_page), idx + 1, entry);
+}
 
-//         Internal& ent = page.entries()[0];
-//         ent.key = key;
-//         ent.pagenum = right.to_pagenum();
-        
-//         return Status::SUCCESS;
-//     }));
+Status BPTree::insert_new_root(
+    Ubuffer left, prikey_t key, Ubuffer right
+) const {
+    Ubuffer root = create_page(false);
+    pagenum_t root_num = root.to_pagenum();
+    root.write_void([&](Page& page) {
+        PageHeader& header = page.page_header();
+        header.number_of_keys++;
+        header.special_page_number = left.to_pagenum();
 
-//     CHECK_SUCCESS(left.use(RWFlag::WRITE, [&](Page& page) {
-//         page.page_header().parent_page_number = root_num;
-//         return Status::SUCCESS;
-//     }));
+        Internal& ent = page.entries()[0];
+        ent.key = key;
+        ent.pagenum = right.to_pagenum();
+    });
 
-//     CHECK_SUCCESS(right.use(RWFlag::WRITE, [&](Page& page) {
-//         page.page_header().parent_page_number = root_num;
-//         return Status::SUCCESS;
-//     }));
+    left.write_void([&](Page& page) {
+        page.page_header().parent_page_number = root_num;
+    });
 
-//     CHECK_SUCCESS(
-//         buffering(FILE_HEADER_PAGENUM).use(RWFlag::WRITE, [&](Page& page) {
-//             page.file_header().root_page_number = root_num;
-//             return Status::SUCCESS;
-//         })
-//     );
-//     return Status::SUCCESS;
-// }
+    right.write_void([&](Page& page) {
+        page.page_header().parent_page_number = root_num;
+    });
 
-// Status BPTree::new_tree(Record const& rec) const {
-//     Ubuffer root = create_page(true);
-//     pagenum_t root_num = root.to_pagenum();
-//     CHECK_SUCCESS(root.use(RWFlag::WRITE, [&](Page& page) {
-//         page.page_header().number_of_keys++;
-//         memcpy(&page.records()[0], &rec, sizeof(Record));
-//         return Status::SUCCESS;
-//     }));
+    buffering(FILE_HEADER_PAGENUM).write_void([&](Page& page) {
+        page.file_header().root_page_number = root_num;
+    });
+    return Status::SUCCESS;
+}
 
-//     CHECK_SUCCESS(
-//         buffering(FILE_HEADER_PAGENUM).use(RWFlag::WRITE, [&](Page& page) {
-//             page.file_header().root_page_number = root_num;
-//             return Status::SUCCESS;
-//         })
-//     );
+Status BPTree::new_tree(Record const& rec) const {
+    Ubuffer root = create_page(true);
+    pagenum_t root_num = root.to_pagenum();
+    root.write_void([&](Page& page) {
+        page.page_header().number_of_keys++;
+        memcpy(&page.records()[0], &rec, sizeof(Record));
+    });
 
-//     return Status::SUCCESS;
-// }
+    buffering(FILE_HEADER_PAGENUM).write_void([&](Page& page) {
+        page.file_header().root_page_number = root_num;
+    });
+
+    return Status::SUCCESS;
+}
 
 // // delete
 // Status BPTree::remove_record_from_leaf(prikey_t key, Ubuffer& node) const {
