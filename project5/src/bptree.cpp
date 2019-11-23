@@ -720,121 +720,108 @@ Status BPTree::new_tree(Record const& rec) const {
     return Status::SUCCESS;
 }
 
-// // delete
-// Status BPTree::remove_record_from_leaf(prikey_t key, Ubuffer& node) const {
-//     return node.use(RWFlag::WRITE, [&](Page& page) {
-//         Record* rec = page.records();
-//         int num_key = page.page_header().number_of_keys;
+// delete
+Status BPTree::remove_record_from_leaf(prikey_t key, Ubuffer& node) const {
+    return node.write([&](Page& page) {
+        Record* rec = page.records();
+        int num_key = page.page_header().number_of_keys;
 
-//         int i;
-//         for (i = 0; i < num_key && rec[i].key != key; ++i)
-//             {}
+        int i;
+        for (i = 0; i < num_key && rec[i].key != key; ++i)
+            {}
         
-//         if (i == num_key) {
-//             return Status::FAILURE;
-//         }
-//         for (++i; i < num_key; ++i) {
-//             rec[i - 1] = rec[i];
-//         }
-//         page.page_header().number_of_keys--;
-//         return Status::SUCCESS;
-//     });
-// }
+        if (i == num_key) {
+            return Status::FAILURE;
+        }
+        for (++i; i < num_key; ++i) {
+            rec[i - 1] = rec[i];
+        }
+        page.page_header().number_of_keys--;
+        return Status::SUCCESS;
+    });
+}
 
-// Status BPTree::remove_entry_from_internal(prikey_t key, Ubuffer& node) const {
-//     return node.use(RWFlag::WRITE, [&](Page& page) {
-//         Internal* ent = page.entries();
-//         int num_key = page.page_header().number_of_keys;
+Status BPTree::remove_entry_from_internal(prikey_t key, Ubuffer& node) const {
+    return node.write([&](Page& page) {
+        Internal* ent = page.entries();
+        int num_key = page.page_header().number_of_keys;
 
-//         int i;
-//         for (i = 0; i < num_key && ent[i].key != key; ++i)
-//             {}
+        int i;
+        for (i = 0; i < num_key && ent[i].key != key; ++i)
+            {}
         
-//         if (i == num_key) {
-//             return Status::FAILURE;
-//         }
-//         for(++i; i < num_key; ++i) {
-//             ent[i - 1] = ent[i];
-//         }
-//         page.page_header().number_of_keys--;
-//         return Status::SUCCESS;
-//     });
-// }
+        if (i == num_key) {
+            return Status::FAILURE;
+        }
+        for(++i; i < num_key; ++i) {
+            ent[i - 1] = ent[i];
+        }
+        page.page_header().number_of_keys--;
+        return Status::SUCCESS;
+    });
+}
 
-// Status BPTree::rotate_to_right(
-//     Ubuffer left, prikey_t key, int index, Ubuffer right, Ubuffer parent
-// ) const {
-//     bool is_leaf;
-//     int num_key;
-//     CHECK_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
-//         is_leaf = page.page_header().is_leaf;
-//         num_key = page.page_header().number_of_keys;
-//         return Status::SUCCESS;
-//     }))
+Status BPTree::rotate_to_right(
+    Ubuffer left, prikey_t key, int index, Ubuffer right, Ubuffer parent
+) const {
+    bool is_leaf;
+    int num_key;
+    right.read_void([&](Page const& page) {
+        is_leaf = page.page_header().is_leaf;
+        num_key = page.page_header().number_of_keys;
+    });
 
-//     if (is_leaf) {
-//         CHECK_SUCCESS(right.use(RWFlag::WRITE, [&](Page& rightpage) {
-//             Record* right_rec = rightpage.records();
-//             for (int i = num_key; i > 0; --i) {
-//                 right_rec[i] = right_rec[i - 1];
-//             }
-//             CHECK_SUCCESS(left.use(RWFlag::READ, [&](Page& leftpage) {
-//                 num_key = leftpage.page_header().number_of_keys;
-//                 right_rec[0] = leftpage.records()[num_key - 1];
-//                 return Status::SUCCESS;
-//             }));
-//             CHECK_SUCCESS(parent.use(RWFlag::WRITE, [&](Page& parentpage) {
-//                 parentpage.entries()[index].key = right_rec[0].key;
-//                 return Status::SUCCESS;
-//             }));
-//             return Status::SUCCESS;
-//         }));
-//     } else {
-//         CHECK_SUCCESS(right.use(RWFlag::WRITE, [&](Page& rightpage) {
-//             Internal* right_ent = rightpage.entries();
-//             for (int i = num_key; i > 0; --i) {
-//                 right_ent[i] = right_ent[i - 1];
-//             }
-//             right_ent[0].key = key;
-//             right_ent[0].pagenum = rightpage.page_header().special_page_number;
-//             return Status::SUCCESS;
-//         }));
-//         CHECK_SUCCESS(left.use(RWFlag::READ, [&](Page& leftpage) {
-//             Internal* left_ent = leftpage.entries();
-//             num_key = leftpage.page_header().number_of_keys;
+    if (is_leaf) {
+        right.write_void([&](Page& rightpage) {
+            Record* right_rec = rightpage.records();
+            for (int i = num_key; i > 0; --i) {
+                right_rec[i] = right_rec[i - 1];
+            }
+            left.read_void([&](Page const& leftpage) {
+                num_key = leftpage.page_header().number_of_keys;
+                right_rec[0] = leftpage.records()[num_key - 1];
+            });
+            parent.write_void([&](Page& parentpage) {
+                parentpage.entries()[index].key = right_rec[0].key;
+            });
+        });
+    } else {
+        right.write_void([&](Page& rightpage) {
+            Internal* right_ent = rightpage.entries();
+            for (int i = num_key; i > 0; --i) {
+                right_ent[i] = right_ent[i - 1];
+            }
+            right_ent[0].key = key;
+            right_ent[0].pagenum = rightpage.page_header().special_page_number;
+        });
+        left.read_void([&](Page const& leftpage) {
+            Internal const* left_ent = leftpage.entries();
+            num_key = leftpage.page_header().number_of_keys;
 
-//             Internal tmp = left_ent[num_key - 1];
-//             CHECK_SUCCESS(parent.use(RWFlag::WRITE, [&](Page& page) {
-//                 page.entries()[index].key = tmp.key;
-//                 return Status::SUCCESS;
-//             }));
+            Internal tmp = left_ent[num_key - 1];
+            parent.write_void([&](Page& page) {
+                page.entries()[index].key = tmp.key;
+            });
 
-//             pagenum_t rightnum = right.to_pagenum();
-//             CHECK_SUCCESS(right.use(RWFlag::WRITE, [&](Page& page) {
-//                 page.page_header().special_page_number = tmp.pagenum;
-//                 return Status::SUCCESS;
-//             }));
-//             CHECK_SUCCESS(
-//                 buffering(tmp.pagenum).use(RWFlag::WRITE, [&](Page& page) {
-//                     page.page_header().parent_page_number = rightnum;
-//                     return Status::SUCCESS;
-//                 })
-//             );
-//             return Status::SUCCESS;
-//         }));
-//     }
+            pagenum_t rightnum = right.to_pagenum();
+            right.write_void([&](Page& page) {
+                page.page_header().special_page_number = tmp.pagenum;
+            });
+            buffering(tmp.pagenum).write_void([&](Page& page) {
+                page.page_header().parent_page_number = rightnum;
+            });
+        });
+    }
 
-//     CHECK_SUCCESS(left.use(RWFlag::WRITE, [](Page& page) {
-//         page.page_header().number_of_keys--;
-//         return Status::SUCCESS;
-//     }));
-//     CHECK_SUCCESS(right.use(RWFlag::WRITE, [](Page& page) {
-//         page.page_header().number_of_keys++;
-//         return Status::SUCCESS;
-//     }));
+    left.write_void([](Page& page) {
+        page.page_header().number_of_keys--;
+    });
+    right.write_void([](Page& page) {
+        page.page_header().number_of_keys++;
+    });
 
-//     return Status::SUCCESS;
-// }
+    return Status::SUCCESS;
+}
 
 // Status BPTree::rotate_to_left(
 //     Ubuffer left, prikey_t key, int index, Ubuffer right, Ubuffer parent
