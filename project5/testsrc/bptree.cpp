@@ -941,13 +941,8 @@ TEST_SUITE(BPTreeTest::shrink_root, {
     pagenum_t nodenum = node.to_pagenum();
 
     node = bpt.create_page(false);
-DBG(node.to_pagenum())
-node.read_void([&](Page const& page) {
-DBG(page.page_header().number_of_keys)
-});
     filehdr.write_void([&](Page& page) {
         page.file_header().root_page_number = node.to_pagenum();
-DBG(page.file_header().root_page_number)
     });
     node.write_void([&](Page& page) {
         page.page_header().special_page_number = nodenum;
@@ -955,8 +950,6 @@ DBG(page.file_header().root_page_number)
 
     TEST_SUCCESS(bpt.shrink_root());
     TEST_SUCCESS(filehdr.read([&](Page const& page) {
-DBG(page.file_header().root_page_number)
-DBG(nodenum)
         TEST_STATUS(page.file_header().root_page_number == nodenum);
         return Status::SUCCESS;
     }))
@@ -965,166 +958,159 @@ DBG(nodenum)
 })
 
 TEST_SUITE(BPTreeTest::merge_nodes, {
-    // FileManager file("testfile");
-    // BufferManager buffers(4);
-    // BPTree bpt(&file, &buffers);
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // // case 0. leaf node
-    // Ubuffer parent = bpt.create_page(false);
-    // Ubuffer left = bpt.create_page(true);
-    // Ubuffer right = bpt.create_page(true);
-    // Ubuffer rightmost = bpt.create_page(true);
+    // case 0. leaf node
+    Ubuffer parent = bpt.create_page(false);
+    Ubuffer left = bpt.create_page(true);
+    Ubuffer right = bpt.create_page(true);
+    Ubuffer rightmost = bpt.create_page(true);
 
-    // pagenum_t parentnum = parent.to_pagenum();
-    // TEST_SUCCESS(parent.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 2;
-    //     page.page_header().special_page_number = left.to_pagenum();
-    //     page.entries()[0].key = 2;
-    //     page.entries()[0].pagenum = right.to_pagenum();
-    //     page.entries()[1].key = 10;
-    //     page.entries()[1].pagenum = rightmost.to_pagenum();
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(left.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 2;
-    //     page.page_header().parent_page_number = parentnum;
-    //     page.page_header().special_page_number = right.to_pagenum();
-    //     for (int i = 0; i < 2; ++i) {
-    //         page.records()[i].key = i;
-    //     }
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(right.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 3;
-    //     page.page_header().parent_page_number = parentnum;
-    //     page.page_header().special_page_number = rightmost.to_pagenum();
-    //     for (int i = 0; i < 3; ++i) {
-    //         page.records()[i].key = 2 + i;
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+    pagenum_t parentnum = parent.to_pagenum();
+    TEST_SUCCESS(parent.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 2;
+        page.page_header().special_page_number = left.to_pagenum();
+        page.entries()[0].key = 2;
+        page.entries()[0].pagenum = right.to_pagenum();
+        page.entries()[1].key = 10;
+        page.entries()[1].pagenum = rightmost.to_pagenum();
+    }))
+    TEST_SUCCESS(left.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 2;
+        page.page_header().parent_page_number = parentnum;
+        page.page_header().special_page_number = right.to_pagenum();
+        for (int i = 0; i < 2; ++i) {
+            page.records()[i].key = i;
+        }
+    }))
+    TEST_SUCCESS(right.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 3;
+        page.page_header().parent_page_number = parentnum;
+        page.page_header().special_page_number = rightmost.to_pagenum();
+        for (int i = 0; i < 3; ++i) {
+            page.records()[i].key = 2 + i;
+        }
+    }))
     
-    // TEST_SUCCESS(bpt.merge_nodes(
-    //     bpt.buffering(left.to_pagenum()),
-    //     2,
-    //     bpt.buffering(right.to_pagenum()),
-    //     bpt.buffering(parentnum)));
+    TEST_SUCCESS(bpt.merge_nodes(
+        bpt.buffering(left.to_pagenum()),
+        2,
+        bpt.buffering(right.to_pagenum()),
+        bpt.buffering(parentnum)));
 
-    // TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 1)
-    //     TEST_STATUS(page.page_header().special_page_number == left.to_pagenum());
-    //     TEST_STATUS(page.entries()[0].key == 10);
-    //     TEST_STATUS(page.entries()[0].pagenum == rightmost.to_pagenum());
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 5);
-    //     TEST_STATUS(page.page_header().parent_page_number == parentnum);
-    //     TEST_STATUS(page.page_header().special_page_number == rightmost.to_pagenum());
-    //     for (int i = 0; i < 5; ++i) {
-    //         TEST_STATUS(page.records()[i].key == i);
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+    TEST_SUCCESS(parent.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1)
+        TEST_STATUS(page.page_header().special_page_number == left.to_pagenum());
+        TEST_STATUS(page.entries()[0].key == 10);
+        TEST_STATUS(page.entries()[0].pagenum == rightmost.to_pagenum());
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 5);
+        TEST_STATUS(page.page_header().parent_page_number == parentnum);
+        TEST_STATUS(page.page_header().special_page_number == rightmost.to_pagenum());
+        for (int i = 0; i < 5; ++i) {
+            TEST_STATUS(page.records()[i].key == i);
+        }
+        return Status::SUCCESS;
+    }))
 
-    // // case 1. internal node
-    // parent = bpt.create_page(false);
-    // left = bpt.create_page(false);
-    // right = bpt.create_page(false);
-    // rightmost = bpt.create_page(false);
+    // case 1. internal node
+    parent = bpt.create_page(false);
+    left = bpt.create_page(false);
+    right = bpt.create_page(false);
+    rightmost = bpt.create_page(false);
 
-    // parentnum = parent.to_pagenum();
-    // TEST_SUCCESS(parent.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 2;
-    //     page.page_header().parent_page_number = INVALID_PAGENUM;
-    //     page.page_header().special_page_number = left.to_pagenum();
-    //     page.entries()[0].key = 3;
-    //     page.entries()[0].pagenum = right.to_pagenum();
-    //     page.entries()[1].key = 10;
-    //     page.entries()[1].pagenum = rightmost.to_pagenum();
-    //     return Status::SUCCESS;
-    // }))
+    parentnum = parent.to_pagenum();
+    parent.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 2;
+        page.page_header().parent_page_number = INVALID_PAGENUM;
+        page.page_header().special_page_number = left.to_pagenum();
+        page.entries()[0].key = 3;
+        page.entries()[0].pagenum = right.to_pagenum();
+        page.entries()[1].key = 10;
+        page.entries()[1].pagenum = rightmost.to_pagenum();
+    });
 
-    // pagenum_t pagenums[7];
-    // pagenum_t leftnum = left.to_pagenum();
-    // TEST_SUCCESS(left.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 2;
-    //     page.page_header().parent_page_number = parent.to_pagenum();
-    //     for (int i = 0; i < 3; ++i) {
-    //         Ubuffer tmp = bpt.create_page(true);
-    //         pagenums[i] = tmp.to_pagenum();
-    //         if (i == 0) {
-    //             page.page_header().special_page_number = pagenums[i];
-    //         } else {
-    //             page.entries()[i - 1].key = i;
-    //             page.entries()[i - 1].pagenum = pagenums[i];
-    //         }
+    pagenum_t pagenums[7];
+    pagenum_t leftnum = left.to_pagenum();
+    left.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 2;
+        page.page_header().parent_page_number = parent.to_pagenum();
+        for (int i = 0; i < 3; ++i) {
+            Ubuffer tmp = bpt.create_page(true);
+            pagenums[i] = tmp.to_pagenum();
+            if (i == 0) {
+                page.page_header().special_page_number = pagenums[i];
+            } else {
+                page.entries()[i - 1].key = i;
+                page.entries()[i - 1].pagenum = pagenums[i];
+            }
 
-    //         CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
-    //             tmppage.page_header().parent_page_number = leftnum;
-    //             return Status::SUCCESS;
-    //         }))
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+            tmp.write_void([&](Page& tmppage) {
+                tmppage.page_header().parent_page_number = leftnum;
+            });
+        }
+    });
 
-    // pagenum_t rightnum = right.to_pagenum();
-    // TEST_SUCCESS(right.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 3;
-    //     page.page_header().parent_page_number = parent.to_pagenum();
-    //     for (int i = 0; i < 4; ++i) {
-    //         Ubuffer tmp = bpt.create_page(true);
-    //         pagenums[3 + i] = tmp.to_pagenum();
-    //         if (i == 0) {
-    //             page.page_header().special_page_number = pagenums[3 + i];
-    //         } else {
-    //             page.entries()[i - 1].key = 3 + i;
-    //             page.entries()[i - 1].pagenum = pagenums[3 + i];
-    //         }
+    pagenum_t rightnum = right.to_pagenum();
+    right.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 3;
+        page.page_header().parent_page_number = parent.to_pagenum();
+        for (int i = 0; i < 4; ++i) {
+            Ubuffer tmp = bpt.create_page(true);
+            pagenums[3 + i] = tmp.to_pagenum();
+            if (i == 0) {
+                page.page_header().special_page_number = pagenums[3 + i];
+            } else {
+                page.entries()[i - 1].key = 3 + i;
+                page.entries()[i - 1].pagenum = pagenums[3 + i];
+            }
 
-    //         CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
-    //             tmppage.page_header().parent_page_number = rightnum;
-    //             return Status::SUCCESS;
-    //         }))
-    //     }
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(bpt.merge_nodes(
-    //     bpt.buffering(leftnum),
-    //     3,
-    //     bpt.buffering(rightnum),
-    //     bpt.buffering(parentnum)));
+            tmp.write_void([&](Page& tmppage) {
+                tmppage.page_header().parent_page_number = rightnum;
+            });
+        }
+    });
 
-    // TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
-    //     TEST_STATUS(page.page_header().number_of_keys == 1);
-    //     TEST_STATUS(page.page_header().special_page_number == left.to_pagenum());
-    //     TEST_STATUS(page.entries()[0].key == 10);
-    //     TEST_STATUS(page.entries()[0].pagenum == rightmost.to_pagenum());
-    //     return Status::SUCCESS;
-    // }))
+    TEST_SUCCESS(bpt.merge_nodes(
+        bpt.buffering(leftnum),
+        3,
+        bpt.buffering(rightnum),
+        bpt.buffering(parentnum)));
 
-    // TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 6);
-    //     TEST_STATUS(page.page_header().parent_page_number == parentnum);
-    //     for (int i = 0; i < 7; ++i) {
-    //         if (i == 0) {
-    //             TEST_STATUS(page.page_header().special_page_number == pagenums[i]);
-    //         } else {
-    //             TEST_STATUS(page.entries()[i - 1].key == i);
-    //             TEST_STATUS(page.entries()[i - 1].pagenum == pagenums[i]);
-    //         }
+    TEST_SUCCESS(parent.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.page_header().special_page_number == left.to_pagenum());
+        TEST_STATUS(page.entries()[0].key == 10);
+        TEST_STATUS(page.entries()[0].pagenum == rightmost.to_pagenum());
+        return Status::SUCCESS;
+    }))
 
-    //         Ubuffer tmp = bpt.buffering(pagenums[i]);
-    //         CHECK_SUCCESS(tmp.use(RWFlag::READ, [&](Page& tmppage) {
-    //             TEST_STATUS(tmppage.page_header().parent_page_number == leftnum);
-    //             return Status::SUCCESS;
-    //         }))
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+    TEST_SUCCESS(left.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 6);
+        TEST_STATUS(page.page_header().parent_page_number == parentnum);
+        for (int i = 0; i < 7; ++i) {
+            if (i == 0) {
+                TEST_STATUS(page.page_header().special_page_number == pagenums[i]);
+            } else {
+                TEST_STATUS(page.entries()[i - 1].key == i);
+                TEST_STATUS(page.entries()[i - 1].pagenum == pagenums[i]);
+            }
 
-    // bpt_test_postprocess(file, buffers);
+            Ubuffer tmp = bpt.buffering(pagenums[i]);
+            CHECK_SUCCESS(tmp.read([&](Page const& tmppage) {
+                TEST_STATUS(tmppage.page_header().parent_page_number == leftnum);
+                return Status::SUCCESS;
+            }))
+        }
+        return Status::SUCCESS;
+    }))
+
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::rotate_to_right, {
@@ -1136,282 +1122,274 @@ TEST_SUITE(BPTreeTest::rotate_to_left, {
 })
 
 TEST_SUITE(BPTreeTest::redistribute_nodes_leaf, {
-    // FileManager file("testfile");
-    // BufferManager buffers(4);
-    // BPTree bpt(&file, &buffers);
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // Ubuffer parent = bpt.create_page(false);
-    // Ubuffer left = bpt.create_page(true);
-    // Ubuffer right = bpt.create_page(true);
+    Ubuffer parent = bpt.create_page(false);
+    Ubuffer left = bpt.create_page(true);
+    Ubuffer right = bpt.create_page(true);
     
-    // TEST_SUCCESS(parent.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 1;
-    //     page.page_header().parent_page_number = INVALID_PAGENUM;
-    //     page.page_header().special_page_number = left.to_pagenum();
-    //     page.entries()[0].key = 3;
-    //     page.entries()[0].pagenum = right.to_pagenum();
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(left.use(RWFlag::WRITE, [&](Page& page) {;
-    //     page.page_header().number_of_keys = 3;
-    //     page.page_header().parent_page_number = parent.to_pagenum();
-    //     for (int i = 0; i < 3; ++i) {
-    //         page.records()[i].key = i;
-    //         page.records()[i].value[0] = i;
-    //     }
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(right.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 2;
-    //     page.page_header().parent_page_number = parent.to_pagenum();
-    //     for (int i = 0; i < 2; ++i) {
-    //         page.records()[i].key = 3 + i;
-    //         page.records()[i].value[0] = 3 + i;
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+    parent.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 1;
+        page.page_header().parent_page_number = INVALID_PAGENUM;
+        page.page_header().special_page_number = left.to_pagenum();
+        page.entries()[0].key = 3;
+        page.entries()[0].pagenum = right.to_pagenum();
+    });
+    left.write_void([&](Page& page) {;
+        page.page_header().number_of_keys = 3;
+        page.page_header().parent_page_number = parent.to_pagenum();
+        for (int i = 0; i < 3; ++i) {
+            page.records()[i].key = i;
+            page.records()[i].value[0] = i;
+        }
+    });
+    right.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 2;
+        page.page_header().parent_page_number = parent.to_pagenum();
+        for (int i = 0; i < 2; ++i) {
+            page.records()[i].key = 3 + i;
+            page.records()[i].value[0] = 3 + i;
+        }
+    });
 
-    // TEST_SUCCESS(bpt.redistribute_nodes(
-    //     bpt.buffering(left.to_pagenum()),
-    //     3,
-    //     0,
-    //     bpt.buffering(right.to_pagenum()),
-    //     bpt.buffering(parent.to_pagenum())));
+    TEST_SUCCESS(bpt.redistribute_nodes(
+        bpt.buffering(left.to_pagenum()),
+        3,
+        0,
+        bpt.buffering(right.to_pagenum()),
+        bpt.buffering(parent.to_pagenum())));
 
-    // TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 1);
-    //     TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
-    //     TEST_STATUS(page.page_header().special_page_number == left.to_pagenum());
-    //     TEST_STATUS(page.entries()[0].key == 2);
-    //     TEST_STATUS(page.entries()[0].pagenum == right.to_pagenum());
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 2);
-    //     TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
-    //     for (int i = 0; i < 2; ++i) {
-    //         TEST_STATUS(page.records()[i].key == i);
-    //         TEST_STATUS(page.records()[i].value[0] == i);
-    //     }
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 3);
-    //     TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
-    //     for (int i = 0; i < 3; ++i) {
-    //         TEST_STATUS(page.records()[i].key == 2 + i);
-    //         TEST_STATUS(page.records()[i].value[0] == 2 + i);
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+    TEST_SUCCESS(parent.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
+        TEST_STATUS(page.page_header().special_page_number == left.to_pagenum());
+        TEST_STATUS(page.entries()[0].key == 2);
+        TEST_STATUS(page.entries()[0].pagenum == right.to_pagenum());
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 2);
+        TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
+        for (int i = 0; i < 2; ++i) {
+            TEST_STATUS(page.records()[i].key == i);
+            TEST_STATUS(page.records()[i].value[0] == i);
+        }
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(right.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 3);
+        TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
+        for (int i = 0; i < 3; ++i) {
+            TEST_STATUS(page.records()[i].key == 2 + i);
+            TEST_STATUS(page.records()[i].value[0] == 2 + i);
+        }
+        return Status::SUCCESS;
+    }))
 
-    // TEST_SUCCESS(bpt.redistribute_nodes(
-    //     bpt.buffering(left.to_pagenum()),
-    //     3,
-    //     0,
-    //     bpt.buffering(right.to_pagenum()),
-    //     bpt.buffering(parent.to_pagenum())));
+    TEST_SUCCESS(bpt.redistribute_nodes(
+        bpt.buffering(left.to_pagenum()),
+        3,
+        0,
+        bpt.buffering(right.to_pagenum()),
+        bpt.buffering(parent.to_pagenum())));
 
-    // TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 1);
-    //     TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
-    //     TEST_STATUS(page.page_header().special_page_number == left.to_pagenum());
-    //     TEST_STATUS(page.entries()[0].key == 3);
-    //     TEST_STATUS(page.entries()[0].pagenum == right.to_pagenum());
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 3);
-    //     TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
-    //     for (int i = 0; i < 3; ++i) {
-    //         TEST_STATUS(page.records()[i].key == i);
-    //         TEST_STATUS(page.records()[i].value[0] == i);
-    //     }
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 2);
-    //     TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
-    //     for (int i = 0; i < 2; ++i) {
-    //         TEST_STATUS(page.records()[i].key == 3 + i);
-    //         TEST_STATUS(page.records()[i].value[0] == 3 + i);
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+    TEST_SUCCESS(parent.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
+        TEST_STATUS(page.page_header().special_page_number == left.to_pagenum());
+        TEST_STATUS(page.entries()[0].key == 3);
+        TEST_STATUS(page.entries()[0].pagenum == right.to_pagenum());
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 3);
+        TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
+        for (int i = 0; i < 3; ++i) {
+            TEST_STATUS(page.records()[i].key == i);
+            TEST_STATUS(page.records()[i].value[0] == i);
+        }
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(right.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 2);
+        TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
+        for (int i = 0; i < 2; ++i) {
+            TEST_STATUS(page.records()[i].key == 3 + i);
+            TEST_STATUS(page.records()[i].value[0] == 3 + i);
+        }
+        return Status::SUCCESS;
+    }))
 
-    // bpt_test_postprocess(file, buffers);
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::redistribute_nodes_internal, {
-    // FileManager file("testfile");
-    // BufferManager buffers(4);
-    // BPTree bpt(&file, &buffers);
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // Ubuffer parent = bpt.create_page(false);
-    // Ubuffer left = bpt.create_page(false);
-    // Ubuffer right = bpt.create_page(false);
+    Ubuffer parent = bpt.create_page(false);
+    Ubuffer left = bpt.create_page(false);
+    Ubuffer right = bpt.create_page(false);
     
-    // TEST_SUCCESS(parent.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 1;
-    //     page.page_header().parent_page_number = INVALID_PAGENUM;
-    //     page.page_header().special_page_number = left.to_pagenum();
-    //     page.entries()[0].key = 3;
-    //     page.entries()[0].pagenum = right.to_pagenum();
-    //     return Status::SUCCESS;
-    // }))
+    parent.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 1;
+        page.page_header().parent_page_number = INVALID_PAGENUM;
+        page.page_header().special_page_number = left.to_pagenum();
+        page.entries()[0].key = 3;
+        page.entries()[0].pagenum = right.to_pagenum();
+    });
 
-    // pagenum_t pagenums[7];
-    // pagenum_t leftnum = left.to_pagenum();
-    // TEST_SUCCESS(left.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 3;
-    //     page.page_header().parent_page_number = parent.to_pagenum();
-    //     for (int i = -1; i < 3; ++i) {
-    //         Ubuffer tmp = bpt.create_page(true);
-    //         pagenums[i + 1] = tmp.to_pagenum();
-    //         if (i == -1) {
-    //             page.page_header().special_page_number = pagenums[i + 1];
-    //         } else {
-    //             page.entries()[i].key = i;
-    //             page.entries()[i].pagenum = pagenums[i + 1];
-    //         }
+    pagenum_t pagenums[7];
+    pagenum_t leftnum = left.to_pagenum();
+    left.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 3;
+        page.page_header().parent_page_number = parent.to_pagenum();
+        for (int i = -1; i < 3; ++i) {
+            Ubuffer tmp = bpt.create_page(true);
+            pagenums[i + 1] = tmp.to_pagenum();
+            if (i == -1) {
+                page.page_header().special_page_number = pagenums[i + 1];
+            } else {
+                page.entries()[i].key = i;
+                page.entries()[i].pagenum = pagenums[i + 1];
+            }
 
-    //         CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
-    //             tmppage.page_header().parent_page_number = leftnum;
-    //             return Status::SUCCESS;
-    //         }))
-    //     }
-    //     return Status::SUCCESS;
-    // }))
-    // pagenum_t rightnum = right.to_pagenum();
-    // TEST_SUCCESS(right.use(RWFlag::WRITE, [&](Page& page) {
-    //     page.page_header().number_of_keys = 2;
-    //     page.page_header().parent_page_number = parent.to_pagenum();
-    //     for (int i = -1; i < 2; ++i) {
-    //         Ubuffer tmp = bpt.create_page(true);
-    //         pagenums[i + 5] = tmp.to_pagenum();
-    //         if (i == -1) {
-    //             page.page_header().special_page_number = pagenums[i + 5];
-    //         } else {
-    //             page.entries()[i].key = 4 + i;
-    //             page.entries()[i].pagenum = pagenums[i + 5];
-    //         }
+            tmp.write_void([&](Page& tmppage) {
+                tmppage.page_header().parent_page_number = leftnum;
+            });
+        }
+    });
+    pagenum_t rightnum = right.to_pagenum();
+    right.write_void([&](Page& page) {
+        page.page_header().number_of_keys = 2;
+        page.page_header().parent_page_number = parent.to_pagenum();
+        for (int i = -1; i < 2; ++i) {
+            Ubuffer tmp = bpt.create_page(true);
+            pagenums[i + 5] = tmp.to_pagenum();
+            if (i == -1) {
+                page.page_header().special_page_number = pagenums[i + 5];
+            } else {
+                page.entries()[i].key = 4 + i;
+                page.entries()[i].pagenum = pagenums[i + 5];
+            }
 
-    //         CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
-    //            tmppage.page_header().parent_page_number = rightnum;
-    //            return Status::SUCCESS;
-    //         }))
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+            tmp.write_void([&](Page& tmppage) {
+               tmppage.page_header().parent_page_number = rightnum;
+            });
+        }
+    });
 
-    // TEST_SUCCESS(bpt.redistribute_nodes(
-    //     bpt.buffering(leftnum),
-    //     3,
-    //     0,
-    //     bpt.buffering(rightnum),
-    //     bpt.buffering(parent.to_pagenum())));
+    TEST_SUCCESS(bpt.redistribute_nodes(
+        bpt.buffering(leftnum),
+        3,
+        0,
+        bpt.buffering(rightnum),
+        bpt.buffering(parent.to_pagenum())));
 
-    // TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 1);
-    //     TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
-    //     TEST_STATUS(page.page_header().special_page_number == leftnum);
-    //     TEST_STATUS(page.entries()[0].key == 2);
-    //     TEST_STATUS(page.entries()[0].pagenum == rightnum);
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 2);
-    //     TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
-    //     for (int i = -1; i < 2; ++i) {
-    //         if (i == -1) {
-    //             TEST_STATUS(page.page_header().special_page_number == pagenums[i + 1]);
-    //         } else {
-    //             TEST_STATUS(page.entries()[i].key == i);
-    //             TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 1]);
-    //         }
+    TEST_SUCCESS(parent.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
+        TEST_STATUS(page.page_header().special_page_number == leftnum);
+        TEST_STATUS(page.entries()[0].key == 2);
+        TEST_STATUS(page.entries()[0].pagenum == rightnum);
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 2);
+        TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
+        for (int i = -1; i < 2; ++i) {
+            if (i == -1) {
+                TEST_STATUS(page.page_header().special_page_number == pagenums[i + 1]);
+            } else {
+                TEST_STATUS(page.entries()[i].key == i);
+                TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 1]);
+            }
 
-    //         Ubuffer tmp = bpt.buffering(pagenums[i + 1]);
-    //         CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
-    //             TEST_STATUS(tmppage.page_header().parent_page_number == leftnum);
-    //             return Status::SUCCESS;
-    //         }))
-    //     }
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 3);
-    //     TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
-    //     for (int i = -1; i < 3; ++i) {
-    //         if (i == -1) {
-    //             TEST_STATUS(page.page_header().special_page_number == pagenums[i + 4]);
-    //         } else {
-    //             TEST_STATUS(page.entries()[i].key == i + 3);
-    //             TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 4]);
-    //         }
-    //         Ubuffer tmp = bpt.buffering(pagenums[i + 4]);
-    //         CHECK_SUCCESS(tmp.use(RWFlag::WRITE, [&](Page& tmppage) {
-    //             TEST_STATUS(tmppage.page_header().parent_page_number == rightnum);
-    //             return Status::SUCCESS;
-    //         }))
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+            Ubuffer tmp = bpt.buffering(pagenums[i + 1]);
+            CHECK_SUCCESS(tmp.read([&](Page const& tmppage) {
+                TEST_STATUS(tmppage.page_header().parent_page_number == leftnum);
+                return Status::SUCCESS;
+            }))
+        }
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(right.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 3);
+        TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
+        for (int i = -1; i < 3; ++i) {
+            if (i == -1) {
+                TEST_STATUS(page.page_header().special_page_number == pagenums[i + 4]);
+            } else {
+                TEST_STATUS(page.entries()[i].key == i + 3);
+                TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 4]);
+            }
+            Ubuffer tmp = bpt.buffering(pagenums[i + 4]);
+            CHECK_SUCCESS(tmp.read([&](Page const& tmppage) {
+                TEST_STATUS(tmppage.page_header().parent_page_number == rightnum);
+                return Status::SUCCESS;
+            }))
+        }
+        return Status::SUCCESS;
+    }))
 
-    // TEST_SUCCESS(bpt.redistribute_nodes(
-    //     bpt.buffering(leftnum),
-    //     2,
-    //     0,
-    //     bpt.buffering(rightnum),
-    //     bpt.buffering(parent.to_pagenum())));
+    TEST_SUCCESS(bpt.redistribute_nodes(
+        bpt.buffering(leftnum),
+        2,
+        0,
+        bpt.buffering(rightnum),
+        bpt.buffering(parent.to_pagenum())));
 
 
-    // TEST_SUCCESS(parent.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 1);
-    //     TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
-    //     TEST_STATUS(page.page_header().special_page_number == leftnum);
-    //     TEST_STATUS(page.entries()[0].key == 3);
-    //     TEST_STATUS(page.entries()[0].pagenum == rightnum);
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(left.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 3);
-    //     TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
-    //     for (int i = -1; i < 3; ++i) {
-    //         if (i == -1) {
-    //             TEST_STATUS(page.page_header().special_page_number == pagenums[i + 1]);
-    //         } else {
-    //             TEST_STATUS(page.entries()[i].key == i);
-    //             TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 1]);
-    //         }
+    TEST_SUCCESS(parent.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 1);
+        TEST_STATUS(page.page_header().parent_page_number == INVALID_PAGENUM);
+        TEST_STATUS(page.page_header().special_page_number == leftnum);
+        TEST_STATUS(page.entries()[0].key == 3);
+        TEST_STATUS(page.entries()[0].pagenum == rightnum);
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(left.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 3);
+        TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
+        for (int i = -1; i < 3; ++i) {
+            if (i == -1) {
+                TEST_STATUS(page.page_header().special_page_number == pagenums[i + 1]);
+            } else {
+                TEST_STATUS(page.entries()[i].key == i);
+                TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 1]);
+            }
 
-    //         Ubuffer tmp = bpt.buffering(pagenums[i + 1]);
-    //         CHECK_SUCCESS(tmp.use(RWFlag::READ, [&](Page& tmppage) {
-    //             TEST_STATUS(tmppage.page_header().parent_page_number == leftnum);
-    //             return Status::SUCCESS;
-    //         }))
-    //     }
-    //     return Status::SUCCESS;
-    // }))
-    // TEST_SUCCESS(right.use(RWFlag::READ, [&](Page& page) {
-    //     TEST_STATUS(page.page_header().number_of_keys == 2);
-    //     TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
-    //     for (int i = -1; i < 2; ++i) {
-    //         if (i == -1) {
-    //             TEST_STATUS(page.page_header().special_page_number == pagenums[i + 5]);
-    //         } else {
-    //             TEST_STATUS(page.entries()[i].key == i + 4);
-    //             TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 5]);
-    //         }
-    //         Ubuffer tmp = bpt.buffering(pagenums[i + 5]);
-    //         CHECK_SUCCESS(tmp.use(RWFlag::READ, [&](Page& tmppage) {
-    //             TEST_STATUS(tmppage.page_header().parent_page_number == rightnum);
-    //             return Status::SUCCESS;
-    //         }))
-    //     }
-    //     return Status::SUCCESS;
-    // }))
+            Ubuffer tmp = bpt.buffering(pagenums[i + 1]);
+            CHECK_SUCCESS(tmp.read([&](Page const& tmppage) {
+                TEST_STATUS(tmppage.page_header().parent_page_number == leftnum);
+                return Status::SUCCESS;
+            }))
+        }
+        return Status::SUCCESS;
+    }))
+    TEST_SUCCESS(right.read([&](Page const& page) {
+        TEST_STATUS(page.page_header().number_of_keys == 2);
+        TEST_STATUS(page.page_header().parent_page_number == parent.to_pagenum());
+        for (int i = -1; i < 2; ++i) {
+            if (i == -1) {
+                TEST_STATUS(page.page_header().special_page_number == pagenums[i + 5]);
+            } else {
+                TEST_STATUS(page.entries()[i].key == i + 4);
+                TEST_STATUS(page.entries()[i].pagenum == pagenums[i + 5]);
+            }
+            Ubuffer tmp = bpt.buffering(pagenums[i + 5]);
+            CHECK_SUCCESS(tmp.read([&](Page const& tmppage) {
+                TEST_STATUS(tmppage.page_header().parent_page_number == rightnum);
+                return Status::SUCCESS;
+            }))
+        }
+        return Status::SUCCESS;
+    }))
 
-    // bpt_test_postprocess(file, buffers);
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::delete_entry, {
@@ -1419,90 +1397,90 @@ TEST_SUITE(BPTreeTest::delete_entry, {
 })
 
 TEST_SUITE(BPTreeTest::remove, {
-    // FileManager file("testfile");
-    // BufferManager buffers(4);
-    // BPTree bpt(&file, &buffers);
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // constexpr int leaf_order = 4;
-    // constexpr int internal_order = 5;
-    // bpt.test_config(leaf_order, internal_order, true);
-    // bpt.verbose_output = false;
+    constexpr int leaf_order = 4;
+    constexpr int internal_order = 5;
+    bpt.test_config(leaf_order, internal_order, true);
+    bpt.verbose_output = false;
 
-    // // case root
-    // char str[] = "00";
-    // for (int i = 0; i < leaf_order - 1; ++i) {
-    //     TEST_SUCCESS(bpt.insert(i * 10, reinterpret_cast<uint8_t*>(str), sizeof(str)));
-    // }
-    // bpt.print_tree();
-    // for (int i = 0; i < leaf_order - 1; ++i) {
-    //     TEST_SUCCESS(bpt.remove(i * 10));
-    //     bpt.print_tree();
-    // }
-    // Ubuffer buffer = bpt.buffering(FILE_HEADER_PAGENUM);
-    // TEST(buffer.page().file_header().root_page_number == INVALID_PAGENUM);
+    // case root
+    char str[] = "00";
+    for (int i = 0; i < leaf_order - 1; ++i) {
+        TEST_SUCCESS(bpt.insert(i * 10, reinterpret_cast<uint8_t*>(str), sizeof(str)));
+    }
+    bpt.print_tree();
+    for (int i = 0; i < leaf_order - 1; ++i) {
+        TEST_SUCCESS(bpt.remove(i * 10));
+        bpt.print_tree();
+    }
+    Ubuffer buffer = bpt.buffering(FILE_HEADER_PAGENUM);
+    TEST(buffer.page().file_header().root_page_number == INVALID_PAGENUM);
 
-    // // case simple delete
-    // for (int i = 0; i < leaf_order * internal_order; ++i) {
-    //     TEST_SUCCESS(bpt.insert(i, reinterpret_cast<uint8_t*>(str), sizeof(str)));
-    // }
-    // bpt.print_tree();
+    // case simple delete
+    for (int i = 0; i < leaf_order * internal_order; ++i) {
+        TEST_SUCCESS(bpt.insert(i, reinterpret_cast<uint8_t*>(str), sizeof(str)));
+    }
+    bpt.print_tree();
 
-    // for (int i = 10; i <= 11; ++i) {
-    //     TEST_SUCCESS(bpt.remove(i));
-    // }
-    // bpt.print_tree();
+    for (int i = 10; i <= 11; ++i) {
+        TEST_SUCCESS(bpt.remove(i));
+    }
+    bpt.print_tree();
 
-    // // case merge
-    // for (int i = 8; i <= 9; ++i) {
-    //     TEST_SUCCESS(bpt.remove(i));
-    // }
-    // bpt.print_tree();
+    // case merge
+    for (int i = 8; i <= 9; ++i) {
+        TEST_SUCCESS(bpt.remove(i));
+    }
+    bpt.print_tree();
 
-    // // case rotate to right
-    // for (int i = -1; i >= -2; --i) {
-    //     TEST_SUCCESS(bpt.insert(i, reinterpret_cast<uint8_t*>(str), sizeof(str)));
-    // }
-    // bpt.print_tree();
+    // case rotate to right
+    for (int i = -1; i >= -2; --i) {
+        TEST_SUCCESS(bpt.insert(i, reinterpret_cast<uint8_t*>(str), sizeof(str)));
+    }
+    bpt.print_tree();
 
-    // for (int i = 14; i <= 19; ++i) {
-    //     TEST_SUCCESS(bpt.remove(i));
-    // }
-    // bpt.print_tree();
+    for (int i = 14; i <= 19; ++i) {
+        TEST_SUCCESS(bpt.remove(i));
+    }
+    bpt.print_tree();
 
-    // // case left distribute
-    // for (int i = 14; i <= 19; ++i) {
-    //     TEST_SUCCESS(bpt.insert(i, reinterpret_cast<uint8_t*>(str), sizeof(str)));
-    // }
-    // bpt.print_tree();
+    // case left distribute
+    for (int i = 14; i <= 19; ++i) {
+        TEST_SUCCESS(bpt.insert(i, reinterpret_cast<uint8_t*>(str), sizeof(str)));
+    }
+    bpt.print_tree();
 
-    // for (int i = -2; i <= 3; ++i) {
-    //     TEST_SUCCESS(bpt.remove(i));
-    // }
-    // bpt.print_tree();
+    for (int i = -2; i <= 3; ++i) {
+        TEST_SUCCESS(bpt.remove(i));
+    }
+    bpt.print_tree();
 
-    // bpt_test_postprocess(file, buffers);
+    bpt_test_postprocess(file, buffers);
 })
 
 TEST_SUITE(BPTreeTest::destroy_tree, {
-    // FileManager file("testfile");
-    // BufferManager buffers(4);
-    // BPTree bpt(&file, &buffers);
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
 
-    // constexpr int leaf_order = 4;
-    // constexpr int internal_order = 5;
-    // bpt.test_config(leaf_order, internal_order, true);
-    // bpt.verbose_output = false;
+    constexpr int leaf_order = 4;
+    constexpr int internal_order = 5;
+    bpt.test_config(leaf_order, internal_order, true);
+    bpt.verbose_output = false;
     
-    // char str[] = "00";
-    // for (int i = 0; i < leaf_order * internal_order; ++i) {
-    //     TEST_SUCCESS(bpt.insert(i, reinterpret_cast<uint8_t*>(str), sizeof(str)));
-    // }
+    char str[] = "00";
+    for (int i = 0; i < leaf_order * internal_order; ++i) {
+        TEST_SUCCESS(bpt.insert(i, reinterpret_cast<uint8_t*>(str), sizeof(str)));
+    }
 
-    // TEST_SUCCESS(bpt.destroy_tree());
-    // Ubuffer buffer = bpt.buffering(FILE_HEADER_PAGENUM);
-    // TEST(buffer.page().file_header().root_page_number == INVALID_PAGENUM);
+    TEST_SUCCESS(bpt.destroy_tree());
+    Ubuffer buffer = bpt.buffering(FILE_HEADER_PAGENUM);
+    TEST(buffer.page().file_header().root_page_number == INVALID_PAGENUM);
 
-    // bpt_test_postprocess(file, buffers);
+    bpt_test_postprocess(file, buffers);
 })
 
 int bptree_test() {
