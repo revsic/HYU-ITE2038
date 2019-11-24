@@ -7,7 +7,7 @@ TEST_SUITE(unit, {
     TEST(buffer_manager_test());
     TEST(bptree_test());
     TEST(bptree_iter_test());
-    // TEST(table_manager_test());
+    TEST(table_manager_test());
     // TEST(join_test());
 })
 
