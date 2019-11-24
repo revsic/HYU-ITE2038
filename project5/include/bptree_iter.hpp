@@ -1,119 +1,129 @@
-// #ifndef BPTREE_ITER_HPP
-// #define BPTREE_ITER_HPP
+#ifndef BPTREE_ITER_HPP
+#define BPTREE_ITER_HPP
 
-// #include "bptree.hpp"
+#include "bptree.hpp"
 
-// #ifdef TEST_MODULE
-// #include "test.hpp"
-// #endif
+#ifdef TEST_MODULE
+#include "test.hpp"
+#endif
 
-// /// Wrapper class for record based ubuffer.
-// class UbufferRecordRef {
-// public:
-//     /// Construct record buffer with given record index and page unit buffer.
-//     /// \param record_index int, target record index.
-//     /// \param buffer Ubuffer*, buffer where specified record exists.
-//     UbufferRecordRef(int record_index, Ubuffer* buffer);
+/// Wrapper class for record based ubuffer.
+class UbufferRecordRef {
+public:
+    /// Construct record buffer with given record index and page unit buffer.
+    /// \param record_index int, target record index.
+    /// \param buffer Ubuffer*, buffer where specified record exists.
+    UbufferRecordRef(int record_index, Ubuffer* buffer);
 
-//     /// Deleted copy constructor.
-//     UbufferRecordRef(UbufferRecordRef const&) = delete;
+    /// Deleted copy constructor.
+    UbufferRecordRef(UbufferRecordRef const&) = delete;
 
-//     /// Move constructor.
-//     UbufferRecordRef(UbufferRecordRef&&) noexcept;
+    /// Move constructor.
+    UbufferRecordRef(UbufferRecordRef&&) noexcept;
 
-//     /// Deleted copy assignment.
-//     UbufferRecordRef& operator=(UbufferRecordRef const&) = delete;
+    /// Deleted copy assignment.
+    UbufferRecordRef& operator=(UbufferRecordRef const&) = delete;
 
-//     /// Deleted move assignment.
-//     UbufferRecordRef& operator=(UbufferRecordRef&&) noexcept;
+    /// Deleted move assignment.
+    UbufferRecordRef& operator=(UbufferRecordRef&&) noexcept;
 
-//     /// Default destructor.
-//     ~UbufferRecordRef() = default;
+    /// Default destructor.
+    ~UbufferRecordRef() = default;
 
-//     /// Get primary key from record.
-//     prikey_t key();
+    /// Get primary key from record.
+    prikey_t key();
 
-//     /// Use record unit buffer safely.
-//     /// \param F callback type, Status(Record&).
-//     /// \param flag RWFlag, flag for read mode or write mode.
-//     /// \param callback F&&, callback for processing record.
-//     /// \return Status, whether success to use the record or not.
-//     template <typename F>
-//     inline Status use(RWFlag flag, F&& callback) {
-//         return buffer->use(flag, [&](Page& page) {
-//             return callback(page.records()[record_index]);
-//         });
-//     }
+    /// Read record safely.
+    /// \param F callback type, R(Record const&).
+    /// \param callback F&&, callback for processing record.
+    /// \return R, return value of the callback.
+    template <typename F>
+    inline auto read(F&& callback) {
+        return buffer->read([&](Page const& page) {
+            return callback(page.records()[record_index]);
+        });
+    }
 
-// private:
-//     int record_index;
-//     Ubuffer* buffer;
-// };
+    /// Write record safely.
+    /// \param F callback type, R(Record&).
+    /// \param callback F&&, callback for processing record.
+    /// \return R, return value of the callback.
+    template <typename F>
+    inline auto write(F&& callback) {
+        return buffer->write([&](Page& page) {
+            return callback(page.records()[record_index]);
+        });
+    }
 
-// class BPTreeIterator {
-// public:
-//     /// Copy constructor.
-//     BPTreeIterator(BPTreeIterator const& other);
+private:
+    int record_index;
+    Ubuffer* buffer;
+};
 
-//     /// Move constructor.
-//     BPTreeIterator(BPTreeIterator&& other) noexcept;
+class BPTreeIterator {
+public:
+    /// Copy constructor.
+    BPTreeIterator(BPTreeIterator const& other);
 
-//     /// Copy assignment.
-//     BPTreeIterator& operator=(BPTreeIterator const& other);
+    /// Move constructor.
+    BPTreeIterator(BPTreeIterator&& other) noexcept;
 
-//     /// Move assignment.
-//     BPTreeIterator& operator=(BPTreeIterator&& other) noexcept;
+    /// Copy assignment.
+    BPTreeIterator& operator=(BPTreeIterator const& other);
 
-//     /// Default destructor.
-//     ~BPTreeIterator() = default;
+    /// Move assignment.
+    BPTreeIterator& operator=(BPTreeIterator&& other) noexcept;
 
-//     /// Get the beginning of the iterator from given b+tree structure.
-//     /// \param tree BPTree const&, target b+tree.
-//     /// \return BPTreeIterator, beginning of the iterator.
-//     static BPTreeIterator begin(BPTree const& tree);
+    /// Default destructor.
+    ~BPTreeIterator() = default;
 
-//     /// Get the end of the iterator.
-//     /// \return BPTreeIterator, end of the iterator.
-//     static BPTreeIterator end();
+    /// Get the beginning of the iterator from given b+tree structure.
+    /// \param tree BPTree const&, target b+tree.
+    /// \return BPTreeIterator, beginning of the iterator.
+    static BPTreeIterator begin(BPTree const& tree);
 
-//     /// Move to the next record.
-//     /// \return BPTreeIterator&, updated iterator.
-//     BPTreeIterator& operator++();
+    /// Get the end of the iterator.
+    /// \return BPTreeIterator, end of the iterator.
+    static BPTreeIterator end();
 
-//     /// Check whether this and given are not same.
-//     /// \param other BPTreeIterator const&, other iterator.
-//     /// \return bool, whether this and given are inequal. 
-//     bool operator!=(BPTreeIterator const& other);    
+    /// Move to the next record.
+    /// \return BPTreeIterator&, updated iterator.
+    BPTreeIterator& operator++();
 
-//     /// Check whether this and given are same.
-//     /// \param other BPTreeIterator const&, other iterator.
-//     /// \return bool, whether this and given are equal.
-//     bool operator==(BPTreeIterator const& other);
+    /// Check whether this and given are not same.
+    /// \param other BPTreeIterator const&, other iterator.
+    /// \return bool, whether this and given are inequal. 
+    bool operator!=(BPTreeIterator const& other);    
 
-//     /// Dereference to the record ref.
-//     /// \return UbufferRecordRef, record unit buffer.
-//     UbufferRecordRef operator*();
+    /// Check whether this and given are same.
+    /// \param other BPTreeIterator const&, other iterator.
+    /// \return bool, whether this and given are equal.
+    bool operator==(BPTreeIterator const& other);
 
-// private:
-//     /// Constructor.
-//     /// \param pagenum pagenum_t, page ID where pointed record exists.
-//     /// \param record_index int, the index of the record.
-//     /// \param num_key int, the number of the key.
-//     /// \param buffer Ubuffer, buffer where pointed record exists.
-//     /// \param tree BPTree const*, b+tree structure.
-//     BPTreeIterator(
-//         pagenum_t pagenum, int record_index, int num_key,
-//         Ubuffer buffer, BPTree const* tree);
+    /// Dereference to the record ref.
+    /// \return UbufferRecordRef, record unit buffer.
+    UbufferRecordRef operator*();
 
-//     pagenum_t pagenum;
-//     int record_index;
-//     int num_key;
-//     Ubuffer buffer;
-//     BPTree const* tree;
+private:
+    /// Constructor.
+    /// \param pagenum pagenum_t, page ID where pointed record exists.
+    /// \param record_index int, the index of the record.
+    /// \param num_key int, the number of the key.
+    /// \param buffer Ubuffer, buffer where pointed record exists.
+    /// \param tree BPTree const*, b+tree structure.
+    BPTreeIterator(
+        pagenum_t pagenum, int record_index, int num_key,
+        Ubuffer buffer, BPTree const* tree);
 
-// #ifdef TEST_MODULE
-//     friend struct BPTreeIteratorTest;
-// #endif
-// };
+    pagenum_t pagenum;
+    int record_index;
+    int num_key;
+    Ubuffer buffer;
+    BPTree const* tree;
 
-// #endif
+#ifdef TEST_MODULE
+    friend struct BPTreeIteratorTest;
+#endif
+};
+
+#endif
