@@ -8,7 +8,7 @@ TEST_SUITE(unit, {
     TEST(bptree_test());
     TEST(bptree_iter_test());
     TEST(table_manager_test());
-    // TEST(join_test());
+    TEST(join_test());
 })
 
 int main() {
