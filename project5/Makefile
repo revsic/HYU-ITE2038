@@ -31,7 +31,7 @@ OBJS_FOR_LIB:=$(SRCS_FOR_LIB:.cpp=.o)
 # -I: include path
 # -std=c++14: c++ standard 14
 # -O3: optimization level 3
-CFLAGS+= -fPIC -I $(INC) -std=c++14 -g # -O3
+CFLAGS+= -fPIC -I $(INC) -std=c++14 -O3
 
 # target file
 TARGET=main
