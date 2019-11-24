@@ -337,13 +337,13 @@ Status BPTree::destroy_tree() const {
 }
 
 
-// BPTreeIterator BPTree::begin() const {
-//     return BPTreeIterator::begin(*this);
-// }
+BPTreeIterator BPTree::begin() const {
+    return BPTreeIterator::begin(*this);
+}
 
-// BPTreeIterator BPTree::end() const {
-//     return BPTreeIterator::end();
-// }
+BPTreeIterator BPTree::end() const {
+    return BPTreeIterator::end();
+}
 
 // Ubuffer macro
 Ubuffer BPTree::buffering(pagenum_t pagenum) const {
