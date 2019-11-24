@@ -44,21 +44,6 @@ Status Buffer::load(FileManager& file, pagenum_t pagenum, bool virtual_page) {
     return Status::SUCCESS;
 }
 
-Status Buffer::new_page(FileManager& file) {
-    pagenum_t pid = Page::create(
-        [&](pagenum_t target, bool virtual_page, auto&& callback) {
-            return manager->buffering(file, target, virtual_page).write(
-                std::forward<decltype(callback)>(callback));
-        });
-
-    CHECK_TRUE(pid != INVALID_PAGENUM);
-    this->pagenum = pid;
-    this->is_allocated = true;
-    this->file = &file;
-
-    return Status::SUCCESS;
-}
-
 Status Buffer::link_neighbor() {
     // don't use unconnected node from lru to mru
     CHECK_NULL(manager);
@@ -233,20 +218,16 @@ Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum, bool virt
 
 Ubuffer BufferManager::new_page(FileManager& file) {
     std::unique_lock<std::recursive_mutex> lock(mtx);
-    int idx = allocate_block();
-    if (idx == -1) {
-        return Ubuffer(nullptr);
-    }
+    pagenum_t pid = Page::create(
+        [&](pagenum_t target, bool virtual_page, auto&& callback) {
+            return buffering(file, target, virtual_page).write(
+                std::forward<decltype(callback)>(callback));
+        });
 
-    // create new page and update mru
-    Buffer& buffer = *buffers[idx];
-    if (buffer.new_page(file) == Status::FAILURE
-        || buffer.append_mru(false) == Status::FAILURE
-    ) {
-        release_block(idx);
+    if (pid == INVALID_PAGENUM) {
         return Ubuffer(nullptr);
     }
-    return Ubuffer(buffer);
+    return buffering(file, pid);
 }
 
 Status BufferManager::free_page(FileManager& file, pagenum_t pagenum) {

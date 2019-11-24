@@ -114,11 +114,6 @@ private:
     Status load(
         FileManager& file, pagenum_t pagenum, bool virtual_page = false);
 
-    /// Create new page frame from file manager (nonblock).
-    /// \param file FileManager&, file manager.
-    /// \return Status, whether success or not.
-    Status new_page(FileManager& file);
-
     /// Link neighbor blocks as prev_use and next_use (nonblock).
     /// WARNING: this method is not thread safe on manage usage.
     /// \return Status, whether success or not.

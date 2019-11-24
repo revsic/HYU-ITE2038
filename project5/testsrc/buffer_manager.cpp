@@ -11,7 +11,6 @@ struct BufferTest {
     static int read_write_test();
     static int clear_test();
     static int load_test();
-    static int new_page_test();
     static int link_neighbor_test();
     static int append_mru_test();
     static int release_test();
@@ -111,19 +110,6 @@ TEST_SUITE(BufferTest::load, {
     TEST(buf.pagenum == pagenum);
     TEST(buf.file == &file);
 
-    file.~FileManager();
-    remove("testfile");
-})
-
-TEST_SUITE(BufferTest::new_page, {
-    BufferManager manager(5);
-    FileManager file("testfile");
-    TEST(0 == manager.allocate_block());
-    TEST_SUCCESS(manager.buffers[0]->new_page(file));
-    TEST(manager.buffers[0]->pagenum != INVALID_PAGENUM);
-    TEST(manager.buffers[0]->file == &file);
-
-    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 })
@@ -587,7 +573,6 @@ int buffer_manager_test() {
         && BufferTest::read_write_test()
         && BufferTest::clear_test()
         && BufferTest::load_test()
-        && BufferTest::new_page_test()
         && BufferTest::link_neighbor_test()
         && BufferTest::append_mru_test()
         && BufferTest::release_test()
