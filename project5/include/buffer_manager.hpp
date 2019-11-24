@@ -162,6 +162,10 @@ public:
     /// Move assignment.
     Ubuffer& operator=(Ubuffer&& ubuffer) noexcept;
 
+    /// Clone ubuffer.
+    /// \return Ubuffer, ubuffer with same buffer pointer.
+    Ubuffer clone() const;
+
     /// Get buffer pointer.
     /// \return Buffer*, buffer pointer.
     Buffer* buffer();

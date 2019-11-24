@@ -126,6 +126,10 @@ Ubuffer& Ubuffer::operator=(Ubuffer&& ubuffer) noexcept {
     return *this;
 }
 
+Ubuffer Ubuffer::clone() const {
+    return Ubuffer(buf, pagenum, file);
+}
+
 Buffer* Ubuffer::buffer() {
     return buf;
 }
