@@ -32,3 +32,4 @@ int bptree_test();
 int bptree_iter_test();
 int table_manager_test();
 int join_test();
+int hashable_test();

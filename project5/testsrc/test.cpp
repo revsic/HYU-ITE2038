@@ -9,6 +9,7 @@ TEST_SUITE(unit, {
     TEST(bptree_iter_test());
     TEST(table_manager_test());
     TEST(join_test());
+    TEST(hashable_test());
 })
 
 int main() {
