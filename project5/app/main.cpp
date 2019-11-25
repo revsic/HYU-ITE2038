@@ -23,9 +23,7 @@ int main(int argc, char* argv[]) {
         case 'o':
             in >> value;
             tid = open_table(value.c_str());
-
             std::cout << "tid: " << tid << std::endl;
-            GLOBAL_DB->print_tree(tid);
             break;
         case 'c':
             in >> input;
