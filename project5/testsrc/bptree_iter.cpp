@@ -54,7 +54,7 @@ TEST_SUITE(BPTreeIteratorTest::copy_ctor, {
     TEST(copied.buffer.to_pagenum() == 0);
     TEST(copied.tree == &tree);
 
-    manager.~BufferManager();
+    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 })
@@ -85,7 +85,7 @@ TEST_SUITE(BPTreeIteratorTest::copy_assign, {
     TEST(assigned.buffer.to_pagenum() == 0);
     TEST(assigned.tree == &tree);
 
-    manager.~BufferManager();
+    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 })
@@ -114,7 +114,7 @@ TEST_SUITE(BPTreeIteratorTest::move_ctor, {
     TEST(moved.buffer.to_pagenum() == 0);
     TEST(moved.tree == &tree);
 
-    manager.~BufferManager();
+    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 
@@ -146,7 +146,7 @@ TEST_SUITE(BPTreeIteratorTest::move_assign, {
     TEST(assigned.buffer.to_pagenum() == 0);
     TEST(assigned.tree == &tree);
 
-    manager.~BufferManager();
+    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 
@@ -169,7 +169,7 @@ TEST_SUITE(BPTreeIteratorTest::begin, {
     TEST(iter.buffer.to_pagenum() == 1);
     TEST(iter.tree == &tree);
 
-    manager.~BufferManager();
+    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 })
@@ -224,7 +224,7 @@ TEST_SUITE(BPTreeIteratorTest::inc_operator, {
 
     TEST(iter == BPTreeIterator::end());
 
-    manager.~BufferManager();
+    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 })
@@ -256,7 +256,7 @@ TEST_SUITE(BPTreeIteratorTest::cmp_operator, {
         3, 2, 10, std::move(buffer), &tree);
     TEST(iter != iter5);
 
-    manager.~BufferManager();
+    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 })
@@ -283,7 +283,7 @@ TEST_SUITE(BPTreeIteratorTest::deref_operator, {
         ++iter;
     }
 
-    manager.~BufferManager();
+    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 })
@@ -314,7 +314,7 @@ TEST_SUITE(BPTreeIteratorTest::integrate, {
         TEST(i++ == rec.key());
     }
 
-    manager.~BufferManager();
+    manager.shutdown();
     file.~FileManager();
     remove("testfile");
 })
