@@ -4,6 +4,26 @@
 #include <functional>
 #include <vector>
 
+template <typename TupleType, std::size_t... Indices>
+struct PackHasher;
+
+template <typename TupleType, std::size_t Idx, std::size_t... Indices>
+struct PackHasher<TupleType, Idx, Indices...> {
+    static std::size_t run(TupleType const& data, std::string res) {
+        using current_t = std::tuple_element_t<Idx, TupleType>;
+        char const* ptr = reinterpret_cast<char const*>(&std::get<Idx>(data));
+        res.insert(res.end(), ptr, ptr + sizeof(current_t));
+        return PackHasher<TupleType, Indices...>::run(data, std::move(res));
+    }
+};
+
+template <typename TupleType>
+struct PackHasher<TupleType> {
+    static std::size_t run(TupleType const& data, std::string res) {
+        return std::hash<std::string>{}(res);
+    }
+};
+
 template <typename... T>
 struct HashablePack {
     std::tuple<T...> data;
@@ -23,29 +43,8 @@ struct HashablePack {
 
     template <std::size_t... Indices>
     std::size_t hash_proxy(std::index_sequence<Indices...>) const {
-        return Hasher<Indices...>::run(data, std::vector<char>());
+        return PackHasher<std::tuple<T...>, Indices...>::run(data, std::string());
     }
-
-    template <std::size_t... Indices>
-    struct Hasher;
-
-    template <std::size_t Idx, std::size_t... Indices>
-    struct Hasher<Idx, Indices...> {
-        static std::size_t run(std::tuple<T...> const& data, std::vector<char> res) {
-            using current_t = std::tuple_element_t<Idx, std::tuple<T...>>;
-            char const* ptr = reinterpret_cast<char const*>(&std::get<Idx>(data));
-            res.insert(res.end(), ptr, ptr + sizeof(current_t));
-            return Hasher<Indices...>::run(data, std::move(res));
-        }
-    };
-
-    template <>
-    struct Hasher<> {
-        static std::size_t run(std::tuple<T...> const& data, std::vector<char> res) {
-            std::string str(res.begin(), res.end());
-            return std::hash<std::string>{}(str);
-        }
-    };
 };
 
 namespace std {
