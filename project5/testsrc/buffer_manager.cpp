@@ -381,7 +381,7 @@ TEST_SUITE(BufferManagerTest::release_block, {
     int idx = manager.load(file, FILE_HEADER_PAGENUM);
     TEST(idx == 0);
 
-    idx = manager.load(file, FILE_HEADER_PAGENUM);
+    idx = manager.load(file, 1, true);
     TEST(idx == 1);
 
     TEST_SUCCESS(manager.release_block(1));
