@@ -279,7 +279,9 @@ Status BufferManager::release_block(int idx) {
     }
     std::swap(buffers[idx], buffers[--num_buffer]);
     std::swap(buffers[idx]->index, buffers[num_buffer]->index);
-    table[{ buffers[idx]->file->get_id(), buffers[idx]->pagenum }] = idx;
+    if (idx != num_buffer) {
+        table[{ buffers[idx]->file->get_id(), buffers[idx]->pagenum }] = idx;
+    }
     return Status::SUCCESS;
 }
 
