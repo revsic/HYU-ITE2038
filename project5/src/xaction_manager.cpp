@@ -1,9 +1,34 @@
 #include "xaction_manager.hpp"
 
+Transaction::Transaction()
+    : id(INVALID_TRXID), state(TrxState::IDLE), wait(nullptr), locks()
+{
+    // Do Nothing
+}
+
 Transaction::Transaction(trxid_t id) :
     id(id), state(TrxState::IDLE), wait(nullptr), locks()
 {
     // Do Nothing
+}
+
+Transaction::Transaction(Transaction&& trx) noexcept
+    : id(trx.id), state(trx.state), wait(trx.wait), locks(std::move(trx.locks))
+{
+    trx.id = INVALID_TRXID;
+    trx.state = TrxState::IDLE;
+    trx.wait = nullptr;
+}
+
+Transaction& Transaction::operator=(Transaction&& trx) noexcept {
+    id = trx.id;
+    state = trx.state;
+    wait = trx.wait;
+    locks = std::move(trx.locks);
+
+    trx.id = INVALID_TRXID;
+    trx.state = TrxState::IDLE;
+    trx.wait = nullptr;
 }
 
 Status Transaction::end_trx(LockManager& manager) {

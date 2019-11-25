@@ -19,9 +19,19 @@ enum class TrxState {
 
 class Transaction {
 public:
+    Transaction();
+
     Transaction(trxid_t id);
 
     ~Transaction() = default;
+
+    Transaction(Transaction&& trx) noexcept;
+
+    Transaction(Transaction const& trx) = delete;
+
+    Transaction& operator=(Transaction&& trx) noexcept;
+
+    Transaction& operator=(Transaction const& trx) = delete;
 
     Status end_trx(LockManager& manager);
 
