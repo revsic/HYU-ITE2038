@@ -6,7 +6,7 @@ TEST_SUITE(single_inst, {
     int a = 0xdeadbeef;
     char const* casted = reinterpret_cast<char const*>(&a);
     std::string str(casted, casted + sizeof(a));
-    TEST(std::hash<std::string>{}(str) == std::hash<single_t>{}(single_t(a)));
+    TEST(std::hash<std::string>{}(str) == std::hash<single_t>{}({pack_init, a}));
 })
 
 using multi_t = HashablePack<char, int32_t, uint64_t>;
@@ -24,7 +24,7 @@ TEST_SUITE(multi_inst, {
     casted = reinterpret_cast<char const*>(&c);
     str.insert(str.end(), casted, casted + sizeof(uint64_t));
 
-    TEST(std::hash<std::string>{}(str) == std::hash<multi_t>{}(multi_t(a, b, c)));
+    TEST(std::hash<std::string>{}(str) == std::hash<multi_t>{}({pack_init, a, b, c}));
 })
 
 int hashable_test() {

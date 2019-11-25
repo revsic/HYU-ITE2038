@@ -267,20 +267,25 @@ int BufferManager::load(FileManager& file, pagenum_t pagenum, bool virtual_page)
         release_block(idx);
         return -1;
     }
-    table[{ file.get_id(), pagenum }] = idx;
+    table[{ pack_init, file.get_id(), pagenum }] = idx;
     return idx;
 }
 
 Status BufferManager::release_block(int idx) {
     if (buffers[idx]->is_allocated) {
         CHECK_TRUE(table.erase(
-            { buffers[idx]->file->get_id(), buffers[idx]->pagenum }) > 0);
+            { pack_init
+            , buffers[idx]->file->get_id()
+            , buffers[idx]->pagenum }) > 0);
         CHECK_SUCCESS(buffers[idx]->release());
     }
     std::swap(buffers[idx], buffers[--num_buffer]);
     std::swap(buffers[idx]->index, buffers[num_buffer]->index);
     if (idx != num_buffer) {
-        table[{ buffers[idx]->file->get_id(), buffers[idx]->pagenum }] = idx;
+        table[
+            { pack_init
+            , buffers[idx]->file->get_id()
+            , buffers[idx]->pagenum }] = idx;
     }
     return Status::SUCCESS;
 }
@@ -312,7 +317,7 @@ int BufferManager::release(ReleasePolicy const& policy) {
     }
     // release block
     if (buf->is_allocated
-        && (table.erase({ buf->file->get_id(), buf->pagenum }) == 0
+        && (table.erase({ pack_init, buf->file->get_id(), buf->pagenum }) == 0
             || buf->release() == Status::FAILURE)
     ) {
         release_block(buf->index);
@@ -323,7 +328,7 @@ int BufferManager::release(ReleasePolicy const& policy) {
 
 int BufferManager::find(fileid_t fileid, pagenum_t pagenum) {
     // find buffer, linear search
-    auto iter = table.find({ fileid, pagenum });
+    auto iter = table.find({ pack_init, fileid, pagenum });
     if (iter != table.end()) {
         return (*iter).second;
     }
