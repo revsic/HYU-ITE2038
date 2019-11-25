@@ -29,11 +29,8 @@ struct HashablePack {
     struct Hasher<Idx, Indices...> {
         static std::size_t run(std::tuple<T...> const& data, std::vector<char> res) {
             using current_t = std::tuple_element_t<Idx, std::tuple<T...>>;
-            res.reserve(res.size() + sizeof(current_t));
-            for (int i = 0; i < sizeof(current_t); ++i) {
-                res.push_back(
-                    reinterpret_cast<char const*>(&std::get<Idx>(data))[i]);
-            }
+            char const* ptr = reinterpret_cast<char const*>(&std::get<Idx>(data));
+            res.insert(res.end(), ptr, ptr + sizeof(current_t));
             return Hasher<Indices...>::run(data, std::move(res));
         }
     };
