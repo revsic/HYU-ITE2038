@@ -33,22 +33,21 @@ Transaction& Transaction::operator=(Transaction&& trx) noexcept {
 }
 
 Status Transaction::end_trx(LockManager& manager) {
-    // return release_locks(manager);
-    return Status::SUCCESS;
+    return release_locks(manager);
 }
 
-// Status Transaction::require_lock(
-//     LockManager& manager, HierarchicalID hid, LockMode mode
-// ) {
-//     return manager.require_lock(this, hid, mode);
-// }
+Status Transaction::require_lock(
+    LockManager& manager, HierarchicalID hid, LockMode mode
+) {
+    return manager.require_lock(this, hid, mode);
+}
 
-// Status Transaction::release_locks(LockManager& manager) {
-//     for (Lock* lock : locks) {
-//         CHECK_SUCCESS(manager.release_lock(lock->get_hid()));
-//     }
-//     return Status::SUCCESS;
-// }
+Status Transaction::release_locks(LockManager& manager) {
+    for (Lock* lock : locks) {
+        CHECK_SUCCESS(manager.release_lock(lock->get_hid()));
+    }
+    return Status::SUCCESS;
+}
 
 TransactionManager::TransactionManager() : mtx(), last_id(0), trxs() {
     // Do Nothing
@@ -90,18 +89,18 @@ Status TransactionManager::end_trx(trxid_t id, LockManager& manager) {
     return Status::FAILURE;
 }
 
-// Status TransactionManager::require_lock(
-//     trxid_t id, LockManager& manager, HierarchicalID hid, LockMode mode
-// ) {
-//     auto iter = trxs.find(id);
-//     CHECK_TRUE(iter != trxs.end());
-//     return (*iter).second.require_lock(manager, hid, mode);
-// }
+Status TransactionManager::require_lock(
+    trxid_t id, LockManager& manager, HierarchicalID hid, LockMode mode
+) {
+    auto iter = trxs.find(id);
+    CHECK_TRUE(iter != trxs.end());
+    return (*iter).second.require_lock(manager, hid, mode);
+}
 
-// Status TransactionManager::release_locks(
-//     trxid_t id, LockManager& manager
-// ) {
-//     auto iter = trxs.find(id);
-//     CHECK_TRUE(iter != trxs.end());
-//     return (*iter).second.release_locks(manager);
-// }
+Status TransactionManager::release_locks(
+    trxid_t id, LockManager& manager
+) {
+    auto iter = trxs.find(id);
+    CHECK_TRUE(iter != trxs.end());
+    return (*iter).second.release_locks(manager);
+}

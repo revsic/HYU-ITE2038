@@ -58,7 +58,7 @@ public:
     Status require_lock(
         Transaction* backref, HierarchicalID hid, LockMode mode);
     
-    Status release_lock(HashableID hid);
+    Status release_lock(HierarchicalID hid);
 
     Status detect_deadlock();
 
