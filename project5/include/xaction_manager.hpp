@@ -21,6 +21,15 @@ class Transaction {
 public:
     Transaction(trxid_t id);
 
+    ~Transaction() = default;
+
+    Status end_trx(LockManager& manager);
+
+    Status require_lock(
+        LockManager& manager, HierarchicalID hid, LockMode mode) const;
+
+    Status release_locks(LockManager& manager) const;
+
 private:
     trxid_t id;
     TrxState state;
@@ -32,9 +41,26 @@ class TransactionManager {
 public:
     TransactionManager();
 
-    trxid_t new_trx();
+    ~TransactionManager();
 
-    Status end_trx(trxid_t id);
+    TransactionManager(TransactionManager const&) = delete;
+
+    TransactionManager(TransactionManager&&) = delete;
+
+    TransactionManager& operator=(TransactionManager const&) = delete;
+
+    TransactionManager& operator=(TransactionManager&&) = delete;
+
+    Status shutdown();
+
+    trxid_t new_trx(LockManager& manager);
+
+    Status end_trx(trxid_t id, LockManager& manager);
+
+    Status require_lock(
+        trxid_t id, LockManager& manager, HierarchicalID hid, LockMode mode) const;
+
+    Status release_locks(trxid_t id, LockManager& manager) const;
 
 private:
     std::mutex mtx;
