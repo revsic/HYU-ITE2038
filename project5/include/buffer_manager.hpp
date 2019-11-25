@@ -6,14 +6,18 @@
 #include <mutex>
 #include <shared_mutex>
 #include <type_traits>
+#include <unordered_map>
 
 #include "disk_manager.hpp"
+#include "hashable.hpp"
 #include "headers.hpp"
 #include "status.hpp"
 
 #ifdef TEST_MODULE
 #include "test.hpp"
 #endif
+
+using fpid_t = HashablePack<fileid_t, pagenum_t>;
 
 /// Buffer manager.
 class BufferManager;
@@ -323,13 +327,14 @@ public:
     Status release_file(fileid_t fileid);
 
 private:
-    std::recursive_mutex mtx;               /// lock for buffer manager.
-    int capacity;                           /// buffer array size.
-    int num_buffer;                         /// number of the element.
-    Buffer* lru;                            /// least recently used block index.
-    Buffer* mru;                            /// most recently used block index.
-    std::unique_ptr<Buffer[]> dummy;      /// buffer array.
-    std::unique_ptr<Buffer*[]> buffers;      /// usage array.
+    std::recursive_mutex mtx;                   /// lock for buffer manager.
+    int capacity;                               /// buffer array size.
+    int num_buffer;                             /// number of the element.
+    Buffer* lru;                                /// least recently used block index.
+    Buffer* mru;                                /// most recently used block index.
+    std::unique_ptr<Buffer[]> dummy;            /// buffer array.
+    std::unique_ptr<Buffer*[]> buffers;         /// usage array.
+    std::unordered_map<fpid_t, int> table;  /// hashmap for faster search.
 
     friend class Buffer;
 

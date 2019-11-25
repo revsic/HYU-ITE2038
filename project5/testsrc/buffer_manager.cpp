@@ -405,7 +405,7 @@ TEST_SUITE(BufferManagerTest::release_file, {
     TEST(0 == manager.load(file1, FILE_HEADER_PAGENUM));
 
     TEST(1 == manager.load(file2, FILE_HEADER_PAGENUM));
-    TEST(2 == manager.load(file2, FILE_HEADER_PAGENUM));
+    TEST(2 == manager.load(file2, 1, true));
 
     TEST_SUCCESS(manager.release_file(file2.get_id()));
     TEST(manager.num_buffer == 1);
@@ -425,7 +425,7 @@ TEST_SUITE(BufferManagerTest::release, {
     FileManager file("testfile");
 
     for (int i = 0; i < 4; ++i) {
-        TEST(-1 != manager.load(file, FILE_HEADER_PAGENUM));
+        TEST(-1 != manager.load(file, i, true));
     }
     TEST(manager.lru == manager.buffers[0]);
 
@@ -446,7 +446,7 @@ TEST_SUITE(BufferManagerTest::release, {
     // case 3. mru
     // 1 -> 3 -> 2 (3 1 2)
     manager.buffers[0]->pin++;
-    TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
+    TEST(2 == manager.load(file, 5, true));
     TEST(2 == manager.release(ReleaseLRU::inst()));
     TEST_SUCCESS(manager.release_block(2));
     TEST(manager.lru == manager.buffers[1]);
@@ -455,13 +455,13 @@ TEST_SUITE(BufferManagerTest::release, {
     // 1 -> 3 -> 2 (3 1 2)
     manager.buffers[0]->pin = 0;
     manager.buffers[1]->pin = 0;
-    TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
+    TEST(2 == manager.load(file, 6, true));
     TEST(2 == manager.release(ReleaseMRU::inst()));
     TEST_SUCCESS(manager.release_block(2));
 
     // case 2. mru is pinned
     // 1 -> 3 -> 2 (3 1 2)
-    TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
+    TEST(2 == manager.load(file, 7, true));
     manager.buffers[2]->pin++;
 
     TEST(0 == manager.release(ReleaseMRU::inst()));
@@ -469,7 +469,7 @@ TEST_SUITE(BufferManagerTest::release, {
 
     // case 3. lru
     // 1 -> 0 -> 2 (2 1 0)
-    TEST(2 == manager.load(file, FILE_HEADER_PAGENUM));
+    TEST(2 == manager.load(file, 8, true));
     manager.buffers[2]->pin++;
 
     TEST(1 == manager.release(ReleaseMRU::inst()));
