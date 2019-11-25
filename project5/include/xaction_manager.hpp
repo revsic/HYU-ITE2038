@@ -36,9 +36,9 @@ public:
     Status end_trx(LockManager& manager);
 
     Status require_lock(
-        LockManager& manager, HierarchicalID hid, LockMode mode) const;
+        LockManager& manager, HierarchicalID hid, LockMode mode);
 
-    Status release_locks(LockManager& manager) const;
+    Status release_locks(LockManager& manager);
 
 private:
     trxid_t id;
@@ -63,14 +63,14 @@ public:
 
     Status shutdown();
 
-    trxid_t new_trx(LockManager& manager);
+    trxid_t new_trx();
 
     Status end_trx(trxid_t id, LockManager& manager);
 
     Status require_lock(
-        trxid_t id, LockManager& manager, HierarchicalID hid, LockMode mode) const;
+        trxid_t id, LockManager& manager, HierarchicalID hid, LockMode mode);
 
-    Status release_locks(trxid_t id, LockManager& manager) const;
+    Status release_locks(trxid_t id, LockManager& manager);
 
 private:
     std::mutex mtx;

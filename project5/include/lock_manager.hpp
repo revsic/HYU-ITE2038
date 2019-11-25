@@ -11,8 +11,9 @@
 class Transaction;
 
 enum class LockMode {
-    SHARED = 0,
-    EXCLUSIVE = 1,
+    INVALID = 0,
+    SHARED = 1,
+    EXCLUSIVE = 2,
 };
 
 // tableid, pageid, record index
@@ -22,6 +23,8 @@ struct HierarchicalID {
     tableid_t tid;
     pagenum_t pid;
     int rid;
+
+    HierarchicalID();
 
     HierarchicalID(tableid_t tid, pagenum_t pid, int rid);
 
@@ -40,11 +43,13 @@ public:
 
     Lock& operator=(Lock&& lock) noexcept;
 
+    HierarchicalID get_hid() const;
+
 private:
     HierarchicalID hid;
     LockMode mode;
     Transaction* backref;
-}
+};
 
 class LockManager {
 public:

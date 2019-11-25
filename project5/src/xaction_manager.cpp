@@ -29,6 +29,7 @@ Transaction& Transaction::operator=(Transaction&& trx) noexcept {
     trx.id = INVALID_TRXID;
     trx.state = TrxState::IDLE;
     trx.wait = nullptr;
+    return *this;
 }
 
 Status Transaction::end_trx(LockManager& manager) {
@@ -37,13 +38,13 @@ Status Transaction::end_trx(LockManager& manager) {
 
 Status Transaction::require_lock(
     LockManager& manager, HierarchicalID hid, LockMode mode
-) const {
+) {
     return manager.require_lock(this, hid, mode);
 }
 
-Status Transaction::release_locks(LockManager& manager) const {
+Status Transaction::release_locks(LockManager& manager) {
     for (Lock* lock : locks) {
-        CHECK_SUCCESS(manager.release_lock(lock->hid));
+        CHECK_SUCCESS(manager.release_lock(lock->get_hid()));
     }
     return Status::SUCCESS;
 }
@@ -77,10 +78,12 @@ trxid_t TransactionManager::new_trx() {
     return id;
 }
 
-Status TransactionManager::end_trx(trxid_t id) {
+Status TransactionManager::end_trx(trxid_t id, LockManager& manager) {
     std::unique_lock<std::mutex> lock(mtx);
-    if (trxs.find(id) != trxs.end()) {
-        trxs.erase(id);
+    auto iter = trxs.find(id);
+    if (iter != trxs.end()) {
+        (*iter).second.end_trx(manager);
+        trxs.erase(iter);
         return Status::SUCCESS;
     }
     return Status::FAILURE;
@@ -88,16 +91,16 @@ Status TransactionManager::end_trx(trxid_t id) {
 
 Status TransactionManager::require_lock(
     trxid_t id, LockManager& manager, HierarchicalID hid, LockMode mode
-) const {
+) {
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    return (*iter).first.require_lock(manager, hid, mode);
+    return (*iter).second.require_lock(manager, hid, mode);
 }
 
 Status TransactionManager::release_locks(
     trxid_t id, LockManager& manager
-) const {
+) {
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    return (*iter).first.release_locks(manager);
+    return (*iter).second.release_locks(manager);
 }

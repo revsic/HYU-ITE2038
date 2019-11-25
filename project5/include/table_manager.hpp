@@ -16,6 +16,8 @@
 
 using tableid_t = int;
 
+constexpr tableid_t INVALID_TABLEID = -1;
+
 /// Table.
 class Table {
 public:

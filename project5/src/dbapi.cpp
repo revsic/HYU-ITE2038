@@ -6,6 +6,8 @@ std::unique_ptr<Database> GLOBAL_DB = nullptr;
 
 TransactionManager GLOBAL_TRXMNG;
 
+LockManager GLOBAL_LOCKMNG;
+
 int init_db(int buf_num) {
     GLOBAL_DB = std::make_unique<Database>(buf_num);
     return 0;
@@ -81,7 +83,7 @@ int begin_trx() {
 }
 
 int end_trx(int tid) {
-    if (GLOBAL_TRXMNG.end_trx(tid) == Status::SUCCESS) {
+    if (GLOBAL_TRXMNG.end_trx(tid, GLOBAL_LOCKMNG) == Status::SUCCESS) {
         return tid;
     }
     return 0;
