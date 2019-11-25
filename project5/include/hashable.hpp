@@ -24,12 +24,24 @@ struct PackHasher<TupleType> {
     }
 };
 
+struct pack_init_t {};
+
+constexpr pack_init_t pack_init;
+
 template <typename... T>
 struct HashablePack {
     std::tuple<T...> data;
 
     template <typename... Tp>
-    HashablePack(Tp&&... data) : data(std::forward<Tp>(data)...) {
+    HashablePack(pack_init_t, Tp&&... data) : data(std::forward<Tp>(data)...) {
+        // Do Nothing
+    }
+
+    HashablePack(HashablePack const& pack) : data(pack.data) {
+        // Do Nothing
+    }
+
+    HashablePack(HashablePack&& pack) : data(std::move(pack.data)) {
         // Do Nothing
     }
 
