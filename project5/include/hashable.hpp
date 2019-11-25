@@ -13,6 +13,10 @@ struct HashablePack {
         // Do Nothing
     }
 
+    bool operator==(HashablePack const& other) const {
+        return data == other.data;
+    }
+
     std::size_t hash() const {
         return hash_proxy(std::make_index_sequence<sizeof...(T)>{});
     }
