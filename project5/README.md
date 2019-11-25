@@ -127,9 +127,6 @@ S2PL 구현을 위해서 TRX는 operation 과정에서 lock을 잡기만 할 뿐
 
 ### TODO
 - buffer manager
-    - renew structure (too complicated)
-    - searching policy (free list, allocated list)
-    - new_page, free_page method run on buffer (not primitive api)
     - concurrency control
         - global lock
         - pin -> rwlock
