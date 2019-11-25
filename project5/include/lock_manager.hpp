@@ -5,6 +5,7 @@
 #include <mutex>
 #include <unordered_map>
 
+#include "hashable.hpp"
 #include "table_manager.hpp"
 
 class Transaction;
@@ -14,51 +15,53 @@ enum class LockMode {
     EXCLUSIVE = 1,
 };
 
-enum class LockLevel {
-    INVALID = 0,
-    DATABASE = 1,
-    TABLE = 2,
-    PAGE = 3,
-    RECORD = 4,
-};
+// tableid, pageid, record index
+using HashableID = HashablePack<tableid_t, pagenum_t, int>;
 
-struct HashableID {
+struct HierarchicalID {
     tableid_t tid;
     pagenum_t pid;
-    int record_idx;
-    LockLevel level;
-};
+    int rid;
 
-namespace std {
-    template <>
-    struct hash<HashableID> {
-        size_t operator()(const HashableID&) const {
-            return 0;
-        }
-    };
-}
+    HierarchicalID(tableid_t tid, pagenum_t pid, int rid);
+
+    HashableID make_hashable() const;
+};
 
 class Lock {
 public:
-    Lock() = default;
+    Lock();
+
+    Lock(HierarchicalID hid, LockMode mode, Transaction* backref);
+
+    Lock(Lock&& lock) noexcept;
+
+    Lock(Lock const&) = delete;
+
+    Lock& operator=(Lock&& lock) noexcept;
 
 private:
-    tableid_t tid;
-    pagenum_t pid;
-    int record_idx;
+    HierarchicalID hid;
     LockMode mode;
-    LockLevel level;
     Transaction* backref;
-
-};
+}
 
 class LockManager {
 public:
     LockManager() = default;
 
+    Status require_lock(
+        Transaction* backref, HierarchicalID hid, LockMode mode);
+    
+    Status release_lock(HashableID hid);
+
+    Status detect_deadlock();
+
+    Status detect_and_release();
+
 private:
     std::mutex mtx;
-    std::unordered_map<HashableID, std::list<Lock>> page_locks;
+    std::unordered_map<HashableID, std::list<Lock>> locks;
 };
 
 #endif
