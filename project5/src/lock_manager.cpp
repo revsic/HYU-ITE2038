@@ -29,3 +29,21 @@ Lock::Lock(HierarchicalID hid, LockMode mode, Transaction* backref)
 HierarchicalID Lock::get_hid() const {
     return hid;
 }
+
+Status LockManager::require_lock(
+    Transaction* backref, HierarchicalID hid, LockMode mode
+) {
+    return Status::SUCCESS;
+}
+
+Status LockManager::release_lock(HierarchicalID hid) {
+    return Status::SUCCESS;
+}
+
+Status LockManager::detect_deadlock() {
+    return Status::SUCCESS;
+}
+
+Status LockManager::detect_and_release() {
+    return Status::SUCCESS;
+}
