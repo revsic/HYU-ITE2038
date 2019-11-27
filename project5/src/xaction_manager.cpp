@@ -70,7 +70,7 @@ trxid_t TransactionManager::new_trx() {
         last_id = 0;
     }
 
-    if (trxs.find(id) == trxs.end()) {
+    if (trxs.find(id) != trxs.end()) {
         return INVALID_TRXID;
     }
 
@@ -81,12 +81,10 @@ trxid_t TransactionManager::new_trx() {
 Status TransactionManager::end_trx(trxid_t id, LockManager& manager) {
     std::unique_lock<std::mutex> lock(mtx);
     auto iter = trxs.find(id);
-    if (iter != trxs.end()) {
-        (*iter).second.end_trx(manager);
-        trxs.erase(iter);
-        return Status::SUCCESS;
-    }
-    return Status::FAILURE;
+    CHECK_TRUE(iter != trxs.end());
+    (*iter).second.end_trx(manager);
+    trxs.erase(iter);
+    return Status::SUCCESS;
 }
 
 Status TransactionManager::require_lock(
