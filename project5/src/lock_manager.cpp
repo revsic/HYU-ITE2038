@@ -26,6 +26,30 @@ Lock::Lock(HierarchicalID hid, LockMode mode, Transaction* backref)
     // Do Nothing
 }
 
+Lock::~Lock() {
+    // TODO: Impl lock destructor.
+}
+
+Lock::Lock(Lock&& lock) noexcept :
+    hid(lock.hid), mode(lock.mode), backref(lock.backref)
+{
+    lock.hid = HierarchicalID();
+    lock.mode = LockMode::INVALID;
+    lock.backref = nullptr;
+}
+
+Lock& Lock::operator=(Lock&& lock) noexcept {
+    hid = lock.hid;
+    mode = lock.mode;
+    backref = lock.backref;
+
+    lock.hid = HierarchicalID();
+    lock.mode = LockMode::INVALID;
+    lock.backref = nullptr;
+
+    return *this;
+}
+
 HierarchicalID Lock::get_hid() const {
     return hid;
 }

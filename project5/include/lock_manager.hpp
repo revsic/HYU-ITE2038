@@ -37,6 +37,8 @@ public:
 
     Lock(HierarchicalID hid, LockMode mode, Transaction* backref);
 
+    ~Lock();
+
     Lock(Lock&& lock) noexcept;
 
     Lock(Lock const&) = delete;
