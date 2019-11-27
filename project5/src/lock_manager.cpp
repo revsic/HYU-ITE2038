@@ -1,6 +1,7 @@
 #include <condition_variable>
 
 #include "lock_manager.hpp"
+#include "xaction_manager.hpp"
 
 HierarchicalID::HierarchicalID()
     : HierarchicalID(INVALID_TABLEID, INVALID_PAGENUM, -1)
@@ -84,35 +85,44 @@ LockManager::~LockManager() {
 std::shared_ptr<Lock> LockManager::require_lock(
     Transaction* backref, HierarchicalID hid, LockMode mode
 ) {
-    std::unique_lock<std::mutex> lock(mtx);
-
     HashableID id = hid.make_hashable();
     auto new_lock = std::make_shared<Lock>(hid, mode, backref);
 
+    std::unique_lock<std::mutex> own(mtx);
+
     auto iter = locks.find(id);
     if (iter == locks.end() || lockable(iter->second, new_lock)) {
-        locks[id].mode = mode;
-        locks[id].run.push_front(new_lock);
+        LockStruct& module = locks[id];
+        module.mode = mode;
+        module.run.push_front(new_lock);
         return new_lock;
     }
 
+    backref->state = TrxState::WAITING;
+    backref->wait = new_lock;
     locks[id].wait.push_back(new_lock);
 
     std::condition_variable cv;
-    cv.wait(lock, [&]{ return !new_lock->is_wait(); });
+    cv.wait(own, [&]{ return !new_lock->is_wait(); });
 
-    locks[id].wait.remove(new_lock);
-    locks[id].mode = mode;
-    locks[id].run.push_front(new_lock);
+    LockStruct& module = locks[id];
+    module.wait.remove(new_lock);
+    module.mode = mode;
+    module.run.push_front(new_lock);
 
+    own.unlock();
     cv.notify_all();
+
+    backref->state = TrxState::RUNNING;
+    backref->wait = nullptr;
     return new_lock;
 }
 
 Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
     std::unique_lock<std::mutex> own(mtx);
 
-
+    HashableID hid = lock->get_hid().make_hashable();
+    
 
     return Status::SUCCESS;
 }
