@@ -11,7 +11,7 @@
 class Transaction;
 
 enum class LockMode {
-    INVALID = 0,
+    IDLE = 0,
     SHARED = 1,
     EXCLUSIVE = 2,
 };
@@ -45,30 +45,63 @@ public:
 
     Lock& operator=(Lock&& lock) noexcept;
 
+    Lock& operator=(Lock const&) = delete;
+
     HierarchicalID get_hid() const;
+
+    LockMode get_mode() const;
+
+    Transaction& get_backref() const;
+
+    bool is_wait() const;
 
 private:
     HierarchicalID hid;
     LockMode mode;
     Transaction* backref;
+    std::atomic<bool> wait; 
 };
 
 class LockManager {
 public:
     LockManager() = default;
 
-    Status require_lock(
+    ~LockManager();
+
+    LockManager(LockManager&&) = delete;
+
+    LockManager(LockManager const&) = delete;
+
+    LockManager& operator=(LockManager&&) = delete;
+
+    LockManager& operator=(LockManager const&) = delete;
+
+    std::shared_ptr<Lock> require_lock(
         Transaction* backref, HierarchicalID hid, LockMode mode);
     
-    Status release_lock(HierarchicalID hid);
+    Status release_lock(std::shared_ptr<Lock> lock);
 
     Status detect_deadlock();
 
     Status detect_and_release();
 
 private:
+    struct LockStruct {
+        LockMode mode;
+        std::list<std::shared_ptr<Lock>> run;
+        std::list<std::shared_ptr<Lock>> wait;
+
+        LockStruct();
+        ~LockStruct() = default;
+        LockStruct(LockStruct const&) = delete;
+        LockStruct& operator=(LockStruct const&) = delete;
+    };
+
     std::mutex mtx;
-    std::unordered_map<HashableID, std::list<Lock>> locks;
+    std::unordered_map<HashableID, LockStruct> locks;
+
+    bool lockable(
+        LockStruct const& module, std::shared_ptr<Lock> const& target) const;
 };
 
 #endif
