@@ -43,8 +43,8 @@ public:
 private:
     trxid_t id;
     TrxState state;
-    Lock* wait;
-    std::list<Lock*> locks;
+    std::shared_ptr<Lock> wait;
+    std::list<std::shared_ptr<Lock>> locks;
 };
 
 class TransactionManager {

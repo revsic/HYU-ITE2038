@@ -39,12 +39,13 @@ Status Transaction::end_trx(LockManager& manager) {
 Status Transaction::require_lock(
     LockManager& manager, HierarchicalID hid, LockMode mode
 ) {
-    return manager.require_lock(this, hid, mode);
+    locks.push_back(manager.require_lock(this, hid, mode));
+    return Status::SUCCESS;
 }
 
 Status Transaction::release_locks(LockManager& manager) {
-    for (Lock* lock : locks) {
-        CHECK_SUCCESS(manager.release_lock(lock->get_hid()));
+    for (auto lock : locks) {
+        CHECK_SUCCESS(manager.release_lock(lock));
     }
     return Status::SUCCESS;
 }
