@@ -7,7 +7,7 @@ Transaction::Transaction()
 }
 
 Transaction::Transaction(trxid_t id) :
-    id(id), state(TrxState::IDLE), wait(nullptr), locks()
+    id(id), state(TrxState::RUNNING), wait(nullptr), locks()
 {
     // Do Nothing
 }

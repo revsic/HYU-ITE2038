@@ -45,6 +45,8 @@ private:
     TrxState state;
     std::shared_ptr<Lock> wait;
     std::list<std::shared_ptr<Lock>> locks;
+
+    friend class LockManager;
 };
 
 class TransactionManager {
