@@ -1,4 +1,5 @@
 #include <cstring>
+#include <fstream>
 
 #include "dbapi.hpp"
 
@@ -55,22 +56,20 @@ int shutdown_db() {
 }
 
 int join_table(int table_id_1, int table_id_2, char const* pathname) {
-    FILE* fp = fopen(pathname, "w");
-    if (fp == nullptr) {
+    std::ofstream file(pathname);
+    if (!file.is_open()) {
         return 1;
     }
 
     int res = static_cast<int>(GLOBAL_DB->prikey_join(table_id_1, table_id_2,
         [&](Record const& rec1, Record const& rec2) {
-            fprintf(
-                fp,
-                "%d,%s,%d,%s\n",
-                rec1.key, rec1.value,
-                rec2.key, rec2.value);
+            file
+                << rec1.key << ',' << rec1.value << ','
+                << rec2.key << ',' << rec2.value << '\n';
             return Status::SUCCESS;
         }));
 
-    fclose(fp);
+    file.close();
     if (res != 0) {
         remove(pathname);
     }
