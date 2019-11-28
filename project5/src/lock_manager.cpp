@@ -74,7 +74,14 @@ bool Lock::is_wait() const {
     return wait;
 }
 
-LockManager::LockStruct::LockStruct() : mode(LockMode::IDLE), run(), wait() {
+Status Lock::run() {
+    wait = false;
+    return Status::SUCCESS;
+}
+
+LockManager::LockStruct::LockStruct() :
+    mode(LockMode::IDLE), cv(), run(), wait()
+{
     // Do Nothing
 }
 
@@ -100,18 +107,17 @@ std::shared_ptr<Lock> LockManager::require_lock(
 
     backref->state = TrxState::WAITING;
     backref->wait = new_lock;
-    locks[id].wait.push_back(new_lock);
 
-    std::condition_variable cv;
-    cv.wait(own, [&]{ return !new_lock->is_wait(); });
+    LockStruct* module = &locks[id];
+    module->wait.push_back(new_lock);
+    module->cv.wait(own, [&]{ return !new_lock->is_wait(); });
 
-    LockStruct& module = locks[id];
-    module.wait.remove(new_lock);
-    module.mode = mode;
-    module.run.push_front(new_lock);
+    module = &locks[id];
+    module->wait.remove(new_lock);
+    module->mode = mode;
+    module->run.push_front(new_lock);
 
     own.unlock();
-    cv.notify_all();
 
     backref->state = TrxState::RUNNING;
     backref->wait = nullptr;
@@ -122,16 +128,38 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
     std::unique_lock<std::mutex> own(mtx);
 
     HashableID hid = lock->get_hid().make_hashable();
-    
+    auto iter = locks.find(hid);
+    CHECK_TRUE(iter != locks.end());
+
+    LockStruct& module = iter->second;
+    module.run.remove(lock);
+    if (module.run.size() > 0) {
+        return Status::SUCCESS;
+    }
+
+    if (module.wait.size() == 0) {
+        module.mode = LockMode::IDLE;
+        return Status::SUCCESS;
+    }
+    lock = module.wait.front();
+    lock->run();
+
+    own.unlock();
+    module.cv.notify_all();
 
     return Status::SUCCESS;
 }
 
-Status LockManager::detect_deadlock() {
-    return Status::SUCCESS;
+std::shared_ptr<Lock> LockManager::detect_deadlock() {
+    std::unique_lock<std::mutex> own(mtx);
+
+    
+
+    return nullptr;
 }
 
 Status LockManager::detect_and_release() {
+    CHECK_SUCCESS(schedule_detection());
     return Status::SUCCESS;
 }
 
@@ -141,4 +169,8 @@ bool LockManager::lockable(
     return module.mode == LockMode::IDLE
         || (module.mode == LockMode::SHARED
             && target->get_mode() == LockMode::SHARED);
+}
+
+Status LockManager::schedule_detection() {
+    return Status::SUCCESS;
 }

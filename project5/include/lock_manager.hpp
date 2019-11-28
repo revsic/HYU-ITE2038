@@ -55,6 +55,8 @@ public:
 
     bool is_wait() const;
 
+    Status run();
+
 private:
     HierarchicalID hid;
     LockMode mode;
@@ -81,13 +83,14 @@ public:
     
     Status release_lock(std::shared_ptr<Lock> lock);
 
-    Status detect_deadlock();
+    std::shared_ptr<Lock> detect_deadlock();
 
     Status detect_and_release();
 
 private:
     struct LockStruct {
         LockMode mode;
+        std::condition_variable cv;
         std::list<std::shared_ptr<Lock>> run;
         std::list<std::shared_ptr<Lock>> wait;
 
@@ -102,6 +105,8 @@ private:
 
     bool lockable(
         LockStruct const& module, std::shared_ptr<Lock> const& target) const;
+
+    Status schedule_detection();
 };
 
 #endif
