@@ -83,7 +83,7 @@ Status TransactionManager::end_trx(trxid_t id, LockManager& manager) {
     std::unique_lock<std::mutex> lock(mtx);
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    (*iter).second.end_trx(manager);
+    iter->second.end_trx(manager);
     trxs.erase(iter);
     return Status::SUCCESS;
 }
@@ -93,7 +93,7 @@ Status TransactionManager::require_lock(
 ) {
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    return (*iter).second.require_lock(manager, hid, mode);
+    return iter->second.require_lock(manager, hid, mode);
 }
 
 Status TransactionManager::release_locks(
@@ -101,5 +101,5 @@ Status TransactionManager::release_locks(
 ) {
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    return (*iter).second.release_locks(manager);
+    return iter->second.release_locks(manager);
 }
