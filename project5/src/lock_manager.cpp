@@ -110,9 +110,9 @@ std::shared_ptr<Lock> LockManager::require_lock(
         module.run.push_front(new_lock);
 
         if (trxs.find(backref->get_id()) == trxs.end()) {
-            trxs[backref->get_id()] = 0;
+            trxs[backref->get_id()] = std::make_pair(backref, 0);
         }
-        trxs[backref->get_id()]++;
+        trxs[backref->get_id()].second++;
     });
 
     auto iter = locks.find(id);
@@ -165,7 +165,7 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
     lock->run();
 
     Transaction& backref = lock->get_backref();
-    if (--trxs[backref.get_id()] == 0) {
+    if (--trxs[backref.get_id()].second == 0) {
         trxs.erase(backref.get_id());
     }
 
@@ -179,7 +179,7 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
 Status LockManager::detect_and_release() {
     CHECK_SUCCESS(detector.schedule());
 
-    Transaction* found = detector.find_cycle(locks);
+    Transaction* found = detector.find_cycle(locks, trxs);
     CHECK_NULL(found);
 
     return found->abort_trx(*this);
@@ -209,16 +209,30 @@ Status LockManager::DeadlockDetector::schedule() {
 }
 
 Transaction* LockManager::DeadlockDetector::find_cycle(
-    locktable_t const& locks
+    locktable_t const& locks, trxtable_t const& xtable
 ) {
-    graph_t graph = construct_graph(locks);
+    graph_t graph = construct_graph(locks, xtable);
 
     last_success = false;
     return nullptr;
 }
 
 auto LockManager::DeadlockDetector::construct_graph(
-    locktable_t const& locks
+    locktable_t const& locks, trxtable_t const& xtable
 ) -> LockManager::DeadlockDetector::graph_t {
-    return nullptr;
+    graph_t graph;
+
+    for (auto const& iter : xtable) {
+        trxid_t xid = iter.first;
+
+        auto const& value = iter.second;
+        Transaction* trx = value.first;
+
+        graph[xid].refcount = 0;
+        for (auto const& lock : trx->get_locks()) {
+            
+        }
+    }
+
+    return graph_t();
 }

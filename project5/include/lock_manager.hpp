@@ -11,6 +11,9 @@
 
 using namespace std::chrono_literals;
 
+/// WARNING: assertion required about trxid_t == int in xaction_maanger.hpp
+using trxid_t = int;
+
 class Transaction;
 
 enum class LockMode {
@@ -105,11 +108,17 @@ private:
 
     using locktable_t = std::unordered_map<HashableID, LockStruct>;
 
+    using trxtable_t = std::unordered_map<
+        trxid_t,
+        std::pair<Transaction*, int>>;
+
     struct DeadlockDetector {
         struct Node {
-            Transaction* backref;
+            int refcount;
+            std::vector<trxid_t> next_id;
         };
-        using graph_t = std::unique_ptr<std::unique_ptr<Node[]>[]>;
+
+        using graph_t = std::unordered_map<trxid_t, Node>;
 
         int coeff;
         bool last_success;
@@ -119,16 +128,17 @@ private:
 
         Status schedule();
 
-        Transaction* find_cycle(locktable_t const& locks);
+        Transaction* find_cycle(
+            locktable_t const& locks, trxtable_t const& xtable);
 
-        static graph_t construct_graph(locktable_t const& locks);
+        static graph_t construct_graph(
+            locktable_t const& locks, trxtable_t const& xtable);
     };
 
     std::mutex mtx;
     locktable_t locks;
+    trxtable_t trxs;
     DeadlockDetector detector;
-    /// WARNING: assert required about trxid_t == int.
-    std::unordered_map<int, int> trxs;
 
     bool lockable(
         LockStruct const& module, std::shared_ptr<Lock> const& target) const;
