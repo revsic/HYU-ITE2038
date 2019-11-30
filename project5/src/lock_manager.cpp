@@ -193,28 +193,66 @@ bool LockManager::lockable(
             && target->get_mode() == LockMode::SHARED);
 }
 
+LockManager::DeadlockDetector::Node::Node() : flag(false), refcount(0), next_id() {
+    // Do Nothing
+}
+
 LockManager::DeadlockDetector::DeadlockDetector() :
-    coeff(1), last_success(false), last_use(std::chrono::steady_clock::now())
+    coeff(1), last_found(false), last_use(std::chrono::steady_clock::now())
 {
     // Do Nothing
 }
 
 Status LockManager::DeadlockDetector::schedule() {
     using namespace std::chrono;
-    coeff = last_success ? coeff + 1 : 1;
+    coeff = last_found ? 1 : coeff + 1;
     auto now = steady_clock::now();
     return LOCK_WAIT * coeff >= duration_cast<milliseconds>(now - last_use)
         ? Status::SUCCESS
         : Status::FAILURE;
 }
 
-Transaction* LockManager::DeadlockDetector::find_cycle(
+std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
     locktable_t const& locks, trxtable_t const& xtable
 ) {
     graph_t graph = construct_graph(locks, xtable);
 
-    last_success = false;
-    return nullptr;
+    while (graph.size() > 0) {
+        auto iter = std::find_if(
+            graph.begin(), graph.end(),
+            [](Node& node) { return node.refcount == 0; });
+
+        if (iter == graph.end()) {
+            last_found = true;
+            return choose_abort(std::move(graph));
+        }
+
+        for (trxid_t next_id : iter->second.next_id) {
+            Node& node = graph[next_id];
+            node.refcount--;
+            node.prev_id.erase(iter->first);
+        }
+        graph.erase(iter);
+    }
+
+    last_found = false;
+    return std::vector<trxid_t>();
+}
+
+std::vector<trxid_t> LockManager::DeadlockDetector::choose_abort(
+    graph_t graph
+) const {
+    std::vector<trxid_t> trxs;
+    for (auto& iter : graph) {
+        Node& node = iter.second;
+        if (node.flag) {
+            continue;
+        }
+
+        node.flag = true;
+        trxs.push_back(iter.first);
+    }
+    return trxs;
 }
 
 auto LockManager::DeadlockDetector::construct_graph(
@@ -228,11 +266,20 @@ auto LockManager::DeadlockDetector::construct_graph(
         auto const& value = iter.second;
         Transaction* trx = value.first;
 
-        graph[xid].refcount = 0;
-        for (auto const& lock : trx->get_locks()) {
-            
+        if (trx->wait == nullptr) {
+            continue;
+        }
+
+        HierarchicalID wait_id = trx->wait->get_hid();
+        LockStruct const& module = locks.at(wait_id.make_hashable());
+
+        for (auto const& run_lock : module.run) {
+            trxid_t run_xid = run_lock->get_backref().get_id();
+            graph[run_xid].refcount++;
+            graph[run_xid].prev_id.insert(xid);
+            graph[xid].next_id.insert(run_xid);
         }
     }
 
-    return graph_t();
+    return graph;
 }

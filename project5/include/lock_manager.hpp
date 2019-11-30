@@ -4,6 +4,7 @@
 #include <chrono>
 #include <list>
 #include <mutex>
+#include <set>
 #include <unordered_map>
 
 #include "hashable.hpp"
@@ -114,22 +115,29 @@ private:
 
     struct DeadlockDetector {
         struct Node {
+            Node();
+            ~Node() = default;
+
+            bool flag;
             int refcount;
-            std::vector<trxid_t> next_id;
+            std::set<trxid_t> next_id;
+            std::set<trxid_t> prev_id;
         };
 
         using graph_t = std::unordered_map<trxid_t, Node>;
 
         int coeff;
-        bool last_success;
+        bool last_found;
         std::chrono::time_point<std::chrono::steady_clock> last_use;
 
         DeadlockDetector();
 
         Status schedule();
 
-        Transaction* find_cycle(
+        std::vector<trxid_t> find_cycle(
             locktable_t const& locks, trxtable_t const& xtable);
+
+        std::vector<trxid_t> choose_abort(graph_t graph) const;
 
         static graph_t construct_graph(
             locktable_t const& locks, trxtable_t const& xtable);
