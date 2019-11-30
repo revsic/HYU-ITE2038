@@ -104,11 +104,21 @@ std::shared_ptr<Lock> LockManager::require_lock(
 
     std::unique_lock<std::mutex> own(mtx);
 
-    auto iter = locks.find(id);
-    if (iter == locks.end() || lockable(iter->second, new_lock)) {
+    utils::Defer inlock_defer([&] {
         LockStruct& module = locks[id];
         module.mode = mode;
         module.run.push_front(new_lock);
+
+        if (trxs.find(backref->get_id()) == trxs.end()) {
+            trxs[backref->get_id()] = 0;
+        }
+        trxs[backref->get_id()]++;
+    });
+
+    auto iter = locks.find(id);
+    if (iter == locks.end() || lockable(iter->second, new_lock)) {
+        // backref and module updates are occured
+        // in defer and inlock defer.
         return new_lock;
     }
 
@@ -122,14 +132,15 @@ std::shared_ptr<Lock> LockManager::require_lock(
         LOCK_WAIT,
         [&]{ return !new_lock->is_wait(); })
     ) {
-        detect_and_release();
+        Status res = detect_and_release();
+        if (res == Status::SUCCESS) {
+            locks[id].cv.notify_all();
+        }
     }
 
-    LockStruct& module = locks[id];
-    module.wait.remove(new_lock);
-    module.mode = mode;
-    module.run.push_front(new_lock);
-
+    locks[id].wait.remove(new_lock);
+    // backref and module updates are occured
+    // in defer and inlock defer.
     return new_lock;
 }
 
@@ -153,10 +164,15 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
     lock = module.wait.front();
     lock->run();
 
+    Transaction& backref = lock->get_backref();
+    if (--trxs[backref.get_id()] == 0) {
+        trxs.erase(backref.get_id());
+    }
+
     own.unlock();
     module.cv.notify_all();
 
-    lock->get_backref().locks.remove(lock);
+    backref.locks.remove(lock);
     return Status::SUCCESS;
 }
 

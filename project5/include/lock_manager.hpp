@@ -126,7 +126,7 @@ private:
     locktable_t locks;
     DeadlockDetector detector;
     /// WARNING: assert required about trxid_t == int.
-    std::unordered_map<int, Transaction*> trxs;
+    std::unordered_map<int, int> trxs;
 
     bool lockable(
         LockStruct const& module, std::shared_ptr<Lock> const& target) const;
