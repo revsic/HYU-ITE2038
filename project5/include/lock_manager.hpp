@@ -89,7 +89,7 @@ public:
     Status detect_and_release();
 
 private:
-    static constexpr std::chrono::milliseconds LOCK_WAIT = 100ms;
+    static constexpr std::chrono::milliseconds LOCK_WAIT = 10ms;
 
     struct LockStruct {
         LockMode mode;
@@ -111,13 +111,15 @@ private:
         };
         using graph_t = std::unique_ptr<std::unique_ptr<Node[]>[]>;
 
+        int coeff;
+        bool last_success;
         std::chrono::time_point<std::chrono::steady_clock> last_use;
 
         DeadlockDetector();
 
         Status schedule();
 
-        Transaction* find_cycle(locktable_t const& locks) const;
+        Transaction* find_cycle(locktable_t const& locks);
 
         static graph_t construct_graph(locktable_t const& locks);
     };

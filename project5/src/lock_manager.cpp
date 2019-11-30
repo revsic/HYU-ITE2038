@@ -194,18 +194,26 @@ bool LockManager::lockable(
 }
 
 LockManager::DeadlockDetector::DeadlockDetector() :
-    last_use(std::chrono::steady_clock::now())
+    coeff(1), last_success(false), last_use(std::chrono::steady_clock::now())
 {
     // Do Nothing
 }
 
 Status LockManager::DeadlockDetector::schedule() {
-    return Status::SUCCESS;
+    using namespace std::chrono;
+    coeff = last_success ? coeff + 1 : 1;
+    auto now = steady_clock::now();
+    return LOCK_WAIT * coeff >= duration_cast<milliseconds>(now - last_use)
+        ? Status::SUCCESS
+        : Status::FAILURE;
 }
 
 Transaction* LockManager::DeadlockDetector::find_cycle(
     locktable_t const& locks
-) const {
+) {
+    graph_t graph = construct_graph(locks);
+
+    last_success = false;
     return nullptr;
 }
 
