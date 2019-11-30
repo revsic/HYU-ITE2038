@@ -42,6 +42,8 @@ public:
 
     Status release_locks(LockManager& manager);
 
+    trxid_t get_id() const;
+
 private:
     trxid_t id;
     TrxState state;

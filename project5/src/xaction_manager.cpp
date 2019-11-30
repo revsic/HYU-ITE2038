@@ -54,6 +54,10 @@ Status Transaction::release_locks(LockManager& manager) {
     return Status::SUCCESS;
 }
 
+trxid_t Transaction::get_id() const {
+    return id;
+}
+
 TransactionManager::TransactionManager(LockManager& manager) :
     mtx(), lock_manager(&manager), last_id(0), trxs()
 {
