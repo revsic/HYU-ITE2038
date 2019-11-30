@@ -1,6 +1,7 @@
 #include <condition_variable>
 
 #include "lock_manager.hpp"
+#include "utils.hpp"
 #include "xaction_manager.hpp"
 
 HierarchicalID::HierarchicalID()
@@ -95,6 +96,12 @@ std::shared_ptr<Lock> LockManager::require_lock(
     HashableID id = hid.make_hashable();
     auto new_lock = std::make_shared<Lock>(hid, mode, backref);
 
+    utils::Defer defer([&] {
+        backref->wait = nullptr;
+        backref->state = TrxState::RUNNING;
+        backref->locks.push_back(new_lock);
+    });
+
     std::unique_lock<std::mutex> own(mtx);
 
     auto iter = locks.find(id);
@@ -117,10 +124,6 @@ std::shared_ptr<Lock> LockManager::require_lock(
     module->mode = mode;
     module->run.push_front(new_lock);
 
-    own.unlock();
-
-    backref->state = TrxState::RUNNING;
-    backref->wait = nullptr;
     return new_lock;
 }
 
@@ -147,15 +150,13 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
     own.unlock();
     module.cv.notify_all();
 
+    lock->get_backref().locks.remove(lock);
     return Status::SUCCESS;
 }
 
-std::shared_ptr<Lock> LockManager::detect_deadlock() {
+Transaction* LockManager::detect_deadlock() {
     std::unique_lock<std::mutex> own(mtx);
-
-    
-
-    return nullptr;
+    return DeadlockDetector(locks).find_cycle();
 }
 
 Status LockManager::detect_and_release() {
@@ -173,4 +174,20 @@ bool LockManager::lockable(
 
 Status LockManager::schedule_detection() {
     return Status::SUCCESS;
+}
+
+LockManager::DeadlockDetector::DeadlockDetector(
+    std::unordered_map<HashableID, LockStruct> const& locks
+) : graph(construct_graph(locks)) {
+    // Do Nothing
+}
+
+Transaction* LockManager::DeadlockDetector::find_cycle() const {
+    return nullptr;
+}
+
+auto LockManager::DeadlockDetector::construct_graph(
+    std::unordered_map<HashableID, LockStruct> const& locks
+) -> LockManager::DeadlockDetector::graph_t {
+    return nullptr;
 }

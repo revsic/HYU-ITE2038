@@ -83,7 +83,7 @@ public:
     
     Status release_lock(std::shared_ptr<Lock> lock);
 
-    std::shared_ptr<Lock> detect_deadlock();
+    Transaction* detect_deadlock();
 
     Status detect_and_release();
 
@@ -102,11 +102,29 @@ private:
 
     std::mutex mtx;
     std::unordered_map<HashableID, LockStruct> locks;
+    /// WARNING: assert required about trxid_t == int.
+    std::unordered_map<int, Transaction*> trxs;
 
     bool lockable(
         LockStruct const& module, std::shared_ptr<Lock> const& target) const;
 
     Status schedule_detection();
+
+    struct DeadlockDetector {
+        struct Node {
+            Transaction* backref;
+        };
+        using graph_t = std::unique_ptr<std::unique_ptr<Node[]>[]>;
+
+        graph_t graph;
+
+        DeadlockDetector(std::unordered_map<HashableID, LockStruct> const& locks);
+
+        Transaction* find_cycle() const;
+
+        static graph_t construct_graph(
+            std::unordered_map<HashableID, LockStruct> const& locks);
+    };
 };
 
 #endif
