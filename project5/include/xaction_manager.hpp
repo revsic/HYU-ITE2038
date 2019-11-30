@@ -44,6 +44,8 @@ public:
 
     trxid_t get_id() const;
 
+    std::list<std::shared_ptr<Lock>> const& get_locks() const;
+
 private:
     trxid_t id;
     TrxState state;

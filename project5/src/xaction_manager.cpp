@@ -58,6 +58,10 @@ trxid_t Transaction::get_id() const {
     return id;
 }
 
+std::list<std::shared_ptr<Lock>> const& Transaction::get_locks() const {
+    return locks;
+}
+
 TransactionManager::TransactionManager(LockManager& manager) :
     mtx(), lock_manager(&manager), last_id(0), trxs()
 {
