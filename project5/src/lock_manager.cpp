@@ -115,14 +115,20 @@ std::shared_ptr<Lock> LockManager::require_lock(
     backref->state = TrxState::WAITING;
     backref->wait = new_lock;
 
-    LockStruct* module = &locks[id];
-    module->wait.push_back(new_lock);
-    module->cv.wait(own, [&]{ return !new_lock->is_wait(); });
+    locks[id].wait.push_back(new_lock);
 
-    module = &locks[id];
-    module->wait.remove(new_lock);
-    module->mode = mode;
-    module->run.push_front(new_lock);
+    while (!locks[id].cv.wait_for(
+        own,
+        LOCK_WAIT,
+        [&]{ return !new_lock->is_wait(); })
+    ) {
+        detect_and_release();
+    }
+
+    LockStruct& module = locks[id];
+    module.wait.remove(new_lock);
+    module.mode = mode;
+    module.run.push_front(new_lock);
 
     return new_lock;
 }
@@ -154,14 +160,13 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
     return Status::SUCCESS;
 }
 
-Transaction* LockManager::detect_deadlock() {
-    std::unique_lock<std::mutex> own(mtx);
-    return DeadlockDetector(locks).find_cycle();
-}
-
 Status LockManager::detect_and_release() {
-    CHECK_SUCCESS(schedule_detection());
-    return Status::SUCCESS;
+    CHECK_SUCCESS(detector.schedule());
+
+    Transaction* found = detector.find_cycle(locks);
+    CHECK_NULL(found);
+
+    return found->abort_trx(*this);
 }
 
 bool LockManager::lockable(
@@ -172,22 +177,24 @@ bool LockManager::lockable(
             && target->get_mode() == LockMode::SHARED);
 }
 
-Status LockManager::schedule_detection() {
-    return Status::SUCCESS;
-}
-
-LockManager::DeadlockDetector::DeadlockDetector(
-    std::unordered_map<HashableID, LockStruct> const& locks
-) : graph(construct_graph(locks)) {
+LockManager::DeadlockDetector::DeadlockDetector() :
+    last_use(std::chrono::steady_clock::now())
+{
     // Do Nothing
 }
 
-Transaction* LockManager::DeadlockDetector::find_cycle() const {
+Status LockManager::DeadlockDetector::schedule() {
+    return Status::SUCCESS;
+}
+
+Transaction* LockManager::DeadlockDetector::find_cycle(
+    locktable_t const& locks
+) const {
     return nullptr;
 }
 
 auto LockManager::DeadlockDetector::construct_graph(
-    std::unordered_map<HashableID, LockStruct> const& locks
+    locktable_t const& locks
 ) -> LockManager::DeadlockDetector::graph_t {
     return nullptr;
 }

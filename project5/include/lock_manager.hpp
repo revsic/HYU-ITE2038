@@ -1,12 +1,15 @@
 #ifndef LOCK_MANAGER_HPP
 #define LOCK_MANAGER_HPP
 
+#include <chrono>
 #include <list>
 #include <mutex>
 #include <unordered_map>
 
 #include "hashable.hpp"
 #include "table_manager.hpp"
+
+using namespace std::chrono_literals;
 
 class Transaction;
 
@@ -83,11 +86,11 @@ public:
     
     Status release_lock(std::shared_ptr<Lock> lock);
 
-    Transaction* detect_deadlock();
-
     Status detect_and_release();
 
 private:
+    static constexpr std::chrono::milliseconds LOCK_WAIT = 100ms;
+
     struct LockStruct {
         LockMode mode;
         std::condition_variable cv;
@@ -100,15 +103,7 @@ private:
         LockStruct& operator=(LockStruct const&) = delete;
     };
 
-    std::mutex mtx;
-    std::unordered_map<HashableID, LockStruct> locks;
-    /// WARNING: assert required about trxid_t == int.
-    std::unordered_map<int, Transaction*> trxs;
-
-    bool lockable(
-        LockStruct const& module, std::shared_ptr<Lock> const& target) const;
-
-    Status schedule_detection();
+    using locktable_t = std::unordered_map<HashableID, LockStruct>;
 
     struct DeadlockDetector {
         struct Node {
@@ -116,15 +111,25 @@ private:
         };
         using graph_t = std::unique_ptr<std::unique_ptr<Node[]>[]>;
 
-        graph_t graph;
+        std::chrono::time_point<std::chrono::steady_clock> last_use;
 
-        DeadlockDetector(std::unordered_map<HashableID, LockStruct> const& locks);
+        DeadlockDetector();
 
-        Transaction* find_cycle() const;
+        Status schedule();
 
-        static graph_t construct_graph(
-            std::unordered_map<HashableID, LockStruct> const& locks);
+        Transaction* find_cycle(locktable_t const& locks) const;
+
+        static graph_t construct_graph(locktable_t const& locks);
     };
+
+    std::mutex mtx;
+    locktable_t locks;
+    DeadlockDetector detector;
+    /// WARNING: assert required about trxid_t == int.
+    std::unordered_map<int, Transaction*> trxs;
+
+    bool lockable(
+        LockStruct const& module, std::shared_ptr<Lock> const& target) const;
 };
 
 #endif
