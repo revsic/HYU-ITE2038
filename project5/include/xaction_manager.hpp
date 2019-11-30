@@ -35,6 +35,8 @@ public:
 
     Status end_trx(LockManager& manager);
 
+    Status abort_trx(LockManager& manager);
+
     Status require_lock(
         LockManager& manager, HierarchicalID hid, LockMode mode);
 
@@ -51,7 +53,7 @@ private:
 
 class TransactionManager {
 public:
-    TransactionManager();
+    TransactionManager(LockManager& manager);
 
     ~TransactionManager();
 
@@ -67,15 +69,15 @@ public:
 
     trxid_t new_trx();
 
-    Status end_trx(trxid_t id, LockManager& manager);
+    Status end_trx(trxid_t id);
 
-    Status require_lock(
-        trxid_t id, LockManager& manager, HierarchicalID hid, LockMode mode);
+    Status require_lock(trxid_t id, HierarchicalID hid, LockMode mode);
 
-    Status release_locks(trxid_t id, LockManager& manager);
+    Status release_locks(trxid_t id);
 
 private:
     std::mutex mtx;
+    LockManager* lock_manager;
 
     trxid_t last_id;
     std::unordered_map<trxid_t, Transaction> trxs;

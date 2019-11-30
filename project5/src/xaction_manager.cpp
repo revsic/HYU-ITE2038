@@ -36,6 +36,10 @@ Status Transaction::end_trx(LockManager& manager) {
     return release_locks(manager);
 }
 
+Status Transaction::abort_trx(LockManager& manager) {
+    return release_locks(manager);
+}
+
 Status Transaction::require_lock(
     LockManager& manager, HierarchicalID hid, LockMode mode
 ) {
@@ -50,7 +54,9 @@ Status Transaction::release_locks(LockManager& manager) {
     return Status::SUCCESS;
 }
 
-TransactionManager::TransactionManager() : mtx(), last_id(0), trxs() {
+TransactionManager::TransactionManager(LockManager& manager) :
+    mtx(), lock_manager(&manager), last_id(0), trxs()
+{
     // Do Nothing
 }
 
@@ -79,27 +85,25 @@ trxid_t TransactionManager::new_trx() {
     return id;
 }
 
-Status TransactionManager::end_trx(trxid_t id, LockManager& manager) {
+Status TransactionManager::end_trx(trxid_t id) {
     std::unique_lock<std::mutex> lock(mtx);
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    iter->second.end_trx(manager);
+    iter->second.end_trx(*lock_manager);
     trxs.erase(iter);
     return Status::SUCCESS;
 }
 
 Status TransactionManager::require_lock(
-    trxid_t id, LockManager& manager, HierarchicalID hid, LockMode mode
+    trxid_t id, HierarchicalID hid, LockMode mode
 ) {
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    return iter->second.require_lock(manager, hid, mode);
+    return iter->second.require_lock(*lock_manager, hid, mode);
 }
 
-Status TransactionManager::release_locks(
-    trxid_t id, LockManager& manager
-) {
+Status TransactionManager::release_locks(trxid_t id) {
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    return iter->second.release_locks(manager);
+    return iter->second.release_locks(*lock_manager);
 }
