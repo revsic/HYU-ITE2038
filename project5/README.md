@@ -133,11 +133,10 @@ S2PL 구현을 위해서 TRX는 operation 과정에서 lock을 잡기만 할 뿐
     - unit test
 - lock manager
     - all
-    - timeout scheduler
-    - max number of shared mutex (balancing exclusive lock)
     - unit test
+    - max number of shared mutex (balancing exclusive lock)
     - same record, multiple access
-    - lock update
+    - lock elevation
 - log manager
     - transaction abort, recoverty
 
