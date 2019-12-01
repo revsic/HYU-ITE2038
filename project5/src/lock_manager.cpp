@@ -179,10 +179,13 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
 Status LockManager::detect_and_release() {
     CHECK_SUCCESS(detector.schedule());
 
-    Transaction* found = detector.find_cycle(locks, trxs);
-    CHECK_NULL(found);
+    std::vector<trxid_t> found = detector.find_cycle(locks, trxs);
+    CHECK_TRUE(found.size() > 0);
 
-    return found->abort_trx(*this);
+    for (trxid_t xid : found) {
+        CHECK_SUCCESS(trxs[xid].first->abort_trx(*this));
+    }
+    return Status::SUCCESS;
 }
 
 bool LockManager::lockable(
@@ -193,8 +196,13 @@ bool LockManager::lockable(
             && target->get_mode() == LockMode::SHARED);
 }
 
-LockManager::DeadlockDetector::Node::Node() : flag(false), refcount(0), next_id() {
+LockManager::DeadlockDetector::Node::Node() : next_id(), prev_id()
+{
     // Do Nothing
+}
+
+int LockManager::DeadlockDetector::Node::refcount() const {
+    return prev_id.size();
 }
 
 LockManager::DeadlockDetector::DeadlockDetector() :
@@ -212,6 +220,30 @@ Status LockManager::DeadlockDetector::schedule() {
         : Status::FAILURE;
 }
 
+void LockManager::DeadlockDetector::reduce(
+    graph_t& graph, trxid_t xid, bool chaining
+) const {
+    std::set<trxid_t> chained;
+    Node& node = graph.at(xid);
+
+    for (trxid_t next_id : node.next_id) {
+        Node& next = graph.at(next_id);
+        next.prev_id.erase(xid);
+        if (chaining && next.refcount() == 0) {
+            chained.insert(next_id);
+        }
+    }
+
+    for (trxid_t prev_id : node.prev_id) {
+        graph.at(prev_id).next_id.erase(xid);
+    }
+
+    graph.erase(graph.find(xid));
+    for (trxid_t xid : chained) {
+        reduce(graph, xid);
+    }
+}
+
 std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
     locktable_t const& locks, trxtable_t const& xtable
 ) {
@@ -220,19 +252,14 @@ std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
     while (graph.size() > 0) {
         auto iter = std::find_if(
             graph.begin(), graph.end(),
-            [](Node& node) { return node.refcount == 0; });
+            [](auto const& pair) { return pair.second.refcount() == 0; });
 
         if (iter == graph.end()) {
             last_found = true;
             return choose_abort(std::move(graph));
         }
 
-        for (trxid_t next_id : iter->second.next_id) {
-            Node& node = graph[next_id];
-            node.refcount--;
-            node.prev_id.erase(iter->first);
-        }
-        graph.erase(iter);
+        reduce(graph, iter->first);
     }
 
     last_found = false;
@@ -243,14 +270,16 @@ std::vector<trxid_t> LockManager::DeadlockDetector::choose_abort(
     graph_t graph
 ) const {
     std::vector<trxid_t> trxs;
-    for (auto& iter : graph) {
-        Node& node = iter.second;
-        if (node.flag) {
-            continue;
-        }
+    while (graph.size() > 0) {
+        auto iter = std::max_element(
+            graph.begin(), graph.end(),
+            [](auto const& left, auto const& right) {
+                return left.second.refcount() < right.second.refcount();
+            });
 
-        node.flag = true;
-        trxs.push_back(iter.first);
+        trxid_t xid = iter->first;
+        trxs.push_back(xid);
+        reduce(graph, xid, true);
     }
     return trxs;
 }
@@ -275,7 +304,6 @@ auto LockManager::DeadlockDetector::construct_graph(
 
         for (auto const& run_lock : module.run) {
             trxid_t run_xid = run_lock->get_backref().get_id();
-            graph[run_xid].refcount++;
             graph[run_xid].prev_id.insert(xid);
             graph[xid].next_id.insert(run_xid);
         }

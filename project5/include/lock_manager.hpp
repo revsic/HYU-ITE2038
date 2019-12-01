@@ -118,8 +118,8 @@ private:
             Node();
             ~Node() = default;
 
-            bool flag;
-            int refcount;
+            int refcount() const;
+
             std::set<trxid_t> next_id;
             std::set<trxid_t> prev_id;
         };
@@ -133,6 +133,9 @@ private:
         DeadlockDetector();
 
         Status schedule();
+
+        void reduce(
+            graph_t& graph, trxid_t xid, bool chaining = false) const;
 
         std::vector<trxid_t> find_cycle(
             locktable_t const& locks, trxtable_t const& xtable);
