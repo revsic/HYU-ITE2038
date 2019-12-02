@@ -1,7 +1,9 @@
 #include "dbms.hpp"
 
-Database::Database(int num_buffer) : tables(), buffers(num_buffer) {
-    // Do Nothing
+Database::Database(int num_buffer) :
+    tables(), buffers(num_buffer), locks(), logs(), trxs(locks)
+{
+    locks.set_database(this);
 }
 
 tableid_t Database::open_table(std::string const& filename) {
@@ -20,7 +22,7 @@ Status Database::print_tree(tableid_t id) {
     return wrapper(id, Status::FAILURE, &Table::print_tree);
 }
 
-Status Database::find(tableid_t id, prikey_t key, Record* record) {
+Status Database::find(tableid_t id, prikey_t key, Record* record, trxid_t xid) {
     return wrapper(id, Status::FAILURE, &Table::find, key, record);
 }
 
@@ -46,4 +48,16 @@ Status Database::destroy_tree(tableid_t id) {
 
 Table const* Database::operator[](tableid_t id) const {
     return tables.find(id);
+}
+
+trxid_t Database::begin_trx() {
+    return trxs.new_trx();
+}
+
+Status Database::end_trx(trxid_t id) {
+    return trxs.end_trx(id);
+}
+
+Status Database::abort_trx(trxid_t id) {
+    return trxs.abort_trx(id, logs);
 }

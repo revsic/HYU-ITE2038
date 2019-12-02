@@ -2,7 +2,10 @@
 #define DBMS_HPP
 
 #include "buffer_manager.hpp"
+#include "lock_manager.hpp"
+#include "log_manager.hpp"
 #include "table_manager.hpp"
+#include "xaction_manager.hpp"
 #include "join.hpp"
 
 /// Database management system.
@@ -46,8 +49,9 @@ public:
     /// \param id tableid_t, table ID.
     /// \param key prikey_t, primary key.
     /// \param record Record*, record pointer to write the result.
+    /// \param xid trxid_t, transaction id.
     /// \return Status, whether success to find the record or not.
-    Status find(tableid_t id, prikey_t key, Record* record);
+    Status find(tableid_t id, prikey_t key, Record* record, trxid_t xid = INVALID_TRXID);
 
     /// Range based search.
     /// \param id tableid_t, table ID.
@@ -96,9 +100,26 @@ public:
     /// \return Table const*, table structure.
     Table const* operator[](tableid_t id) const;
 
+    /// Start transaction.
+    /// \return trxid_t, created transaction id.
+    trxid_t begin_trx();
+
+    /// End transaction.
+    /// \param id trxid_t, target transaction id.
+    /// \return Status, whether success or not.
+    Status end_trx(trxid_t id);
+
+    /// Abort transaction.
+    /// \param id trxid_t, target transaction id.
+    /// \return Status, whether success or not.
+    Status abort_trx(trxid_t id);
+
 private:
     TableManager tables;
     BufferManager buffers;
+    LockManager locks;
+    LogManager logs;
+    TransactionManager trxs;
 
     template <typename R, typename F, typename... Args>
     inline R wrapper(tableid_t id, R&& default_value, F&& callback, Args&&... args) {
