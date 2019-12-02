@@ -74,6 +74,10 @@ std::string const& Table::filename() const {
     return file.get_filename();
 }
 
+FileManager& Table::filemng() const {
+    return file;
+}
+
 TableManager::TableManager(TableManager&& other) noexcept :
     tables(std::move(other.tables))
 {

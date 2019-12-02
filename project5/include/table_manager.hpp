@@ -104,6 +104,10 @@ private:
     FileManager file;
     BPTree bpt;
 
+    friend class Transaction;
+
+    FileManager& filemng() const;
+
 #ifdef TEST_MODULE
     friend struct TableTest;
 #endif
