@@ -38,19 +38,19 @@ public:
     Status abort_trx(LockManager& manager);
 
     Status require_lock(
-        LockManager& manager, HierarchicalID hid, LockMode mode);
+        LockManager& manager, HID hid, LockMode mode);
 
     Status release_locks(LockManager& manager);
 
     trxid_t get_id() const;
 
-    std::map<HierarchicalID, std::shared_ptr<Lock>> const& get_locks() const;
+    std::map<HID, std::shared_ptr<Lock>> const& get_locks() const;
 
 private:
     trxid_t id;
     TrxState state;
     std::shared_ptr<Lock> wait;
-    std::map<HierarchicalID, std::shared_ptr<Lock>> locks;
+    std::map<HID, std::shared_ptr<Lock>> locks;
 
     friend class LockManager;
 
@@ -78,7 +78,7 @@ public:
 
     Status end_trx(trxid_t id);
 
-    Status require_lock(trxid_t id, HierarchicalID hid, LockMode mode);
+    Status require_lock(trxid_t id, HID hid, LockMode mode);
 
     Status release_locks(trxid_t id);
 

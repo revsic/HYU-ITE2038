@@ -30,7 +30,7 @@ Lock::Lock() : hid(), mode(LockMode::IDLE), backref(nullptr), wait(false)
     // Do Nothing
 }
 
-Lock::Lock(HierarchicalID hid, LockMode mode, Transaction* backref
+Lock::Lock(HID hid, LockMode mode, Transaction* backref
 ) : hid(hid), mode(mode), backref(backref), wait(false)
 {
     // Do Nothing
@@ -44,7 +44,7 @@ Lock::Lock(Lock&& lock) noexcept :
     hid(lock.hid), mode(lock.mode),
     backref(lock.backref), wait(lock.wait.load())
 {
-    lock.hid = HierarchicalID();
+    lock.hid = HID();
     lock.mode = LockMode::IDLE;
     lock.backref = nullptr;
     lock.wait = false;
@@ -56,7 +56,7 @@ Lock& Lock::operator=(Lock&& lock) noexcept {
     backref = lock.backref;
     wait = lock.wait.load();
 
-    lock.hid = HierarchicalID();
+    lock.hid = HID();
     lock.mode = LockMode::IDLE;
     lock.backref = nullptr;
     lock.wait = false;
@@ -64,7 +64,7 @@ Lock& Lock::operator=(Lock&& lock) noexcept {
     return *this;
 }
 
-HierarchicalID Lock::get_hid() const {
+HID Lock::get_hid() const {
     return hid;
 }
 
@@ -96,7 +96,7 @@ LockManager::~LockManager() {
 }
 
 std::shared_ptr<Lock> LockManager::require_lock(
-    Transaction* backref, HierarchicalID hid, LockMode mode
+    Transaction* backref, HID hid, LockMode mode
 ) {
     HashableID id = hid.make_hashable();
     auto new_lock = std::make_shared<Lock>(hid, mode, backref);
@@ -299,7 +299,7 @@ auto LockManager::DeadlockDetector::construct_graph(
             continue;
         }
 
-        HierarchicalID wait_id = trx->wait->get_hid();
+        HID wait_id = trx->wait->get_hid();
         LockStruct const& module = locks.at(wait_id.make_hashable());
 
         for (auto const& run_lock : module.run) {
