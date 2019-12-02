@@ -43,13 +43,21 @@ Status Transaction::abort_trx(LockManager& manager) {
 Status Transaction::require_lock(
     LockManager& manager, HierarchicalID hid, LockMode mode
 ) {
-    locks.push_back(manager.require_lock(this, hid, mode));
+    CHECK_TRUE(id != INVALID_TRXID);
+    if (locks.find(hid) != locks.end()
+        && locks.at(hid)->get_mode() == mode
+    ) {
+        /// TODO: lock elevation check
+        return Status::SUCCESS;
+    }
+
+    locks[hid] = manager.require_lock(this, hid, mode);
     return Status::SUCCESS;
 }
 
 Status Transaction::release_locks(LockManager& manager) {
-    for (auto lock : locks) {
-        CHECK_SUCCESS(manager.release_lock(lock));
+    for (auto& pair : locks) {
+        CHECK_SUCCESS(manager.release_lock(pair.second));
     }
     return Status::SUCCESS;
 }
@@ -58,7 +66,7 @@ trxid_t Transaction::get_id() const {
     return id;
 }
 
-std::list<std::shared_ptr<Lock>> const& Transaction::get_locks() const {
+std::map<HierarchicalID, std::shared_ptr<Lock>> const& Transaction::get_locks() const {
     return locks;
 }
 

@@ -3,7 +3,7 @@
 
 #include "lock_manager.hpp"
 
-#include <list>
+#include <map>
 #include <mutex>
 #include <unordered_map>
 
@@ -44,13 +44,13 @@ public:
 
     trxid_t get_id() const;
 
-    std::list<std::shared_ptr<Lock>> const& get_locks() const;
+    std::map<HierarchicalID, std::shared_ptr<Lock>> const& get_locks() const;
 
 private:
     trxid_t id;
     TrxState state;
     std::shared_ptr<Lock> wait;
-    std::list<std::shared_ptr<Lock>> locks;
+    std::map<HierarchicalID, std::shared_ptr<Lock>> locks;
 
     friend class LockManager;
 };
