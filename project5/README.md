@@ -137,10 +137,10 @@ S2PL 구현을 위해서 TRX는 operation 과정에서 lock을 잡기만 할 뿐
     - all
     - unit test
     - max number of shared mutex (balancing exclusive lock)
-    - same record, multiple access
-    - lock elevation
 - log manager
     - transaction abort, recoverty
+- dbms
+    - tie lock, log, trx, table manager in one
 
 ### Future work
 - Concurrency Control

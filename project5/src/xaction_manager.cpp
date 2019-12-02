@@ -1,3 +1,4 @@
+#include "utils.hpp"
 #include "xaction_manager.hpp"
 
 Transaction::Transaction()
@@ -36,20 +37,35 @@ Status Transaction::end_trx(LockManager& manager) {
     return release_locks(manager);
 }
 
-Status Transaction::abort_trx(LockManager& manager) {
-    return release_locks(manager);
+Status Transaction::abort_trx(LockManager& lockmng, LogManager& logmng) {
+    for (Log const& log : logmng.get_logs(id)) {
+
+    }
+
+    /// TODO: recovery
+    return release_locks(lockmng);
 }
 
 Status Transaction::require_lock(
-    LockManager& manager, HierarchicalID hid, LockMode mode
+    LockManager& manager, HID hid, LockMode mode
 ) {
-    locks.push_back(manager.require_lock(this, hid, mode));
+    CHECK_TRUE(state != TrxState::IDLE);
+    if (locks.find(hid) != locks.end()) {
+        std::shared_ptr<Lock> lock = locks.at(hid);
+        if (static_cast<int>(mode) > static_cast<int>(lock->get_mode())) {
+            return elevate_lock(manager, std::move(lock), mode);
+        }
+
+        return Status::SUCCESS;
+    }
+
+    locks[hid] = manager.require_lock(this, hid, mode);
     return Status::SUCCESS;
 }
 
 Status Transaction::release_locks(LockManager& manager) {
-    for (auto lock : locks) {
-        CHECK_SUCCESS(manager.release_lock(lock));
+    for (auto& pair : locks) {
+        CHECK_SUCCESS(manager.release_lock(pair.second));
     }
     return Status::SUCCESS;
 }
@@ -58,12 +74,21 @@ trxid_t Transaction::get_id() const {
     return id;
 }
 
-std::list<std::shared_ptr<Lock>> const& Transaction::get_locks() const {
+std::map<HID, std::shared_ptr<Lock>> const& Transaction::get_locks() const {
     return locks;
 }
 
-TransactionManager::TransactionManager(LockManager& manager) :
-    mtx(), lock_manager(&manager), last_id(0), trxs()
+Status Transaction::elevate_lock(
+    LockManager& manager, std::shared_ptr<Lock> lock, LockMode mode
+) {
+    HID hid = lock->get_hid();
+    CHECK_SUCCESS(manager.release_lock(lock));
+    locks[hid] = manager.require_lock(this, hid, mode);
+    return Status::SUCCESS;
+}
+
+TransactionManager::TransactionManager(LockManager& lockmng)
+    : mtx(), lock_manager(&lockmng), last_id(0), trxs()
 {
     // Do Nothing
 }
@@ -103,7 +128,7 @@ Status TransactionManager::end_trx(trxid_t id) {
 }
 
 Status TransactionManager::require_lock(
-    trxid_t id, HierarchicalID hid, LockMode mode
+    trxid_t id, HID hid, LockMode mode
 ) {
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());

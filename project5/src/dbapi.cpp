@@ -5,9 +5,11 @@
 
 std::unique_ptr<Database> GLOBAL_DB = nullptr;
 
-LockManager GLOBAL_LOCKMNG;
+LogManager GLOBAL_LOGMNG;
 
-TransactionManager GLOBAL_TRXMNG(GLOBAL_LOCKMNG);
+LockManager GLOBAL_LOCKMNG(GLOBAL_LOGMNG);
+
+TransactionManager GLOBAL_TRXMNG(GLOBAL_LOCKMNG, GLOBAL_LOGMNG);
 
 int init_db(int buf_num) {
     GLOBAL_DB = std::make_unique<Database>(buf_num);

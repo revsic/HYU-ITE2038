@@ -24,25 +24,28 @@ enum class LockMode {
 };
 
 // tableid, pageid, record index
-using HashableID = HashablePack<tableid_t, pagenum_t, int>;
+using HashableID = HashablePack<tableid_t, pagenum_t>;
 
 struct HierarchicalID {
     tableid_t tid;
     pagenum_t pid;
-    int rid;
 
     HierarchicalID();
 
-    HierarchicalID(tableid_t tid, pagenum_t pid, int rid);
+    HierarchicalID(tableid_t tid, pagenum_t pid);
 
     HashableID make_hashable() const;
+
+    bool operator<(HierarchicalID const& other) const;
 };
+
+using HID = HierarchicalID;
 
 class Lock {
 public:
     Lock();
 
-    Lock(HierarchicalID hid, LockMode mode, Transaction* backref);
+    Lock(HID hid, LockMode mode, Transaction* backref);
 
     ~Lock();
 
@@ -54,7 +57,7 @@ public:
 
     Lock& operator=(Lock const&) = delete;
 
-    HierarchicalID get_hid() const;
+    HID get_hid() const;
 
     LockMode get_mode() const;
 
@@ -65,7 +68,7 @@ public:
     Status run();
 
 private:
-    HierarchicalID hid;
+    HID hid;
     LockMode mode;
     Transaction* backref;
     std::atomic<bool> wait; 
@@ -86,7 +89,7 @@ public:
     LockManager& operator=(LockManager const&) = delete;
 
     std::shared_ptr<Lock> require_lock(
-        Transaction* backref, HierarchicalID hid, LockMode mode);
+        Transaction* backref, HID hid, LockMode mode);
     
     Status release_lock(std::shared_ptr<Lock> lock);
 
