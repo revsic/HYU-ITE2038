@@ -37,6 +37,7 @@ Status Transaction::end_trx(LockManager& manager) {
 }
 
 Status Transaction::abort_trx(LockManager& manager) {
+    /// TODO: recovery
     return release_locks(manager);
 }
 
