@@ -2,6 +2,7 @@
 #define XACTION_MANAGER_HPP
 
 #include "lock_manager.hpp"
+#include "log_manager.hpp"
 
 #include <map>
 #include <mutex>
@@ -77,6 +78,8 @@ public:
     trxid_t new_trx();
 
     Status end_trx(trxid_t id);
+
+    Status abort_trx(trxid_t id, LogManager& logmng);
 
     Status require_lock(trxid_t id, HID hid, LockMode mode);
 

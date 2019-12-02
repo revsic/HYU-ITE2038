@@ -122,7 +122,16 @@ Status TransactionManager::end_trx(trxid_t id) {
     std::unique_lock<std::mutex> lock(mtx);
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    iter->second.end_trx(*lock_manager);
+    CHECK_SUCCESS(iter->second.end_trx(*lock_manager));
+    trxs.erase(iter);
+    return Status::SUCCESS;
+}
+
+Status TransactionManager::abort_trx(trxid_t id, LogManager& logmng) {
+    std::unique_lock<std::mutex> lock(mtx);
+    auto iter = trxs.find(id);
+    CHECK_TRUE(iter != trxs.end());
+    CHECK_SUCCESS(iter->second.abort_trx(*lock_manager, logmng));
     trxs.erase(iter);
     return Status::SUCCESS;
 }
