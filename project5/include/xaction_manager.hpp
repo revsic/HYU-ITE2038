@@ -53,6 +53,9 @@ private:
     std::map<HierarchicalID, std::shared_ptr<Lock>> locks;
 
     friend class LockManager;
+
+    Status elevate_lock(
+        LockManager& manager, std::shared_ptr<Lock> lock, LockMode mode);
 };
 
 class TransactionManager {
