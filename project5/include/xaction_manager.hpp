@@ -36,7 +36,7 @@ public:
 
     Status end_trx(LockManager& manager);
 
-    Status abort_trx(LockManager& manager);
+    Status abort_trx(LockManager& lockmng, LogManager& logmng);
 
     Status require_lock(
         LockManager& manager, HID hid, LockMode mode);

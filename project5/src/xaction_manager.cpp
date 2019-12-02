@@ -1,3 +1,4 @@
+#include "utils.hpp"
 #include "xaction_manager.hpp"
 
 Transaction::Transaction()
@@ -36,9 +37,14 @@ Status Transaction::end_trx(LockManager& manager) {
     return release_locks(manager);
 }
 
-Status Transaction::abort_trx(LockManager& manager) {
+Status Transaction::abort_trx(LockManager& lockmng, LogManager& logmng) {
+    using R = utils::Reverse<std::list<Log> const>;
+    for (Log const& log : R(logmng.get_logs(id))) {
+
+    }
+
     /// TODO: recovery
-    return release_locks(manager);
+    return release_locks(lockmng);
 }
 
 Status Transaction::require_lock(
