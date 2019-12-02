@@ -91,12 +91,6 @@ LockManager::LockStruct::LockStruct() :
     // Do Nothing
 }
 
-LockManager::LockManager(LogManager& manager)
-    : mtx(), locks(), trxs(), detector(), log_manager(&manager)
-{
-    // Do Nothing
-}
-
 LockManager::~LockManager() {
     // TODO: Impl shutdown
 }
@@ -189,7 +183,7 @@ Status LockManager::detect_and_release() {
     CHECK_TRUE(found.size() > 0);
 
     for (trxid_t xid : found) {
-        CHECK_SUCCESS(trxs[xid].first->abort_trx(*this, *log_manager));
+        CHECK_SUCCESS(trxs[xid].first->abort_trx(*this));
     }
     return Status::SUCCESS;
 }

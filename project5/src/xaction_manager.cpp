@@ -87,9 +87,8 @@ Status Transaction::elevate_lock(
     return Status::SUCCESS;
 }
 
-TransactionManager::TransactionManager(
-    LockManager& lockmng, LogManager& logmng
-) : mtx(), lock_manager(&lockmng), log_manager(&logmng), last_id(0), trxs()
+TransactionManager::TransactionManager(LockManager& lockmng)
+    : mtx(), lock_manager(&lockmng), last_id(0), trxs()
 {
     // Do Nothing
 }

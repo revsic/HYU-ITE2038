@@ -2,7 +2,6 @@
 #define XACTION_MANAGER_HPP
 
 #include "lock_manager.hpp"
-#include "log_manager.hpp"
 
 #include <map>
 #include <mutex>
@@ -61,7 +60,7 @@ private:
 
 class TransactionManager {
 public:
-    TransactionManager(LockManager& lockmng, LogManager& logmng);
+    TransactionManager(LockManager& lockmng);
 
     ~TransactionManager();
 
@@ -86,7 +85,6 @@ public:
 private:
     std::mutex mtx;
     LockManager* lock_manager;
-    LogManager* log_manager;
 
     trxid_t last_id;
     std::unordered_map<trxid_t, Transaction> trxs;
