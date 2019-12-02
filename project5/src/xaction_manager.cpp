@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "dbms.hpp"
 #include "utils.hpp"
 #include "xaction_manager.hpp"
@@ -40,10 +42,15 @@ Status Transaction::end_trx(LockManager& manager) {
 
 Status Transaction::abort_trx(Database& dbms) {
     for (Log const& log : dbms.logs.get_logs(id)) {
+        Table const* table = dbms.tables.find(log.hid.tid);
+        CHECK_NULL(table);
 
+        dbms.buffers.buffering(table->filemng(), log.hid.pid).write(
+            [&](Page& page) {
+                std::memcpy(&page.records()[log.offset], &log.before, sizeof(Record));
+            });
     }
 
-    /// TODO: recovery
     return release_locks(dbms.locks);
 }
 
