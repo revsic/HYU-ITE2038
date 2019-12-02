@@ -5,19 +5,24 @@
 #include "xaction_manager.hpp"
 
 HierarchicalID::HierarchicalID()
-    : HierarchicalID(INVALID_TABLEID, INVALID_PAGENUM, -1)
+    : HierarchicalID(INVALID_TABLEID, INVALID_PAGENUM)
 {
     // Do Nothing
 }
 
-HierarchicalID::HierarchicalID(tableid_t tid, pagenum_t pid, int rid) :
-    tid(tid), pid(pid), rid(rid)
+HierarchicalID::HierarchicalID(tableid_t tid, pagenum_t pid) :
+    tid(tid), pid(pid)
 {
     // Do Nothing
 }
 
 HashableID HierarchicalID::make_hashable() const {
-    return HashableID(pack_init, tid, pid, rid);
+    return HashableID(pack_init, tid, pid);
+}
+
+bool HierarchicalID::operator<(HierarchicalID const& other) const {
+    return tid < other.tid
+        || (tid == other.tid && pid < other.pid);
 }
 
 Lock::Lock() : hid(), mode(LockMode::IDLE), backref(nullptr), wait(false)
@@ -96,15 +101,9 @@ std::shared_ptr<Lock> LockManager::require_lock(
     HashableID id = hid.make_hashable();
     auto new_lock = std::make_shared<Lock>(hid, mode, backref);
 
-    utils::Defer defer([&] {
-        backref->wait = nullptr;
-        backref->state = TrxState::RUNNING;
-        backref->locks.push_back(new_lock);
-    });
-
     std::unique_lock<std::mutex> own(mtx);
 
-    utils::Defer inlock_defer([&] {
+    utils::Defer defer([&] {
         LockStruct& module = locks[id];
         module.mode = mode;
         module.run.push_front(new_lock);
@@ -117,13 +116,12 @@ std::shared_ptr<Lock> LockManager::require_lock(
 
     auto iter = locks.find(id);
     if (iter == locks.end() || lockable(iter->second, new_lock)) {
-        // backref and module updates are occured
-        // in defer and inlock defer.
+        // backref and module updates are occured in defer.
         return new_lock;
     }
 
-    backref->state = TrxState::WAITING;
     backref->wait = new_lock;
+    backref->state = TrxState::WAITING;
 
     locks[id].wait.push_back(new_lock);
 
@@ -138,9 +136,11 @@ std::shared_ptr<Lock> LockManager::require_lock(
         }
     }
 
+    backref->wait = nullptr;
+    backref->state = TrxState::RUNNING;
+
     locks[id].wait.remove(new_lock);
-    // backref and module updates are occured
-    // in defer and inlock defer.
+    // backref and module updates are occured in defer.
     return new_lock;
 }
 
@@ -172,7 +172,7 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
     own.unlock();
     module.cv.notify_all();
 
-    backref.locks.remove(lock);
+    backref.locks.erase(lock->get_hid());
     return Status::SUCCESS;
 }
 

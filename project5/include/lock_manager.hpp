@@ -24,18 +24,19 @@ enum class LockMode {
 };
 
 // tableid, pageid, record index
-using HashableID = HashablePack<tableid_t, pagenum_t, int>;
+using HashableID = HashablePack<tableid_t, pagenum_t>;
 
 struct HierarchicalID {
     tableid_t tid;
     pagenum_t pid;
-    int rid;
 
     HierarchicalID();
 
-    HierarchicalID(tableid_t tid, pagenum_t pid, int rid);
+    HierarchicalID(tableid_t tid, pagenum_t pid);
 
     HashableID make_hashable() const;
+
+    bool operator<(HierarchicalID const& other) const;
 };
 
 class Lock {
