@@ -10,6 +10,8 @@
 #include "hashable.hpp"
 #include "table_manager.hpp"
 
+class LogManager;
+
 using namespace std::chrono_literals;
 
 /// WARNING: assertion required about trxid_t == int in xaction_maanger.hpp
@@ -76,7 +78,7 @@ private:
 
 class LockManager {
 public:
-    LockManager() = default;
+    LockManager(LogManager& manager);
 
     ~LockManager();
 
@@ -153,6 +155,7 @@ private:
     locktable_t locks;
     trxtable_t trxs;
     DeadlockDetector detector;
+    LogManager* log_manager;
 
     bool lockable(
         LockStruct const& module, std::shared_ptr<Lock> const& target) const;
