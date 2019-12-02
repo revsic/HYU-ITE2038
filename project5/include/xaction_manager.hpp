@@ -37,8 +37,7 @@ public:
 
     Status end_trx(LockManager& manager);
 
-    Status abort_trx(
-        BufferManager& bufmng, LockManager& lockmng, LogManager& logmng);
+    Status abort_trx(Database& dbms);
 
     Status require_lock(
         LockManager& manager, HID hid, LockMode mode);
@@ -81,7 +80,7 @@ public:
 
     Status end_trx(trxid_t id);
 
-    Status abort_trx(trxid_t id, BufferManager& bufmng, LogManager& logmng);
+    Status abort_trx(trxid_t id, Database& dbms);
 
     Status require_lock(trxid_t id, HID hid, LockMode mode);
 

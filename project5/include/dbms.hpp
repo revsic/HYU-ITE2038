@@ -121,6 +121,8 @@ private:
     LogManager logs;
     TransactionManager trxs;
 
+    friend class Transaction;
+
     template <typename R, typename F, typename... Args>
     inline R wrapper(tableid_t id, R&& default_value, F&& callback, Args&&... args) {
         Table const* table = tables.find(id);

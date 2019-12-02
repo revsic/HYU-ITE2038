@@ -1,3 +1,4 @@
+#include "dbms.hpp"
 #include "utils.hpp"
 #include "xaction_manager.hpp"
 
@@ -37,15 +38,13 @@ Status Transaction::end_trx(LockManager& manager) {
     return release_locks(manager);
 }
 
-Status Transaction::abort_trx(
-    BufferManager& bufmng, LockManager& lockmng, LogManager& logmng
-) {
-    for (Log const& log : logmng.get_logs(id)) {
+Status Transaction::abort_trx(Database& dbms) {
+    for (Log const& log : dbms.logs.get_logs(id)) {
 
     }
 
     /// TODO: recovery
-    return release_locks(lockmng);
+    return release_locks(dbms.locks);
 }
 
 Status Transaction::require_lock(
@@ -129,13 +128,11 @@ Status TransactionManager::end_trx(trxid_t id) {
     return Status::SUCCESS;
 }
 
-Status TransactionManager::abort_trx(
-    trxid_t id, BufferManager& bufmng, LogManager& logmng
-) {
+Status TransactionManager::abort_trx(trxid_t id, Database& dbms) {
     std::unique_lock<std::mutex> lock(mtx);
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    CHECK_SUCCESS(iter->second.abort_trx(*lock_manager, bufmng, logmng));
+    CHECK_SUCCESS(iter->second.abort_trx(dbms));
     trxs.erase(iter);
     return Status::SUCCESS;
 }
