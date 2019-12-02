@@ -37,7 +37,9 @@ Status Transaction::end_trx(LockManager& manager) {
     return release_locks(manager);
 }
 
-Status Transaction::abort_trx(LockManager& lockmng, LogManager& logmng) {
+Status Transaction::abort_trx(
+    BufferManager& bufmng, LockManager& lockmng, LogManager& logmng
+) {
     for (Log const& log : logmng.get_logs(id)) {
 
     }
@@ -127,11 +129,13 @@ Status TransactionManager::end_trx(trxid_t id) {
     return Status::SUCCESS;
 }
 
-Status TransactionManager::abort_trx(trxid_t id, LogManager& logmng) {
+Status TransactionManager::abort_trx(
+    trxid_t id, BufferManager& bufmng, LogManager& logmng
+) {
     std::unique_lock<std::mutex> lock(mtx);
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
-    CHECK_SUCCESS(iter->second.abort_trx(*lock_manager, logmng));
+    CHECK_SUCCESS(iter->second.abort_trx(*lock_manager, bufmng, logmng));
     trxs.erase(iter);
     return Status::SUCCESS;
 }

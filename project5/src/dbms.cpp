@@ -59,5 +59,5 @@ Status Database::end_trx(trxid_t id) {
 }
 
 Status Database::abort_trx(trxid_t id) {
-    return trxs.abort_trx(id, logs);
+    return trxs.abort_trx(id, buffers, logs);
 }

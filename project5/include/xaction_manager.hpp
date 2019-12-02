@@ -1,6 +1,7 @@
 #ifndef XACTION_MANAGER_HPP
 #define XACTION_MANAGER_HPP
 
+#include "buffer_manager.hpp"
 #include "lock_manager.hpp"
 #include "log_manager.hpp"
 
@@ -36,7 +37,8 @@ public:
 
     Status end_trx(LockManager& manager);
 
-    Status abort_trx(LockManager& lockmng, LogManager& logmng);
+    Status abort_trx(
+        BufferManager& bufmng, LockManager& lockmng, LogManager& logmng);
 
     Status require_lock(
         LockManager& manager, HID hid, LockMode mode);
@@ -79,7 +81,7 @@ public:
 
     Status end_trx(trxid_t id);
 
-    Status abort_trx(trxid_t id, LogManager& logmng);
+    Status abort_trx(trxid_t id, BufferManager& bufmng, LogManager& logmng);
 
     Status require_lock(trxid_t id, HID hid, LockMode mode);
 
