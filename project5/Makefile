@@ -77,6 +77,9 @@ $(SRCDIR)xaction_manager.o:
 $(SRCDIR)lock_manager.o:
 	$(CXX) $(CFLAGS) -o $(SRCDIR)lock_manager.o -c $(SRCDIR)lock_manager.cpp
 
+$(SRCDIR)log_manager.o:
+	$(CXX) $(CFLAGS) -o $(SRCDIR)log_manager.o -c $(SRCDIR)log_manager.cpp
+
 $(TARGET_OBJ): $(TARGET_SRC)
 	$(CXX) $(CFLAGS) -o $@ -c $^
 

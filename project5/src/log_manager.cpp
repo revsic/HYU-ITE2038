@@ -1,0 +1,1 @@
+#include "log_manager.hpp"
