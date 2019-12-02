@@ -5,9 +5,9 @@
 
 std::unique_ptr<Database> GLOBAL_DB = nullptr;
 
-LockManager GLOBAL_LOCKMNG;
-
 LogManager GLOBAL_LOGMNG;
+
+LockManager GLOBAL_LOCKMNG(GLOBAL_LOGMNG);
 
 TransactionManager GLOBAL_TRXMNG(GLOBAL_LOCKMNG, GLOBAL_LOGMNG);
 
