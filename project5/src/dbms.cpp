@@ -3,7 +3,7 @@
 Database::Database(int num_buffer) :
     tables(), buffers(num_buffer), locks(), logs(), trxs(locks)
 {
-    locks.set_database(this);
+    locks.set_database(*this);
 }
 
 tableid_t Database::open_table(std::string const& filename) {
