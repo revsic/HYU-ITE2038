@@ -9,15 +9,6 @@
 /// Global DBMS for db api.
 extern std::unique_ptr<Database> GLOBAL_DB;
 
-/// Global log manager.
-extern LogManager GLOBAL_LOGMNG;
-
-/// Global lock manager.
-extern LockManager GLOBAL_LOCKMNG;
-
-/// Global transaction manager.
-extern TransactionManager GLOBAL_TRXMNG;
-
 /// Initialize database.
 /// \param buf_num int, the number of the buffer.
 /// \return int, 0 for success, 1 for failure.
