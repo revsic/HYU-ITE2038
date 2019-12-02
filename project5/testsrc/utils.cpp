@@ -1,5 +1,5 @@
 #include "test.hpp"
 
-int lock_manager_test() {
+int utils_test() {
     return 0;
 }

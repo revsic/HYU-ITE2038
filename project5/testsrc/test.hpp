@@ -24,6 +24,8 @@ int name##_test() {                                         \
     return 1;                                               \
 }
 
+// int status_test();
+int utils_test();
 int fileio_test();
 int headers_test();
 int disk_manager_test();
@@ -33,3 +35,8 @@ int bptree_iter_test();
 int table_manager_test();
 int join_test();
 int hashable_test();
+int lock_manager_test();
+int log_manager_test();
+int xaction_manager_test();
+// int dbms_test();
+// int dbapi_test();
