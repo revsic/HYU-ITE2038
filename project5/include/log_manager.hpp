@@ -1,7 +1,10 @@
 #ifndef LOG_MANAGER_HPP
 #define LOG_MANAGER_HPP
 
-#include "xaction_manager.hpp"
+#include <list>
+#include <map>
+
+#include "lock_manager.hpp"
 
 using lsn_t = size_t;
 

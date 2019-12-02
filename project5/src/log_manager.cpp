@@ -2,8 +2,9 @@
 
 #include "log_manager.hpp"
 
+/// WARNING: INVALID_TRXID should be 0.
 Log::Log()
-    : lsn(0), prev_lsn(0), xid(INVALID_TRXID), type(LogType::INVALID)
+    : lsn(0), prev_lsn(0), xid(0), type(LogType::INVALID)
     , hid(), offset(-1), before(), after()
 {
     // Do Nothing
