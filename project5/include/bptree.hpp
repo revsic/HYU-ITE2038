@@ -105,6 +105,12 @@ private:
 
     friend class BPTreeIterator;
 
+    /// Access type.
+    enum class Access {
+        READ = 0,
+        WRITE = 1,
+    };
+
     /// Return buffer specified by pageid.
     /// \param pagenum pagenum_t, page id.
     /// \return Ubuffer, buffer.
@@ -139,6 +145,40 @@ private:
     /// \param buffer Ubuffer&, buffer to write the result.
     /// \return pagenum_t, found leaf page id.
     pagenum_t find_leaf(prikey_t key, Ubuffer& buffer) const;
+
+
+    /// Find the key from the giveen buffer and run callback.
+    /// \param T constant, Access, access token.
+    /// \param F typename, Status(Record&), callback type.
+    /// \param key prikey_t, primary key.
+    /// \param buffer Ubuffer&, target buffer.
+    /// \param callback F&&, callback for found record.
+    /// \return Status, whether success to run callback or not.
+    template <Access T, typename F>
+    Status find_key_from_leaf(
+        prikey_t key, Ubuffer& buffer, F&& callback
+    ) const {
+        using PageT = std::conditional_t<T == Access::READ, Page const, Page>;
+        auto method = [&](PageT& page) {
+            if (!page.page_header().is_leaf) {
+                return Status::FAILURE;
+            }
+
+            int i, num_key = page.page_header().number_of_keys;
+            for (i = 0; i < num_key && page.records()[i].key != key; ++i)
+                {}
+            
+            if (i < num_key) {
+                return callback(page.records()[i]);
+            }
+            return Status::FAILURE;
+        };
+        if (T == Access::READ) {
+            return buffer.read(std::move(method));
+        } else {
+            return buffer.write(std::move(method));
+        }
+    }
 
     /// Find the key from the given buffer and write the result to `record`.
     /// \param key prikey_t, primary key.

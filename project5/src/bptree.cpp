@@ -427,23 +427,14 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) const {
 Status BPTree::find_key_from_leaf(
     prikey_t key, Ubuffer& buffer, Record* record
 ) const {
-    return buffer.read([&](Page const& page) {
-        if (!page.page_header().is_leaf) {
-            return Status::FAILURE;
-        }
-
-        int i, num_key = page.page_header().number_of_keys;
-        for (i = 0; i < num_key && page.records()[i].key != key; ++i)
-            {}
-        
-        if (i < num_key) {
+    return find_key_from_leaf<Access::READ>(
+        key, buffer,
+        [=](Record const& rec) {
             if (record != nullptr) {
-                std::memcpy(record, &page.records()[i], sizeof(Record));
+                std::memcpy(record, &rec, sizeof(Record));
             }
             return Status::SUCCESS;
-        }
-        return Status::FAILURE;
-    });
+        });
 }
 
 Status BPTree::find_pagenum_from_internal(
