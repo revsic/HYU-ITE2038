@@ -1,5 +1,6 @@
 #include <condition_variable>
 
+#include "dbms.hpp"
 #include "lock_manager.hpp"
 #include "utils.hpp"
 #include "xaction_manager.hpp"
@@ -183,8 +184,13 @@ Status LockManager::detect_and_release() {
     CHECK_TRUE(found.size() > 0);
 
     for (trxid_t xid : found) {
-        CHECK_SUCCESS(trxs[xid].first->abort_trx(*this));
+        CHECK_SUCCESS(db->abort_trx(xid));
     }
+    return Status::SUCCESS;
+}
+
+Status LockManager::set_database(Database& db) {
+    this->db = &db;
     return Status::SUCCESS;
 }
 

@@ -10,6 +10,8 @@
 #include "hashable.hpp"
 #include "table_manager.hpp"
 
+class Database;
+
 using namespace std::chrono_literals;
 
 /// WARNING: assertion required about trxid_t == int in xaction_maanger.hpp
@@ -95,6 +97,8 @@ public:
 
     Status detect_and_release();
 
+    Status set_database(Database& db);
+
 private:
     static constexpr std::chrono::milliseconds LOCK_WAIT = 10ms;
 
@@ -153,6 +157,7 @@ private:
     locktable_t locks;
     trxtable_t trxs;
     DeadlockDetector detector;
+    Database* db;
 
     bool lockable(
         LockStruct const& module, std::shared_ptr<Lock> const& target) const;
