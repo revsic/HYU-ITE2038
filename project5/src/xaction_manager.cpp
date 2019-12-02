@@ -42,10 +42,9 @@ Status Transaction::end_trx(LockManager& manager) {
 
 Status Transaction::abort_trx(Database& dbms) {
     for (Log const& log : dbms.logs.get_logs(id)) {
-        Table const* table = dbms.tables.find(log.hid.tid);
-        CHECK_NULL(table);
-
-        dbms.buffers.buffering(table->filemng(), log.hid.pid).write(
+        FileManager* file = dbms.tables.find_file(log.hid.tid);
+        CHECK_NULL(file);
+        dbms.buffers.buffering(*file, log.hid.pid).write_void(
             [&](Page& page) {
                 std::memcpy(&page.records()[log.offset], &log.before, sizeof(Record));
             });

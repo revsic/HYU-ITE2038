@@ -74,7 +74,7 @@ std::string const& Table::filename() const {
     return file.get_filename();
 }
 
-FileManager& Table::filemng() const {
+FileManager& Table::filemng() {
     return file;
 }
 
@@ -113,8 +113,9 @@ tableid_t TableManager::load(
 }
 
 Table const* TableManager::find(tableid_t id) const {
-    if (tables.find(id) != tables.end()) {
-        return &tables.at(id);
+    auto iter = tables.find(id);
+    if (iter != tables.end()) {
+        return &iter->second;
     }
     return nullptr;
 }
@@ -132,4 +133,12 @@ Status TableManager::remove(tableid_t id) {
 tableid_t TableManager::convert(fileid_t id) {
     tableid_t tableid = static_cast<tableid_t>(id);
     return tableid > 0 ? tableid : -tableid;
+}
+
+FileManager* TableManager::find_file(tableid_t id) {
+    auto iter = tables.find(id);
+    if (iter != tables.end()) {
+        return &iter->second.filemng();
+    }
+    return nullptr;
 }

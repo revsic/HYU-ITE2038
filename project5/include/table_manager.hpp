@@ -104,9 +104,9 @@ private:
     FileManager file;
     BPTree bpt;
 
-    friend class Transaction;
+    friend class TableManager;
 
-    FileManager& filemng() const;
+    FileManager& filemng();
 
 #ifdef TEST_MODULE
     friend struct TableTest;
@@ -157,6 +157,10 @@ private:
     /// \param id fileid_t, file ID.
     /// \return tableid_t, converted table ID.
     static tableid_t convert(fileid_t id);
+
+    friend class Transaction;
+
+    FileManager* find_file(tableid_t id);
 
 #ifdef TEST_MODULE
     friend struct TableManagerTest;
