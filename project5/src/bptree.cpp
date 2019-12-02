@@ -299,6 +299,20 @@ Status BPTree::remove(prikey_t key) const {
     return Status::FAILURE;
 }
 
+Status BPTree::update(prikey_t key, Record const& record) const {
+    Ubuffer buffer(nullptr);
+    pagenum_t c = find_leaf(key, buffer);
+    if (c == INVALID_PAGENUM) {
+        return Status::FAILURE;
+    }
+    return find_key_from_leaf<Access::WRITE>(
+        key, buffer,
+        [&](Record& rec) {
+            std::memcpy(&rec, &record, sizeof(Record));
+            return Status::SUCCESS;
+        });
+}
+
 Status BPTree::destroy_tree() const {
     pagenum_t root;
     CHECK_SUCCESS(

@@ -10,6 +10,44 @@
 #include "test.hpp"
 #endif
 
+/// Read-write specialization.
+namespace _RWSpec {
+    /// Access type.
+    enum class Access {
+        READ = 0,
+        WRITE = 1,
+    };
+
+    /// Compile time method selection.
+    /// \param Access constant, access type selection, default read.
+    template <Access>
+    struct Action {
+        /// Run buffer in read mode.
+        /// \param F typename, Status(Record const&).
+        /// \param buf Ubuffer&, buffer.
+        /// \param callback F&&, callback method.
+        /// \return Status, whether success to read buffer or not.
+        template <typename F>
+        static Status run(Ubuffer& buf, F&& callback) {
+            return buf.read(std::forward<F>(callback));
+        }
+    };
+
+    /// Write access specialization.
+    template <>
+    struct Action<Access::WRITE> {
+        /// Run buffer in write mode.
+        /// \param F typename, Status(Record&).
+        /// \param buf Ubuffer&, buffer.
+        /// \param callback F&&, callback method.
+        /// \return Status, whether success to read buffer or not.
+        template <typename F>
+        static Status run(Ubuffer& buf, F&& callback) {
+            return buf.write(std::forward<F>(callback));
+        }
+    };
+};
+        
 /// B+Tree record iterator.
 class BPTreeIterator;
 
@@ -85,6 +123,12 @@ public:
     /// \return Status, whether success to remove proper items or not.
     Status remove(prikey_t key) const;
 
+    /// Update record to given.
+    /// \param key prikey_t, primary key.
+    /// \param record Record const&, update value.
+    /// \return Status, whether success to udpate records or not.
+    Status update(prikey_t key, Record const& record) const;
+
     /// Remove all records and clean tree.
     /// \return Status, whether success to destroy tree or not.
     Status destroy_tree() const;
@@ -105,11 +149,7 @@ private:
 
     friend class BPTreeIterator;
 
-    /// Access type.
-    enum class Access {
-        READ = 0,
-        WRITE = 1,
-    };
+    using Access = _RWSpec::Access;
 
     /// Return buffer specified by pageid.
     /// \param pagenum pagenum_t, page id.
@@ -146,7 +186,6 @@ private:
     /// \return pagenum_t, found leaf page id.
     pagenum_t find_leaf(prikey_t key, Ubuffer& buffer) const;
 
-
     /// Find the key from the giveen buffer and run callback.
     /// \param T constant, Access, access token.
     /// \param F typename, Status(Record&), callback type.
@@ -159,7 +198,7 @@ private:
         prikey_t key, Ubuffer& buffer, F&& callback
     ) const {
         using PageT = std::conditional_t<T == Access::READ, Page const, Page>;
-        auto method = [&](PageT& page) {
+        return _RWSpec::Action<T>::run(buffer, [&](PageT& page) {
             if (!page.page_header().is_leaf) {
                 return Status::FAILURE;
             }
@@ -172,12 +211,7 @@ private:
                 return callback(page.records()[i]);
             }
             return Status::FAILURE;
-        };
-        if (T == Access::READ) {
-            return buffer.read(std::move(method));
-        } else {
-            return buffer.write(std::move(method));
-        }
+        });
     }
 
     /// Find the key from the given buffer and write the result to `record`.
