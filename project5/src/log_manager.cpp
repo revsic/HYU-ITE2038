@@ -35,7 +35,7 @@ lsn_t LogManager::log_update(
         last_lsn = log_list.back().lsn;
     }
 
-    log_list.emplace_back(
+    log_list.emplace_front(
         lsn, last_lsn, xid, LogType::UPDATE, hid, offset, before, after);
     return lsn;
 }

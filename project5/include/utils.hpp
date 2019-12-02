@@ -26,23 +26,6 @@ struct Defer {
     Defer& operator=(Defer&&) = delete;
 };
 
-template <typename T>
-struct Reverse {
-    T& container;
-
-    Reverse(T& container) : container(container) {
-        // Do Nothing
-    }
-
-    auto begin() const {
-        return container.rbegin();
-    }
-
-    auto end() const {
-        return container.rend();
-    }
-};
-
 }
 
 #endif
