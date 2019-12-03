@@ -104,7 +104,7 @@ std::shared_ptr<Lock> LockManager::require_lock(
 
     std::unique_lock<std::mutex> own(mtx);
 
-    utils::Defer defer([&] {
+    auto defer = utils::defer([&] {
         LockStruct& module = locks[id];
         module.mode = mode;
         module.run.push_front(new_lock);
