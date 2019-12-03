@@ -40,6 +40,13 @@ int db_find(int table_id, int64_t key, char* ret_val, int trx_id);
 /// \return int, whether success to delete the record (=0) or not (=1).
 int db_delete(int table_id, int64_t key);
 
+/// Update the records.
+/// \param table_id int, table ID.
+/// \param key int64_t, primary key.
+/// \param values char const*, string value.
+/// \param int trxid, transaction id.
+int db_update(int table_id, int64_t key, char const* values, int trxid);
+
 /// Release the table structure from table manager.
 /// \param table_id int, tableID.
 /// \return int, whether success to release the table (=0) or not (=1).

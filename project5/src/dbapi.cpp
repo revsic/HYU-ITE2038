@@ -42,6 +42,12 @@ int db_delete(int table_id, int64_t key) {
     return static_cast<int>(GLOBAL_DB->remove(table_id, key));
 }
 
+int db_update(int table_id, int64_t key, char const* values, int xid) {
+    Record rec;
+    std::memcpy(rec.value, values, strlen(values) + 1);
+    return static_cast<int>(GLOBAL_DB->update(table_id, key, rec));
+}
+
 int close_table(int table_id) {
     return static_cast<int>(GLOBAL_DB->close_table(table_id));
 }
