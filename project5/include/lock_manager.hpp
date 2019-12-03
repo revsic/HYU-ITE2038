@@ -1,8 +1,11 @@
 #ifndef LOCK_MANAGER_HPP
 #define LOCK_MANAGER_HPP
 
+#include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <unordered_map>
