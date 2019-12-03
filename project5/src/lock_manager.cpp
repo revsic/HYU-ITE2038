@@ -18,7 +18,7 @@ HierarchicalID::HierarchicalID(tableid_t tid, pagenum_t pid) :
 }
 
 HashableID HierarchicalID::make_hashable() const {
-    return HashableID(pack_init, tid, pid);
+    return HashableID(utils::token, tid, pid);
 }
 
 bool HierarchicalID::operator<(HierarchicalID const& other) const {

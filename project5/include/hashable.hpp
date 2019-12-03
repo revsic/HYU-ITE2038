@@ -4,6 +4,8 @@
 #include <functional>
 #include <vector>
 
+#include "utils.hpp"
+
 template <typename TupleType, std::size_t... Indices>
 struct PackHasher;
 
@@ -24,16 +26,12 @@ struct PackHasher<TupleType> {
     }
 };
 
-struct pack_init_t {};
-
-constexpr pack_init_t pack_init;
-
 template <typename... T>
 struct HashablePack {
     std::tuple<T...> data;
 
     template <typename... Tp>
-    HashablePack(pack_init_t, Tp&&... data) : data(std::forward<Tp>(data)...) {
+    HashablePack(utils::token_t, Tp&&... data) : data(std::forward<Tp>(data)...) {
         // Do Nothing
     }
 
