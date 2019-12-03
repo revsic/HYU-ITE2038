@@ -1,6 +1,7 @@
 #include <functional>
 
 #include "disk_manager.hpp"
+#include "fileio.hpp"
 
 std::pair<std::string, std::size_t> FileManager::hash_filename(
     std::string const& filename

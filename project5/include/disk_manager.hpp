@@ -8,8 +8,6 @@
 #include "headers.hpp"
 #include "status.hpp"
 
-using fileid_t = std::size_t;
-
 /// File level disk manager.
 class FileManager {
 public:

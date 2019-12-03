@@ -2,9 +2,6 @@
 #define DBAPI_HPP
 
 #include "dbms.hpp"
-#include "lock_manager.hpp"
-#include "log_manager.hpp"
-#include "xaction_manager.hpp"
 
 /// Global DBMS for db api.
 extern std::unique_ptr<Database> GLOBAL_DB;

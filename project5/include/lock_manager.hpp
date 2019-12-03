@@ -8,14 +8,10 @@
 #include <unordered_map>
 
 #include "hashable.hpp"
-#include "table_manager.hpp"
 
 class Database;
 
 using namespace std::chrono_literals;
-
-/// WARNING: assertion required about trxid_t == int in xaction_maanger.hpp
-using trxid_t = int;
 
 class Transaction;
 

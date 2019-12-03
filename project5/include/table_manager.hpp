@@ -14,10 +14,6 @@
 #include "test.hpp"
 #endif
 
-using tableid_t = int;
-
-constexpr tableid_t INVALID_TABLEID = -1;
-
 /// Table.
 class Table {
 public:
@@ -156,13 +152,13 @@ public:
     /// \return Status, whether success to remove the table or not.
     Status remove(tableid_t id);
 
-private:
-    std::unordered_map<tableid_t, Table> tables;
-
     /// Convert file ID to table ID.
     /// \param id fileid_t, file ID.
     /// \return tableid_t, converted table ID.
     static tableid_t convert(fileid_t id);
+
+private:
+    std::unordered_map<tableid_t, Table> tables;
 
     friend class Transaction;
 

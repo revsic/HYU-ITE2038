@@ -4,11 +4,8 @@
 #include <list>
 #include <map>
 
+#include "headers.hpp"
 #include "lock_manager.hpp"
-
-using lsn_t = size_t;
-
-constexpr lsn_t INVALID_LSN = 0;
 
 enum class LogType {
     INVALID = 0,

@@ -229,8 +229,9 @@ Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum, bool virt
 Ubuffer BufferManager::require_buffering(
     FileManager& file, pagenum_t pagenum, trxid_t xid
 ) {
-    CHECK_NULL(dbms);
-    
+    // CHECK_NULL(dbms);
+    // tableid_t tid = TableManager::convert(file.get_id());
+    // HID hid(tid, pagenum);
 }
 
 Ubuffer BufferManager::new_page(FileManager& file) {

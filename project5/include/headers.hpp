@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <functional>
 
-#include "fileio.hpp"
 #include "status.hpp"
 
 /// Size of the page.
@@ -23,6 +22,27 @@ constexpr pagenum_t FILE_HEADER_PAGENUM = 0;
 
 /// Type for primary key.
 using prikey_t = int64_t;
+
+/// File ID.
+using fileid_t = size_t;
+
+/// Table ID.
+using tableid_t = int;
+
+/// Invalid Table ID.
+constexpr tableid_t INVALID_TABLEID = -1;
+
+/// Transaction ID.
+using trxid_t = int;
+
+/// Invalid transaction ID.
+constexpr trxid_t INVALID_TRXID = 0;
+
+/// Log sequence number.
+using lsn_t = size_t;
+
+/// Invalid log sequence number.
+constexpr lsn_t INVALID_LSN = 0;
 
 /// File header.
 struct FileHeader {

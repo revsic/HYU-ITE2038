@@ -1,17 +1,11 @@
 #ifndef XACTION_MANAGER_HPP
 #define XACTION_MANAGER_HPP
 
-#include "buffer_manager.hpp"
 #include "lock_manager.hpp"
-#include "log_manager.hpp"
 
 #include <map>
 #include <mutex>
 #include <unordered_map>
-
-using trxid_t = int;
-
-constexpr trxid_t INVALID_TRXID = 0;
 
 enum class TrxState {
     IDLE = 0,
