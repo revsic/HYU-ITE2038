@@ -253,6 +253,7 @@ void LockManager::DeadlockDetector::reduce(
 std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
     locktable_t const& locks, trxtable_t const& xtable
 ) {
+    last_use = std::chrono::steady_clock::now();
     graph_t graph = construct_graph(locks, xtable);
 
     while (graph.size() > 0) {
