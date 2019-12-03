@@ -107,11 +107,12 @@ public:
     std::string const& filename() const;
 
 private:
-    FileManager file;
-    BPTree bpt;
+    FileManager file;               /// file manager.
+    BPTree bpt;                     /// B+ Tree structure.
 
     friend class TableManager;
 
+    /// Get file manager.
     FileManager& filemng();
 
 #ifdef TEST_MODULE
@@ -162,10 +163,12 @@ public:
     static tableid_t convert(fileid_t id);
 
 private:
+    /// map from table ID to table object.
     std::unordered_map<tableid_t, Table> tables;
 
     friend class Transaction;
 
+    /// Find file manager from table ID.
     FileManager* find_file(tableid_t id);
 
 #ifdef TEST_MODULE
