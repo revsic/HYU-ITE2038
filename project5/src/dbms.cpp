@@ -42,6 +42,10 @@ Status Database::remove(tableid_t id, prikey_t key) {
     return wrapper(id, Status::FAILURE, &Table::remove, key);
 }
 
+Status Database::update(tableid_t id, prikey_t key, Record const& record) {
+    return wrapper(id, Status::FAILURE, &Table::update, key, record);
+}
+
 Status Database::destroy_tree(tableid_t id) {
     return wrapper(id, Status::FAILURE, &Table::destroy_tree);
 }

@@ -75,6 +75,14 @@ public:
     /// \return Status, whether success to remove the record or not.
     Status remove(tableid_t id, prikey_t key);
 
+    /// Update the record in the tree.
+    /// \param id tableid_t, table ID.
+    /// \param key prikey_t, primary key.
+    /// \param record Record const&, update record.
+    /// \return Status, whether success to update record or not.
+    Status update(tableid_t id, prikey_t key, Record const& rec);
+
+
     /// Remove all records and clean up the tree.
     /// \param id tableid_t, table ID.
     /// \return Status, whether success to clean up the tree.
