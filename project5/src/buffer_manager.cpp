@@ -187,6 +187,11 @@ BufferManager::BufferManager(int num_buffer)
     }
 }
 
+Status BufferManager::set_database(Database& dbms) {
+    this->dbms = &dbms;
+    return Status::SUCCESS;
+}
+
 Buffer* BufferManager::most_recently_used() const {
     return mru;
 }

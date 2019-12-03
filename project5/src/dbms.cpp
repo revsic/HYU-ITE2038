@@ -3,6 +3,7 @@
 Database::Database(int num_buffer) :
     tables(), buffers(num_buffer), locks(), logs(), trxs(locks)
 {
+    buffers.set_database(*this);
     locks.set_database(*this);
 }
 

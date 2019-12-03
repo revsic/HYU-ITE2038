@@ -19,6 +19,9 @@
 
 using fpid_t = HashablePack<fileid_t, pagenum_t>;
 
+/// Database forward declaration.
+class Database;
+
 /// Buffer manager.
 class BufferManager;
 
@@ -290,6 +293,9 @@ public:
     /// Deleted move assignment.
     BufferManager& operator=(BufferManager&&) = delete;
 
+    /// Set database.
+    Status set_database(Database& dbms);
+
     /// Get mru buffer (nonblock).
     /// \return Buffer*, mru buffer.
     Buffer* most_recently_used() const;
@@ -327,6 +333,7 @@ public:
     Status release_file(fileid_t fileid);
 
 private:
+    Database* dbms;                             /// database pointer.
     std::recursive_mutex mtx;                   /// lock for buffer manager.
     int capacity;                               /// buffer array size.
     int num_buffer;                             /// number of the element.
@@ -334,7 +341,7 @@ private:
     Buffer* mru;                                /// most recently used block index.
     std::unique_ptr<Buffer[]> dummy;            /// buffer array.
     std::unique_ptr<Buffer*[]> buffers;         /// usage array.
-    std::unordered_map<fpid_t, int> table;  /// hashmap for faster search.
+    std::unordered_map<fpid_t, int> table;      /// hashmap for faster search.
 
     friend class Buffer;
 
