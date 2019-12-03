@@ -156,6 +156,14 @@ private:
     /// \return Ubuffer, buffer.
     Ubuffer buffering(pagenum_t pagenum) const;
 
+    /// Return buffer speicified by pid with lock acquirance.
+    /// \param pagenum pagenum_t, page id.
+    /// \param xid trxid_t, transaction id.
+    /// \param mode LockMode, lock mode.
+    /// \return Ubuffer, buffer.
+    Ubuffer require_buffering(
+        pagenum_t pagenum, trxid_t xid, LockMode mode) const;
+
     /// Create page on buffer.
     /// \param leaf bool, whether generated page is leaf page or internal.
     /// \return Ubuffer, created buffer.

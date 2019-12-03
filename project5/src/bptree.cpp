@@ -366,6 +366,12 @@ Ubuffer BPTree::buffering(pagenum_t pagenum) const {
     return buffers->buffering(*file, pagenum);
 }
 
+Ubuffer BPTree::require_buffering(
+    pagenum_t pagenum, trxid_t xid, LockMode mode
+) const {
+    return buffers->require_buffering(*file, pagenum, xid, mode);
+}
+
 Ubuffer BPTree::create_page(bool leaf) const {
     Ubuffer ubuf = buffers->new_page(*file);
     if (ubuf.buffer() == nullptr) {
