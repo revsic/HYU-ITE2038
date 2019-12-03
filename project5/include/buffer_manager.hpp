@@ -316,6 +316,14 @@ public:
     Ubuffer buffering(
         FileManager& file, pagenum_t pagenum, bool virtual_page = false);
 
+    /// Return requested buffer with lock acquirement.
+    /// \param file FileManager&, file manager.
+    /// \param pagenum pagenum_t, page ID.
+    /// \param xid trxid_t, transaction ID.
+    /// \return Ubuffer, bnuffer for user provision.
+    Ubuffer require_buffering(
+        FileManager& file, pagenum_t pagenum, trxid_t xid);
+
     /// Create page with given file manager (thread-safe).
     /// \param file FileManager&, file manager.
     /// \return Ubuffer, buffer for user provision.

@@ -226,6 +226,13 @@ Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum, bool virt
     return Ubuffer(*buffers[idx]);
 }
 
+Ubuffer BufferManager::require_buffering(
+    FileManager& file, pagenum_t pagenum, trxid_t xid
+) {
+    CHECK_NULL(dbms);
+    
+}
+
 Ubuffer BufferManager::new_page(FileManager& file) {
     std::unique_lock<std::recursive_mutex> lock(mtx);
     pagenum_t pid = Page::create(
