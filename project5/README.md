@@ -165,3 +165,9 @@ S2PL 구현을 위해서 TRX는 operation 과정에서 lock을 잡기만 할 뿐
 - join
     - primary key based natural join
     - unit test (all pass)
+- lock manager
+    - lock manager for database concurrency control.
+- transaction manager
+    - managing transaction.
+- log manager
+    - logging result in in-memory structure.
