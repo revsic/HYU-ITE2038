@@ -42,6 +42,10 @@ Status Table::insert(
     return bpt.insert(key, value, value_size);
 }
 
+Status Table::update(prikey_t key, Record const& rec) const {
+    return bpt.update(key, rec);
+}
+
 Status Table::remove(prikey_t key) const {
     return bpt.remove(key);
 }

@@ -10,6 +10,7 @@ struct TableTest {
     TEST_NAME(find_range)
     TEST_NAME(insert)
     TEST_NAME(remove)
+    TEST_NAME(update)
     TEST_NAME(destroy_tree)
     TEST_NAME(fileid)
     TEST_NAME(rehash)
@@ -41,6 +42,10 @@ TEST_SUITE(TableTest::insert, {
 })
 
 TEST_SUITE(TableTest::remove, {
+    // just wrapping
+})
+
+TEST_SUITE(TableTest::update, {
     // just wrapping
 })
 
@@ -157,6 +162,7 @@ int table_manager_test() {
         && TableTest::find_range_test()
         && TableTest::insert_test()
         && TableTest::remove_test()
+        && TableTest::update_test()
         && TableTest::destroy_tree_test()
         && TableTest::fileid_test()
         && TableTest::rehash_test()

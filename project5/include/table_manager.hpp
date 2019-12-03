@@ -73,6 +73,12 @@ public:
     /// \return Status, whether success to remove the record or not.
     Status remove(prikey_t key) const;
 
+    /// Update record from the tree.
+    /// \param key prikey_t, primary key.
+    /// \param record Record const&, update record.
+    /// \return Status, whether success to update record or not.
+    Status update(prikey_t key, Record const& rec) const;
+
     /// Free all nodes and clean up the tree.
     /// \return Status, whether success to remove all.
     Status destroy_tree() const;
