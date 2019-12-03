@@ -11,7 +11,13 @@ Log::Log()
 }
 
 Log::Log(
-    size_t lsn, size_t prev_lsn, trxid_t xid, LogType type,
+    lsn_t lsn, lsn_t prev_lsn, trxid_t xid, LogType type
+) : lsn(lsn), prev_lsn(prev_lsn), xid(xid), type(type) {
+    // Do Nothing
+}
+
+Log::Log(
+    lsn_t lsn, lsn_t prev_lsn, trxid_t xid, LogType type,
     HID hid, int offset, Record const& before, Record const& after
 ) : lsn(lsn), prev_lsn(prev_lsn), xid(xid), type(type),
     hid(hid), offset(offset) {
@@ -26,18 +32,19 @@ LogManager::LogManager() : last_lsn(0) {
 lsn_t LogManager::log_update(
     trxid_t xid, HID hid, int offset, Record const& before, Record const& after
 ) {
-    std::unique_lock<std::recursive_mutex> own(mtx);
-    std::list<Log>& log_list = log_map[xid];
+    return wrapper(xid, LogType::UPDATE, hid, offset, before, after);
+}
 
-    lsn_t lsn = get_lsn();
-    lsn_t last_lsn = INVALID_LSN;
-    if (log_list.size() > 0) {
-        last_lsn = log_list.back().lsn;
-    }
+lsn_t LogManager::log_abort(trxid_t xid) {
+    return wrapper(xid, LogType::ABORT);
+}
 
-    log_list.emplace_front(
-        lsn, last_lsn, xid, LogType::UPDATE, hid, offset, before, after);
-    return lsn;
+lsn_t LogManager::log_commit(trxid_t xid) {
+    return wrapper(xid, LogType::COMMIT);
+}
+
+lsn_t LogManager::log_end(trxid_t xid) {
+    return wrapper(xid, LogType::END);
 }
 
 std::list<Log> const& LogManager::get_logs(trxid_t xid) const {
