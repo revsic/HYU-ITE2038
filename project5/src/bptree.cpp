@@ -308,7 +308,9 @@ Status BPTree::update(prikey_t key, Record const& record) const {
     return find_key_from_leaf<Access::WRITE>(
         key, buffer,
         [&](Record& rec) {
-            std::memcpy(&rec, &record, sizeof(Record));
+            std::memcpy(
+                rec.value, record.value,
+                sizeof(Record) - sizeof(prikey_t));
             return Status::SUCCESS;
         });
 }
