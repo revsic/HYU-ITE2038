@@ -5,6 +5,10 @@
 
 namespace utils {
 
+struct token_t {};
+
+constexpr token_t token;
+
 struct Defer {
     std::function<void()> callback;
 
