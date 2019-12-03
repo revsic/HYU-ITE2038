@@ -42,6 +42,7 @@ struct BPTreeTest {
     TEST_NAME(delete_entry);
     TEST_NAME(remove);
     TEST_NAME(destroy_tree);
+    TEST_NAME(update)
 };
 
 void bpt_test_postprocess(FileManager& file, BufferManager& buffers) {
@@ -1483,6 +1484,66 @@ TEST_SUITE(BPTreeTest::destroy_tree, {
     bpt_test_postprocess(file, buffers);
 })
 
+TEST_SUITE(BPTreeTest::update, {
+    FileManager file("testfile");
+    BufferManager buffers(4);
+    BPTree bpt(&file, &buffers);
+
+    constexpr int leaf_order = 4;
+    constexpr int internal_order = 5;
+    bpt.test_config(leaf_order, internal_order, true);
+    bpt.verbose_output = false;
+    
+    // case 1. sequential update
+    char str[] = "00";
+    for (int i = 0; i < leaf_order * internal_order; ++i) {
+        str[0] = i / 10 + '0';
+        str[1] = i % 10 + '0';
+        TEST_SUCCESS(bpt.insert(
+            i, reinterpret_cast<uint8_t*>(str), sizeof(str)));
+    }
+
+    for (int i = 0; i < leaf_order * internal_order; ++i) {
+        Record rec;
+        rec.value[0] = i % 10 + '0';
+        rec.value[1] = 0;
+        TEST_SUCCESS(bpt.update(i, rec));
+    }
+
+    for (int i = 0; i < leaf_order * internal_order; ++i) {
+        Record rec;
+        TEST_SUCCESS(bpt.find(i, &rec));
+        TEST(rec.value[0] == i % 10 + '0');
+        TEST(rec.value[1] == 0);
+    }
+
+    // case 2. random update
+    std::vector<int> indices;
+    for (int i = 0; i < leaf_order * internal_order; ++i) {
+        indices.push_back(i);
+    }
+
+    std::random_device rd;
+    std::default_random_engine gen(rd());
+    for (int i = 0; i < leaf_order * internal_order; ++i) {
+        int idx = gen() % indices.size();
+        int elem = indices[idx];
+        indices.erase(indices.begin() + idx);
+
+        Record rec;
+        rec.value[0] = elem / 10 + '0';
+        rec.value[1] = elem % 10 + '0';
+        TEST_SUCCESS(bpt.update(elem, rec));
+    }
+
+    for (int i = 0; i < leaf_order * internal_order; ++i) {
+        Record rec;
+        TEST_SUCCESS(bpt.find(i, &rec));
+        TEST(rec.value[0] == i / 10 + '0');
+        TEST(rec.value[1] == i % 10 + '0');
+    }
+})
+
 int bptree_test() {
     srand(time(NULL));
     return BPTreeTest::constructor_test()
@@ -1521,5 +1582,6 @@ int bptree_test() {
         && BPTreeTest::redistribute_nodes_internal_test()
         && BPTreeTest::delete_entry_test()
         && BPTreeTest::remove_test()
-        && BPTreeTest::destroy_tree_test();
+        && BPTreeTest::destroy_tree_test()
+        && BPTreeTest::update_test();
 }
