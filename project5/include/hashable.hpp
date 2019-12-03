@@ -58,23 +58,23 @@ struct HashablePack {
     HashablePack(utils::token_t, Tp&&... data) : data(std::forward<Tp>(data)...) {
         // Do Nothing
     }
-
+    /// Copy constructor.
     HashablePack(HashablePack const& pack) : data(pack.data) {
         // Do Nothing
     }
-
+    /// Move constructor.
     HashablePack(HashablePack&& pack) : data(std::move(pack.data)) {
         // Do Nothing
     }
-
+    /// Equality comparable.
     bool operator==(HashablePack const& other) const {
         return data == other.data;
     }
-
+    /// Hash data pack.
     std::size_t hash() const {
         return hash_proxy(std::make_index_sequence<sizeof...(T)>{});
     }
-
+    /// Proxy method for hashing data pack.
     template <std::size_t... Indices>
     std::size_t hash_proxy(std::index_sequence<Indices...>) const {
         return PackHasher<std::tuple<T...>, Indices...>::run(data, std::string());
