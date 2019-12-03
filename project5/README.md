@@ -129,7 +129,6 @@ S2PL 구현을 위해서 TRX는 operation 과정에서 lock을 잡기만 할 뿐
 - buffer manager
     - transaction control
         - log
-        - require lock
         - transaction parameterize
 - dbms
     - write log on update
