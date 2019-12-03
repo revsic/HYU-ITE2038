@@ -5,6 +5,7 @@
 
 #include "buffer_manager.hpp"
 #include "disk_manager.hpp"
+#include "headers.hpp"
 
 #ifdef TEST_MODULE
 #include "test.hpp"
@@ -26,9 +27,9 @@ namespace _RWSpec {
         /// \param F typename, Status(Record const&).
         /// \param buf Ubuffer&, buffer.
         /// \param callback F&&, callback method.
-        /// \return Status, whether success to read buffer or not.
+        /// \return auto, return value of callback.
         template <typename F>
-        static Status run(Ubuffer& buf, F&& callback) {
+        static auto run(Ubuffer& buf, F&& callback) {
             return buf.read(std::forward<F>(callback));
         }
     };
@@ -40,9 +41,9 @@ namespace _RWSpec {
         /// \param F typename, Status(Record&).
         /// \param buf Ubuffer&, buffer.
         /// \param callback F&&, callback method.
-        /// \return Status, whether success to read buffer or not.
+        /// \return auto, return value of callback.
         template <typename F>
-        static Status run(Ubuffer& buf, F&& callback) {
+        static auto run(Ubuffer& buf, F&& callback) {
             return buf.write(std::forward<F>(callback));
         }
     };
@@ -102,8 +103,10 @@ public:
     /// Find given key and write the result to argument record.
     /// \param key prikey_t, primary key.
     /// \param record Record*, nullable, pointer to write the result.
+    /// \param xid trxid_t, transaction id, default INVALID_TRXID.
     /// \return Status, whether success to find or not exists.
-    Status find(prikey_t key, Record* record) const;
+    Status find(
+        prikey_t key, Record* record, trxid_t xid = INVALID_TRXID) const;
 
     /// Range based search.
     /// \param start prikey_t, start point.
@@ -125,9 +128,11 @@ public:
 
     /// Update record to given.
     /// \param key prikey_t, primary key.
-    /// \param record Record const&, update value.
+    /// \param record Record, update value.
+    /// \param xid trxid_t, transaction id, default INVALID_TRXID.
     /// \return Status, whether success to udpate records or not.
-    Status update(prikey_t key, Record const& record) const;
+    Status update(
+        prikey_t key, Record record, trxid_t xid = INVALID_TRXID) const;
 
     /// Remove all records and clean tree.
     /// \return Status, whether success to destroy tree or not.
@@ -139,6 +144,9 @@ public:
     /// Get the end of b+tree record iterator. 
     BPTreeIterator end() const;
 
+    /// Set database.
+    Status set_database(Database& dbms);
+
 private:
     int leaf_order;
     int internal_order;
@@ -146,6 +154,7 @@ private:
     bool delayed_merge;
     FileManager* file;
     BufferManager* buffers;
+    Database* dbms;
 
     friend class BPTreeIterator;
 
@@ -200,25 +209,27 @@ private:
     /// \param key prikey_t, primary key.
     /// \param buffer Ubuffer&, target buffer.
     /// \param callback F&&, callback for found record.
-    /// \return Status, whether success to run callback or not.
+    /// \return int, index of the record in page.
     template <Access T, typename F>
-    Status find_key_from_leaf(
+    int find_key_from_leaf(
         prikey_t key, Ubuffer& buffer, F&& callback
     ) const {
         using PageT = std::conditional_t<T == Access::READ, Page const, Page>;
         return _RWSpec::Action<T>::run(buffer, [&](PageT& page) {
             if (!page.page_header().is_leaf) {
-                return Status::FAILURE;
+                return -1;
             }
 
             int i, num_key = page.page_header().number_of_keys;
             for (i = 0; i < num_key && page.records()[i].key != key; ++i)
                 {}
             
-            if (i < num_key) {
-                return callback(page.records()[i]);
+            if (i < num_key
+                && callback(page.records()[i]) == Status::SUCCESS
+            ) {
+                return i;
             }
-            return Status::FAILURE;
+            return -1;
         });
     }
 

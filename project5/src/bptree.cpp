@@ -4,6 +4,9 @@
 
 #include "bptree.hpp"
 #include "bptree_iter.hpp"
+#include "dbms.hpp"
+#include "lock_manager.hpp"
+#include "table_manager.hpp"
 
 BPTree::BPTree(FileManager* file, BufferManager* buffers) :
     leaf_order(DEFAULT_LEAF_ORDER),
@@ -193,11 +196,14 @@ void BPTree::print_tree() const {
     std::cout << std::endl;
 }
 
-Status BPTree::find(prikey_t key, Record* record) const {
+Status BPTree::find(prikey_t key, Record* record, trxid_t xid) const {
     Ubuffer buffer(nullptr);
     pagenum_t c = find_leaf(key, buffer);
     if (c == INVALID_PAGENUM) {
         return Status::FAILURE;
+    }
+    if (xid != INVALID_TRXID) {
+        buffer = require_buffering(c, xid, LockMode::SHARED);
     }
     return find_key_from_leaf(key, buffer, record);
 }
@@ -299,20 +305,32 @@ Status BPTree::remove(prikey_t key) const {
     return Status::FAILURE;
 }
 
-Status BPTree::update(prikey_t key, Record const& record) const {
+Status BPTree::update(prikey_t key, Record record, trxid_t xid) const {
     Ubuffer buffer(nullptr);
     pagenum_t c = find_leaf(key, buffer);
     if (c == INVALID_PAGENUM) {
         return Status::FAILURE;
     }
-    return find_key_from_leaf<Access::WRITE>(
+    if (xid != INVALID_TRXID) {
+        CHECK_NULL(dbms);
+        buffer = require_buffering(c, xid, LockMode::EXCLUSIVE);
+    }
+    Record before;
+    int idx = find_key_from_leaf<Access::WRITE>(
         key, buffer,
         [&](Record& rec) {
+            std::memcpy(&before, &rec, sizeof(Record));
             std::memcpy(
                 rec.value, record.value,
                 sizeof(Record) - sizeof(prikey_t));
             return Status::SUCCESS;
         });
+    if (idx != -1 && xid != INVALID_TRXID) {
+        record.key = before.key;
+        HID hid(TableManager::convert(file->get_id()), c);
+        dbms->logs.log_update(xid, hid, idx, before, record);
+    }
+    return idx != -1 ? Status::SUCCESS : Status::FAILURE;
 }
 
 Status BPTree::destroy_tree() const {
@@ -359,6 +377,11 @@ BPTreeIterator BPTree::begin() const {
 
 BPTreeIterator BPTree::end() const {
     return BPTreeIterator::end();
+}
+
+Status BPTree::set_database(Database& dbms) {
+    this->dbms = &dbms;
+    return Status::SUCCESS;
 }
 
 // Ubuffer macro
@@ -449,7 +472,7 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) const {
 Status BPTree::find_key_from_leaf(
     prikey_t key, Ubuffer& buffer, Record* record
 ) const {
-    return find_key_from_leaf<Access::READ>(
+    int idx = find_key_from_leaf<Access::READ>(
         key, buffer,
         [=](Record const& rec) {
             if (record != nullptr) {
@@ -457,6 +480,7 @@ Status BPTree::find_key_from_leaf(
             }
             return Status::SUCCESS;
         });
+    return idx != -1 ? Status::SUCCESS : Status::FAILURE;
 }
 
 Status BPTree::find_pagenum_from_internal(
