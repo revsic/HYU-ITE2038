@@ -129,6 +129,7 @@ private:
     LogManager logs;
     TransactionManager trxs;
 
+    friend class BufferManager;
     friend class Transaction;
 
     template <typename R, typename F, typename... Args>

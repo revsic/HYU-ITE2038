@@ -19,6 +19,9 @@
 
 using fpid_t = HashablePack<fileid_t, pagenum_t>;
 
+/// Enum class for lock mode.
+enum class LockMode;
+
 /// Database forward declaration.
 class Database;
 
@@ -322,7 +325,7 @@ public:
     /// \param xid trxid_t, transaction ID.
     /// \return Ubuffer, bnuffer for user provision.
     Ubuffer require_buffering(
-        FileManager& file, pagenum_t pagenum, trxid_t xid);
+        FileManager& file, pagenum_t pagenum, trxid_t xid, LockMode mode);
 
     /// Create page with given file manager (thread-safe).
     /// \param file FileManager&, file manager.

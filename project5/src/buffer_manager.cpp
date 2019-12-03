@@ -1,4 +1,5 @@
 #include "buffer_manager.hpp"
+#include "dbms.hpp"
 
 Buffer::Buffer() {
     clear(-1, nullptr);
@@ -227,11 +228,18 @@ Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum, bool virt
 }
 
 Ubuffer BufferManager::require_buffering(
-    FileManager& file, pagenum_t pagenum, trxid_t xid
+    FileManager& file, pagenum_t pagenum, trxid_t xid, LockMode mode
 ) {
-    // CHECK_NULL(dbms);
-    // tableid_t tid = TableManager::convert(file.get_id());
-    // HID hid(tid, pagenum);
+    if (dbms == nullptr) {
+        return Ubuffer(nullptr);
+    }
+    HID hid(TableManager::convert(file.get_id()), pagenum);
+    Status res = dbms->trxs.require_lock(xid, hid, mode);
+    if (res == Status::FAILURE) {
+        return Ubuffer(nullptr);
+    }
+
+    return buffering(file, pagenum);
 }
 
 Ubuffer BufferManager::new_page(FileManager& file) {
