@@ -100,15 +100,6 @@ TransactionManager::TransactionManager(LockManager& lockmng)
     // Do Nothing
 }
 
-TransactionManager::~TransactionManager() {
-    shutdown();
-}
-
-Status TransactionManager::shutdown() {
-    // TODO: impl shutdown method
-    return Status::SUCCESS;
-}
-
 trxid_t TransactionManager::new_trx() {
     std::unique_lock<std::mutex> lock(mtx);
 
