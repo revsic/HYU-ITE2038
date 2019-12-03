@@ -129,6 +129,7 @@ private:
     LogManager logs;
     TransactionManager trxs;
 
+    friend class BPTree;
     friend class BufferManager;
     friend class Transaction;
 
