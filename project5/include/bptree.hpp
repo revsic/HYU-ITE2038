@@ -148,13 +148,13 @@ public:
     Status set_database(Database& dbms);
 
 private:
-    int leaf_order;
-    int internal_order;
-    bool verbose_output;
-    bool delayed_merge;
-    FileManager* file;
-    BufferManager* buffers;
-    Database* dbms;
+    int leaf_order;                 /// order of the leaf node.
+    int internal_order;             /// internal of the leaf node.
+    bool verbose_output;            /// whether verbose or not.
+    bool delayed_merge;             /// use delayed merge or not.
+    FileManager* file;              /// target file pointer.
+    BufferManager* buffers;         /// buffer manager.
+    Database* dbms;                 /// database pointer.
 
     friend class BPTreeIterator;
 
@@ -204,8 +204,8 @@ private:
     pagenum_t find_leaf(prikey_t key, Ubuffer& buffer) const;
 
     /// Find the key from the giveen buffer and run callback.
-    /// \param T constant, Access, access token.
-    /// \param F typename, Status(Record&), callback type.
+    /// \tparam T constant, Access, access token.
+    /// \tparam F typename, Status(Record&), callback type.
     /// \param key prikey_t, primary key.
     /// \param buffer Ubuffer&, target buffer.
     /// \param callback F&&, callback for found record.

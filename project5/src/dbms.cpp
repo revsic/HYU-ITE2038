@@ -24,7 +24,7 @@ Status Database::print_tree(tableid_t id) {
 }
 
 Status Database::find(tableid_t id, prikey_t key, Record* record, trxid_t xid) {
-    return wrapper(id, Status::FAILURE, &Table::find, key, record);
+    return wrapper(id, Status::FAILURE, &Table::find, key, record, xid);
 }
 
 std::vector<Record> Database::find_range(
@@ -43,8 +43,8 @@ Status Database::remove(tableid_t id, prikey_t key) {
     return wrapper(id, Status::FAILURE, &Table::remove, key);
 }
 
-Status Database::update(tableid_t id, prikey_t key, Record const& record) {
-    return wrapper(id, Status::FAILURE, &Table::update, key, record);
+Status Database::update(tableid_t id, prikey_t key, Record const& record, trxid_t xid) {
+    return wrapper(id, Status::FAILURE, &Table::update, key, record, xid);
 }
 
 Status Database::destroy_tree(tableid_t id) {

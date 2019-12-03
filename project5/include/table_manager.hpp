@@ -48,8 +48,10 @@ public:
     /// Find the key and write the record to the given pointer.
     /// \param key prikey_t, primary key.
     /// \param record Record*, pointer to write the result record.
+    /// \param xid trxid_t, transaction id, default INVALID_TRXID.
     /// \return Status, whether success to find the record or not.
-    Status find(prikey_t key, Record* record) const;
+    Status find(
+        prikey_t key, Record* record, trxid_t xid = INVALID_TRXID) const;
 
     /// Range based search.
     /// \param start prikey_t, key, start point.
@@ -72,8 +74,10 @@ public:
     /// Update record from the tree.
     /// \param key prikey_t, primary key.
     /// \param record Record const&, update record.
+    /// \param xid trxid_t, transaction id, default INVALID_TRXID.
     /// \return Status, whether success to update record or not.
-    Status update(prikey_t key, Record const& rec) const;
+    Status update(
+        prikey_t key, Record const& rec, trxid_t xid = INVALID_TRXID) const;
 
     /// Free all nodes and clean up the tree.
     /// \return Status, whether success to remove all.

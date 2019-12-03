@@ -49,9 +49,11 @@ public:
     /// \param id tableid_t, table ID.
     /// \param key prikey_t, primary key.
     /// \param record Record*, record pointer to write the result.
-    /// \param xid trxid_t, transaction id.
+    /// \param xid trxid_t, transaction id, default INVALID_TRXID.
     /// \return Status, whether success to find the record or not.
-    Status find(tableid_t id, prikey_t key, Record* record, trxid_t xid = INVALID_TRXID);
+    Status find(
+        tableid_t id, prikey_t key,
+        Record* record, trxid_t xid = INVALID_TRXID);
 
     /// Range based search.
     /// \param id tableid_t, table ID.
@@ -79,9 +81,11 @@ public:
     /// \param id tableid_t, table ID.
     /// \param key prikey_t, primary key.
     /// \param record Record const&, update record.
+    /// \param xid trxid_t, transaction id, default INVALID_TRXID.
     /// \return Status, whether success to update record or not.
-    Status update(tableid_t id, prikey_t key, Record const& rec);
-
+    Status update(
+        tableid_t id, prikey_t key,
+        Record const& rec, trxid_t xid = INVALID_TRXID);
 
     /// Remove all records and clean up the tree.
     /// \param id tableid_t, table ID.
@@ -89,7 +93,7 @@ public:
     Status destroy_tree(tableid_t id);
 
     /// Natural join on primary key.
-    /// \param F typename, Status(Record&).
+    /// \tparam F typename, Status(Record&).
     /// \param id1 tableid_t, left table id.
     /// \param id2 tableid_t, right table id.
     /// \param callback F&&, callback for found keys.
@@ -123,16 +127,23 @@ public:
     Status abort_trx(trxid_t id);
 
 private:
-    TableManager tables;
-    BufferManager buffers;
-    LockManager locks;
-    LogManager logs;
-    TransactionManager trxs;
+    TableManager tables;            /// table manager.
+    BufferManager buffers;          /// buffer manager.
+    LockManager locks;              /// lock manager.
+    LogManager logs;                /// log manager.
+    TransactionManager trxs;        /// transaction manager.
 
     friend class BPTree;
     friend class BufferManager;
     friend class Transaction;
 
+    /// \tparam typename R, return type.
+    /// \tparam typename F, callback type.
+    /// \tparam typename Args..., arguments type.
+    /// \param tableid_t id, table ID.
+    /// \param default_value R&&, default return value.
+    /// \param callback F&&, callback.
+    /// \param args Args&&..., arguments.
     template <typename R, typename F, typename... Args>
     inline R wrapper(tableid_t id, R&& default_value, F&& callback, Args&&... args) {
         Table const* table = tables.find(id);

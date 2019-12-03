@@ -28,8 +28,8 @@ Status Table::print_tree() const {
     return Status::SUCCESS;
 }
 
-Status Table::find(prikey_t key, Record* record) const {
-    return bpt.find(key, record);
+Status Table::find(prikey_t key, Record* record, trxid_t xid) const {
+    return bpt.find(key, record, xid);
 }
 
 std::vector<Record> Table::find_range(prikey_t start, prikey_t end) const {
@@ -42,8 +42,8 @@ Status Table::insert(
     return bpt.insert(key, value, value_size);
 }
 
-Status Table::update(prikey_t key, Record const& rec) const {
-    return bpt.update(key, rec);
+Status Table::update(prikey_t key, Record const& rec, trxid_t xid) const {
+    return bpt.update(key, rec, xid);
 }
 
 Status Table::remove(prikey_t key) const {

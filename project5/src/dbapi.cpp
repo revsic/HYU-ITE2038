@@ -22,9 +22,9 @@ int db_insert(int table_id, int64_t key, char const* value) {
         strlen(value) + 1));
 }
 
-int db_find(int table_id, int64_t key, char* ret_val, int trx_id) {
+int db_find(int table_id, int64_t key, char* ret_val, int xid) {
     Record rec;
-    Status res = GLOBAL_DB->find(table_id, key, &rec);
+    Status res = GLOBAL_DB->find(table_id, key, &rec, xid);
     if (res == Status::FAILURE) {
         return 1;
     }
@@ -45,7 +45,7 @@ int db_delete(int table_id, int64_t key) {
 int db_update(int table_id, int64_t key, char const* values, int xid) {
     Record rec;
     std::memcpy(rec.value, values, strlen(values) + 1);
-    return static_cast<int>(GLOBAL_DB->update(table_id, key, rec));
+    return static_cast<int>(GLOBAL_DB->update(table_id, key, rec, xid));
 }
 
 int close_table(int table_id) {

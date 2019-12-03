@@ -34,7 +34,7 @@ public:
     prikey_t key();
 
     /// Read record safely.
-    /// \param F callback type, R(Record const&).
+    /// \tparam F callback type, R(Record const&).
     /// \param callback F&&, callback for processing record.
     /// \return R, return value of the callback.
     template <typename F>
@@ -45,7 +45,7 @@ public:
     }
 
     /// Write record safely.
-    /// \param F callback type, R(Record&).
+    /// \tparam F callback type, R(Record&).
     /// \param callback F&&, callback for processing record.
     /// \return R, return value of the callback.
     template <typename F>
@@ -56,8 +56,8 @@ public:
     }
 
 private:
-    int record_index;
-    Ubuffer* buffer;
+    int record_index;       /// current record index.
+    Ubuffer* buffer;        /// buffer which points target page.
 };
 
 class BPTreeIterator {
@@ -115,11 +115,11 @@ private:
         pagenum_t pagenum, int record_index, int num_key,
         Ubuffer buffer, BPTree const* tree);
 
-    pagenum_t pagenum;
-    int record_index;
-    int num_key;
-    Ubuffer buffer;
-    BPTree const* tree;
+    pagenum_t pagenum;      /// current page ID.
+    int record_index;       /// current record index.
+    int num_key;            /// number of keys in page.
+    Ubuffer buffer;         /// buffer pointing current page.
+    BPTree const* tree;     /// tree pointer.
 
 #ifdef TEST_MODULE
     friend struct BPTreeIteratorTest;

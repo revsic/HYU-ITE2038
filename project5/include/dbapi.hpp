@@ -29,7 +29,8 @@ int db_insert(int table_id, int64_t key, char const* value);
 /// \param ret_val char*, nullable, at least 120 bytes array for writing result.
 /// \param trx_id, int, transaction id.
 /// \return int, 0 for success to find, 1 for not exists.
-int db_find(int table_id, int64_t key, char* ret_val, int trx_id);
+int db_find(
+    int table_id, int64_t key, char* ret_val, int trx_id = INVALID_TRXID);
 
 /// Delete the records by key.
 /// \param table_id int, table ID.
@@ -42,7 +43,8 @@ int db_delete(int table_id, int64_t key);
 /// \param key int64_t, primary key.
 /// \param values char const*, string value.
 /// \param int trxid, transaction id.
-int db_update(int table_id, int64_t key, char const* values, int trxid);
+int db_update(
+    int table_id, int64_t key, char const* values, int trxid = INVALID_TRXID);
 
 /// Release the table structure from table manager.
 /// \param table_id int, tableID.
