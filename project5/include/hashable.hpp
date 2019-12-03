@@ -6,11 +6,22 @@
 
 #include "utils.hpp"
 
+/// Variadic template based hash pack.
+/// \tparam typename TupleType, type of the data pack.
+/// \tparam std::size_t... Indices, index sequence.
 template <typename TupleType, std::size_t... Indices>
 struct PackHasher;
 
+/// Variadic template based hash pack.
+/// \tparam typename TupleType, type of the data pack.
+/// \tparam std::size_t Idx, current index.
+/// \tparam std::size_t... Indices, index sequence.
 template <typename TupleType, std::size_t Idx, std::size_t... Indices>
 struct PackHasher<TupleType, Idx, Indices...> {
+    /// Run hash function.
+    /// \param data TupleType const&, data pack.
+    /// \param res std::string, packed data.
+    /// \return std::size_t, hash.
     static std::size_t run(TupleType const& data, std::string res) {
         using current_t = std::tuple_element_t<Idx, TupleType>;
         char const* ptr = reinterpret_cast<char const*>(&std::get<Idx>(data));
@@ -19,17 +30,30 @@ struct PackHasher<TupleType, Idx, Indices...> {
     }
 };
 
+/// Variadic template based hash pack.
+/// \tparam typename TupleType, type of the data pack.
 template <typename TupleType>
 struct PackHasher<TupleType> {
+    /// Run hash function.
+    /// \param data TupleType const&, data pack.
+    /// \param res std::string, totally packed data.
+    /// \return std::size_t, hash.
     static std::size_t run(TupleType const& data, std::string res) {
         return std::hash<std::string>{}(res);
     }
 };
 
+/// Hashable data pack.
+/// \tparam typename... T, data types.
 template <typename... T>
 struct HashablePack {
+    /// data pack.
     std::tuple<T...> data;
 
+    /// Construct data with tuple based data pack.
+    /// \tparam typename... Tp, types.
+    /// \param _ utils::token_t, data based constructor token.
+    /// \param data Tp&&..., data parameter pack.
     template <typename... Tp>
     HashablePack(utils::token_t, Tp&&... data) : data(std::forward<Tp>(data)...) {
         // Do Nothing
