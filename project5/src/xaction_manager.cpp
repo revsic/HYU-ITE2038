@@ -76,8 +76,9 @@ Status Transaction::require_lock(
 }
 
 Status Transaction::release_locks(LockManager& manager) {
+    bool acquire_lock = state != TrxState::ABORTED;
     for (auto& pair : locks) {
-        CHECK_SUCCESS(manager.release_lock(pair.second));
+        CHECK_SUCCESS(manager.release_lock(pair.second, acquire_lock));
     }
     locks.clear();
     return Status::SUCCESS;
@@ -85,6 +86,10 @@ Status Transaction::release_locks(LockManager& manager) {
 
 trxid_t Transaction::get_id() const {
     return id;
+}
+
+TrxState Transaction::get_state() const {
+    return state;
 }
 
 std::map<HID, std::shared_ptr<Lock>> const& Transaction::get_locks() const {
@@ -109,9 +114,9 @@ TransactionManager::TransactionManager(LockManager& lockmng)
 trxid_t TransactionManager::new_trx() {
     std::unique_lock<std::mutex> lock(mtx);
 
-    trxid_t id = last_id++;
+    trxid_t id = ++last_id;
     if (last_id < 0) {
-        last_id = 0;
+        last_id = 1;
     }
 
     if (trxs.find(id) != trxs.end()) {

@@ -65,6 +65,9 @@ public:
     /// Get transaction ID.
     trxid_t get_id() const;
 
+    /// Get transaction state.
+    TrxState get_state() const;
+
     /// Get all locks.
     std::map<HID, std::shared_ptr<Lock>> const& get_locks() const;
 
