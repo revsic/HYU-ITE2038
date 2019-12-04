@@ -133,8 +133,9 @@ public:
     
     /// Relase lock.
     /// \param lock std::shared_ptr<Lock>, target lock.
+    /// \param acquire_lock bool, acquire system lock or not.
     /// \return Status, whether success to release lock or not.
-    Status release_lock(std::shared_ptr<Lock> lock);
+    Status release_lock(std::shared_ptr<Lock> lock, bool acquire_lock = true);
 
     /// Set base database structure.
     /// \param db Database&, database.

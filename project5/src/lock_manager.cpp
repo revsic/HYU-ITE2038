@@ -130,7 +130,8 @@ std::shared_ptr<Lock> LockManager::require_lock(
     while (!locks[id].cv.wait_for(
         own,
         LOCK_WAIT,
-        [&]{ return !new_lock->stop(); })
+        [&]{ return !new_lock->stop()
+            || backref->get_state() == TrxState::ABORTED; })
     ) {
         Status res = detect_and_release();
         if (res == Status::SUCCESS) {
@@ -141,14 +142,19 @@ std::shared_ptr<Lock> LockManager::require_lock(
     // module updates are already occurred in release_lock because of deadlock
 
     backref->wait = nullptr;
-    backref->state = TrxState::RUNNING;
+    if (backref->state == TrxState::WAITING) {
+        backref->state = TrxState::RUNNING;
+    }
 
     // transaction table updates are occured in defer.
     return new_lock;
 }
 
-Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
-    std::unique_lock<std::mutex> own(mtx);
+Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire_lock) {
+    std::unique_lock<std::mutex> own(mtx, std::defer_lock);
+    if (acquire_lock) {
+        own.lock();
+    }
 
     HashableID hid = lock->get_hid().make_hashable();
     auto iter = locks.find(hid);
