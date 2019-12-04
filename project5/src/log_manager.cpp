@@ -53,8 +53,8 @@ std::list<Log> const& LogManager::get_logs(trxid_t xid) const {
 }
 
 Status LogManager::remove_trxlog(trxid_t xid) {
-    log_map.erase(xid);
-    return Status::SUCCESS;
+    return log_map.erase(xid) > 0
+        ? Status::SUCCESS : Status::FAILURE;
 }
 
 lsn_t LogManager::get_lsn() {

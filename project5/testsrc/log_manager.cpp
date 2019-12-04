@@ -88,7 +88,12 @@ TEST_SUITE(LogManagerTest::log_end, {
 })
 
 TEST_SUITE(LogManagerTest::remove_trxlog, {
-
+    LogManager logmng;
+    logmng.log_map[10].emplace_back();
+    TEST(logmng.log_map[10].size() == 1);
+    TEST_SUCCESS(logmng.remove_trxlog(10));
+    TEST(logmng.remove_trxlog(10) == Status::FAILURE);
+    TEST(logmng.log_map.find(10) == logmng.log_map.end());
 })
 
 int log_manager_test() {
