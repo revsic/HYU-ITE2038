@@ -13,7 +13,8 @@ class Database {
 public:
     /// Construct database with the number of buffers.
     /// \param num_buffer int, number of buffers.
-    Database(int num_buffer);
+    /// \param seq int, sequential access or not.
+    Database(int num_buffer, bool seq = false);
 
     /// Default destructor.
     ~Database() = default;
@@ -127,6 +128,9 @@ public:
     Status abort_trx(trxid_t id);
 
 private:
+    bool sequential;                /// running on sequential mode.
+    std::mutex mtx;                 /// mutex for sequential access.
+
     TableManager tables;            /// table manager.
     BufferManager buffers;          /// buffer manager.
     LockManager locks;              /// lock manager.

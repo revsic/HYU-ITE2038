@@ -1,7 +1,8 @@
 #include "dbms.hpp"
 
-Database::Database(int num_buffer) :
-    tables(), buffers(num_buffer), locks(), logs(), trxs(locks)
+Database::Database(int num_buffer, bool seq) :
+    sequential(seq), mtx(), tables(), buffers(num_buffer),
+    locks(), logs(), trxs(locks)
 {
     buffers.set_database(*this);
     locks.set_database(*this);
@@ -56,10 +57,17 @@ Table const* Database::operator[](tableid_t id) const {
 }
 
 trxid_t Database::begin_trx() {
+    if (sequential) {
+        mtx.lock();
+    }
+
     return trxs.new_trx();
 }
 
 Status Database::end_trx(trxid_t id) {
+    if (sequential) {
+        mtx.unlock();
+    }
     logs.remove_trxlog(id);
     return trxs.end_trx(id);
 }
