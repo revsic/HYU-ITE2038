@@ -3,16 +3,16 @@
 #include "headers.hpp"
 #include "status.hpp"
 
-#define TEST(expr)                                      \
-if(!(expr)) {                                           \
-    printf("%s, line %d: err\n", __FILE__, __LINE__);   \
-    return 0;                                           \
+#define TEST(expr)                                                  \
+if(!(expr)) {                                                       \
+    printf("%s, line %d err: %s\n", __FILE__, __LINE__, #expr);     \
+    return 0;                                                       \
 }
 
-#define TEST_STATUS(expr)                               \
-if(!(expr)) {                                           \
-    printf("%s, line %d: err\n", __FILE__, __LINE__);   \
-    return Status::FAILURE;                             \
+#define TEST_STATUS(expr)                                           \
+if(!(expr)) {                                                       \
+    printf("%s, line %d err: %s\n", __FILE__, __LINE__, #expr);     \
+    return Status::FAILURE;                                         \
 }
 
 #define TEST_SUCCESS(val) TEST(val == Status::SUCCESS);
