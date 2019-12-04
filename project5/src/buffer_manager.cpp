@@ -64,6 +64,8 @@ Status Buffer::link_neighbor() {
 }
 
 Status Buffer::append_mru(bool link) {
+    std::unique_lock<std::recursive_mutex> own(manager->mtx);
+
     CHECK_NULL(manager);
     if (link) {
         CHECK_SUCCESS(link_neighbor());
