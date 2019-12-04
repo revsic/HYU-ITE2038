@@ -3,6 +3,8 @@
 #include "xaction_manager.hpp"
 #include "test.hpp"
 
+#include <memory>
+
 struct HierarchicalTest {
     TEST_METHOD(constructor);
     TEST_METHOD(make_hashable);
@@ -30,6 +32,7 @@ struct LockManagerTest {
     TEST_METHOD(deadlock_choose_abort);
     TEST_METHOD(deadlock_construct_graph);
     TEST_METHOD(lockable);
+    static LockManager::DeadlockDetector::graph_t sample_graph();
 };
 
 TEST_SUITE(HierarchicalTest::constructor, {
@@ -174,7 +177,24 @@ TEST_SUITE(LockManagerTest::deadlock_choose_abort, {
 })
 
 TEST_SUITE(LockManagerTest::deadlock_construct_graph, {
+    auto graph = sample_graph();
+    TEST(graph[1].next_id == std::set<trxid_t>({ 2, 5 }));
+    TEST(graph[1].prev_id == std::set<trxid_t>({ 3 }));
 
+    TEST(graph[2].next_id == std::set<trxid_t>({ 3, 6 }));
+    TEST(graph[2].prev_id == std::set<trxid_t>({ 1, 4 }));
+
+    TEST(graph[3].next_id == std::set<trxid_t>({ 1 }));
+    TEST(graph[3].prev_id == std::set<trxid_t>({ 2 }));
+
+    TEST(graph[4].next_id == std::set<trxid_t>({ 2, 5 }));
+    TEST(graph[4].prev_id == std::set<trxid_t>({ 5 }));
+
+    TEST(graph[5].next_id == std::set<trxid_t>({ 4 }));
+    TEST(graph[5].prev_id == std::set<trxid_t>({ 1, 4 }));
+
+    TEST(graph[6].next_id == std::set<trxid_t>());
+    TEST(graph[6].prev_id == std::set<trxid_t>({ 2 }));
 })
 
 TEST_SUITE(LockManagerTest::lockable, {
@@ -195,6 +215,47 @@ TEST_SUITE(LockManagerTest::lockable, {
     module.mode = LockMode::EXCLUSIVE;
     TEST(!manager.lockable(module, lock));
 })
+
+LockManager::DeadlockDetector::graph_t LockManagerTest::sample_graph() {
+    LockManager::locktable_t locks;
+    LockManager::trxtable_t trxtable;
+
+    Transaction trxs[6 + 1];
+    for (int i = 0; i < 6 + 1; ++i) {
+        trxs[i] = Transaction(i);
+        trxtable[i] = std::make_pair(&trxs[i], 2);
+    }
+
+    LockManager::LockStruct& module12 = locks[HID(1, 2).make_hashable()];
+    module12.mode = LockMode::EXCLUSIVE;
+    module12.run.push_back(std::make_shared<Lock>(HID(1, 2), LockMode::EXCLUSIVE, &trxs[1]));
+    module12.wait.push_back(std::make_shared<Lock>(HID(1, 2), LockMode::EXCLUSIVE, &trxs[3]));
+    trxs[3].wait = module12.wait.back();
+
+    LockManager::LockStruct& module32 = locks[HID(3, 2).make_hashable()];
+    module32.mode = LockMode::SHARED;
+    module32.run.push_back(std::make_shared<Lock>(HID(3, 2), LockMode::SHARED, &trxs[3]));
+    module32.run.push_back(std::make_shared<Lock>(HID(3, 2), LockMode::SHARED, &trxs[6]));
+    module32.wait.push_back(std::make_shared<Lock>(HID(3, 2), LockMode::EXCLUSIVE, &trxs[2]));
+    trxs[2].wait = module32.wait.back();
+
+    LockManager::LockStruct& module22 = locks[HID(2, 2).make_hashable()];
+    module22.mode = LockMode::SHARED;
+    module22.run.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::SHARED, &trxs[2]));
+    module22.run.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::SHARED, &trxs[5]));
+    module22.wait.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::EXCLUSIVE, &trxs[1]));
+    trxs[1].wait = module22.wait.back();
+    module22.wait.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::EXCLUSIVE, &trxs[4]));
+    trxs[4].wait = module22.wait.back();
+
+    LockManager::LockStruct& module42 = locks[HID(4, 2).make_hashable()];
+    module42.mode = LockMode::EXCLUSIVE;
+    module42.run.push_back(std::make_shared<Lock>(HID(4, 2), LockMode::EXCLUSIVE, &trxs[4]));
+    module42.wait.push_back(std::make_shared<Lock>(HID(4, 2), LockMode::EXCLUSIVE, &trxs[5]));
+    trxs[5].wait = module42.wait.back();
+
+    return LockManager::DeadlockDetector::construct_graph(locks, trxtable);
+}
 
 int lock_manager_test() {
     return HierarchicalTest::constructor_test()
