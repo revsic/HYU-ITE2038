@@ -180,6 +180,8 @@ private:
         struct Node {
             /// Reference count.
             int refcount() const;
+            /// Outref count.
+            int outcount() const;
             std::set<trxid_t> next_id;      /// next node.
             std::set<trxid_t> prev_id;      /// previous node.
         };

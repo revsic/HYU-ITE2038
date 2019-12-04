@@ -202,6 +202,10 @@ int LockManager::DeadlockDetector::Node::refcount() const {
     return prev_id.size();
 }
 
+int LockManager::DeadlockDetector::Node::outcount() const {
+    return next_id.size();
+}
+
 LockManager::DeadlockDetector::DeadlockDetector() :
     coeff(1), last_found(false), last_use(std::chrono::steady_clock::now())
 {
@@ -272,7 +276,9 @@ std::vector<trxid_t> LockManager::DeadlockDetector::choose_abort(
         auto iter = std::max_element(
             graph.begin(), graph.end(),
             [](auto const& left, auto const& right) {
-                return left.second.refcount() < right.second.refcount();
+                return left.second.refcount() < right.second.refcount()
+                    || (left.second.refcount() == right.second.refcount()
+                        && left.second.outcount() < right.second.outcount());
             });
 
         trxid_t xid = iter->first;
