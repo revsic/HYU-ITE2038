@@ -97,6 +97,10 @@ private:
     LockMode mode;              /// lock mode.
     Transaction* backref;       /// owner transaction.
     std::atomic<bool> wait;     /// whether waiting for others or not.
+
+#ifdef TEST_MODULE
+    friend struct LockTest;
+#endif
 };
 
 

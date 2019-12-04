@@ -1,4 +1,5 @@
 #include "lock_manager.hpp"
+#include "xaction_manager.hpp"
 #include "test.hpp"
 
 struct HierarchicalTest {
@@ -63,14 +64,52 @@ TEST_SUITE(HierarchicalTest::comparison, {
 })
 
 TEST_SUITE(LockTest::constructor, {
+    Lock lock;
+    TEST(lock.get_hid() == HID());
+    TEST(lock.get_mode() == LockMode::IDLE);
+    TEST(lock.backref == nullptr);
+    TEST(!lock.is_wait());
 
+    Transaction xaction;
+    Lock lock2(HID(10, 20), LockMode::SHARED, &xaction);
+    TEST(lock2.get_hid() == HID(10, 20));
+    TEST(lock2.get_mode() == LockMode::SHARED);
+    TEST(&lock2.get_backref() == &xaction);
+    TEST(!lock2.is_wait());
 })
 
 TEST_SUITE(LockTest::move_constructor, {
+    Transaction xaction;
+    Lock lock(HID(10, 20), LockMode::SHARED, &xaction);
+    Lock lock2(std::move(lock));
 
+    TEST(lock.get_hid() == HID());
+    TEST(lock.get_mode() == LockMode::IDLE);
+    TEST(lock.backref == nullptr);
+    TEST(!lock.is_wait());
+
+    TEST(lock2.get_hid() == HID(10, 20));
+    TEST(lock2.get_mode() == LockMode::SHARED);
+    TEST(&lock2.get_backref() == &xaction);
+    TEST(!lock2.is_wait());
 })
 
 TEST_SUITE(LockTest::move_assignment, {
+    Transaction xaction;
+    Lock lock(HID(10, 20), LockMode::SHARED, &xaction);
+    Lock lock2;
+    
+    lock2 = std::move(lock);
+
+    TEST(lock.get_hid() == HID());
+    TEST(lock.get_mode() == LockMode::IDLE);
+    TEST(lock.backref == nullptr);
+    TEST(!lock.is_wait());
+
+    TEST(lock2.get_hid() == HID(10, 20));
+    TEST(lock2.get_mode() == LockMode::SHARED);
+    TEST(&lock2.get_backref() == &xaction);
+    TEST(!lock2.is_wait());
 
 })
 
