@@ -137,6 +137,10 @@ private:
     friend class BufferManager;
     friend class Transaction;
 
+#ifdef TEST_MODULE
+    friend struct LockManagerTest;
+#endif
+
     /// \tparam typename R, return type.
     /// \tparam typename F, callback type.
     /// \tparam typename Args..., arguments type.
