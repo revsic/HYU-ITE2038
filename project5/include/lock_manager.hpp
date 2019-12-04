@@ -177,10 +177,6 @@ private:
     struct DeadlockDetector {
         /// Graph node.
         struct Node {
-            /// Default constructor.
-            Node();
-            /// Default destructor.
-            ~Node() = default;
             /// Reference count.
             int refcount() const;
             std::set<trxid_t> next_id;      /// next node.

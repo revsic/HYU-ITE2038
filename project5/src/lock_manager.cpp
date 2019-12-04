@@ -198,11 +198,6 @@ bool LockManager::lockable(
             && target->get_mode() == LockMode::SHARED);
 }
 
-LockManager::DeadlockDetector::Node::Node() : next_id(), prev_id()
-{
-    // Do Nothing
-}
-
 int LockManager::DeadlockDetector::Node::refcount() const {
     return prev_id.size();
 }

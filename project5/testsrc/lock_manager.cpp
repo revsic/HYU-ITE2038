@@ -1,3 +1,4 @@
+#include "dbms.hpp"
 #include "lock_manager.hpp"
 #include "xaction_manager.hpp"
 #include "test.hpp"
@@ -22,7 +23,6 @@ struct LockManagerTest {
     TEST_METHOD(detect_and_release);
     TEST_METHOD(set_database);
     TEST_METHOD(lockstruct_constructor);
-    TEST_METHOD(deadlock_node_constructor);
     TEST_METHOD(deadlock_constructor);
     TEST_METHOD(deadlock_schedule);
     TEST_METHOD(deadlock_reduce);
@@ -138,15 +138,17 @@ TEST_SUITE(LockManagerTest::detect_and_release, {
 })
 
 TEST_SUITE(LockManagerTest::set_database, {
-
+    Database dbms(1);
+    LockManager lockmng;
+    lockmng.set_database(dbms);
+    TEST(&dbms == lockmng.db);
 })
 
 TEST_SUITE(LockManagerTest::lockstruct_constructor, {
-
-})
-
-TEST_SUITE(LockManagerTest::deadlock_node_constructor, {
-
+    LockManager::LockStruct module;
+    TEST(module.mode == LockMode::IDLE);
+    TEST(module.run.size() == 0);
+    TEST(module.wait.size() == 0);
 })
 
 TEST_SUITE(LockManagerTest::deadlock_constructor, {
@@ -191,7 +193,6 @@ int lock_manager_test() {
         && LockManagerTest::detect_and_release_test()
         && LockManagerTest::set_database_test()
         && LockManagerTest::lockstruct_constructor_test()
-        && LockManagerTest::deadlock_node_constructor_test()
         && LockManagerTest::deadlock_constructor_test()
         && LockManagerTest::deadlock_schedule_test()
         && LockManagerTest::deadlock_reduce_test()
