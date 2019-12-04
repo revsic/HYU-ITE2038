@@ -12,7 +12,8 @@ Log::Log()
 
 Log::Log(
     lsn_t lsn, lsn_t prev_lsn, trxid_t xid, LogType type
-) : lsn(lsn), prev_lsn(prev_lsn), xid(xid), type(type) {
+) : lsn(lsn), prev_lsn(prev_lsn), xid(xid), type(type), hid(), offset(-1)
+{
     // Do Nothing
 }
 
