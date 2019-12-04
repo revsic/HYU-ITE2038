@@ -147,6 +147,11 @@ public:
     /// Set database.
     Status set_database(Database& dbms);
 
+    /// Set verbosity.
+    /// \param on bool, verbose on or not.
+    /// \return bool, previous verbosity.
+    bool verbose(bool on = false);
+
 private:
     int leaf_order;                 /// order of the leaf node.
     int internal_order;             /// internal of the leaf node.

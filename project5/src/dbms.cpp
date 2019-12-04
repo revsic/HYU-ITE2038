@@ -77,3 +77,7 @@ Status Database::abort_trx(trxid_t id) {
     logs.remove_trxlog(id);
     return res;
 }
+
+void Database::verbose(bool on) {
+    tables.verbose(on);
+}

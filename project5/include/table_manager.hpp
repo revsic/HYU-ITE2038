@@ -106,6 +106,9 @@ public:
     /// \return std::string const&, filename.
     std::string const& filename() const;
 
+    /// Set verbosity.
+    void verbose(bool on = false);
+
 private:
     FileManager file;               /// file manager.
     BPTree bpt;                     /// B+ Tree structure.
@@ -156,6 +159,9 @@ public:
     /// \param id tableid_t, table ID.
     /// \return Status, whether success to remove the table or not.
     Status remove(tableid_t id);
+
+    /// Set verbosity.
+    void verbose(bool on = false);
 
     /// Convert file ID to table ID.
     /// \param id fileid_t, file ID.

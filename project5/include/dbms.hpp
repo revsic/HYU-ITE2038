@@ -127,6 +127,9 @@ public:
     /// \return Status, whether success or not.
     Status abort_trx(trxid_t id);
 
+    /// Set verbosity.
+    void verbose(bool on = false);
+
 private:
     bool sequential;                /// running on sequential mode.
     std::mutex mtx;                 /// mutex for sequential access.

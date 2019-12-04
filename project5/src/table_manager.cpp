@@ -78,6 +78,10 @@ std::string const& Table::filename() const {
     return file.get_filename();
 }
 
+void Table::verbose(bool on) {
+    bpt.verbose(on);
+}
+
 FileManager& Table::filemng() {
     return file;
 }
@@ -132,6 +136,12 @@ Status TableManager::remove(tableid_t id) {
 
     tables.erase(iter);
     return Status::SUCCESS;
+}
+
+void TableManager::verbose(bool on) {
+    for (auto& pair : tables) {
+        pair.second.verbose(on);
+    }
 }
 
 tableid_t TableManager::convert(fileid_t id) {

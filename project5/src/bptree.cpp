@@ -384,6 +384,12 @@ Status BPTree::set_database(Database& dbms) {
     return Status::SUCCESS;
 }
 
+bool BPTree::verbose(bool on) {
+    bool prev = verbose_output;
+    verbose_output = on;
+    return prev;
+}
+
 // Ubuffer macro
 Ubuffer BPTree::buffering(pagenum_t pagenum) const {
     return buffers->buffering(*file, pagenum);
