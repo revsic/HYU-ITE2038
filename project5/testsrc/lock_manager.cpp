@@ -84,14 +84,14 @@ TEST_SUITE(LockTest::constructor, {
     TEST(lock.get_hid() == HID());
     TEST(lock.get_mode() == LockMode::IDLE);
     TEST(lock.backref == nullptr);
-    TEST(lock.runnable());
+    TEST(!lock.stop());
 
     Transaction xaction;
     Lock lock2(HID(10, 20), LockMode::SHARED, &xaction);
     TEST(lock2.get_hid() == HID(10, 20));
     TEST(lock2.get_mode() == LockMode::SHARED);
     TEST(&lock2.get_backref() == &xaction);
-    TEST(lock2.runnable());
+    TEST(!lock2.stop());
 })
 
 TEST_SUITE(LockTest::move_constructor, {
@@ -102,12 +102,12 @@ TEST_SUITE(LockTest::move_constructor, {
     TEST(lock.get_hid() == HID());
     TEST(lock.get_mode() == LockMode::IDLE);
     TEST(lock.backref == nullptr);
-    TEST(lock.runnable());
+    TEST(!lock.stop());
 
     TEST(lock2.get_hid() == HID(10, 20));
     TEST(lock2.get_mode() == LockMode::SHARED);
     TEST(&lock2.get_backref() == &xaction);
-    TEST(lock2.runnable());
+    TEST(!lock2.stop());
 })
 
 TEST_SUITE(LockTest::move_assignment, {
@@ -120,12 +120,12 @@ TEST_SUITE(LockTest::move_assignment, {
     TEST(lock.get_hid() == HID());
     TEST(lock.get_mode() == LockMode::IDLE);
     TEST(lock.backref == nullptr);
-    TEST(lock.runnable());
+    TEST(!lock.stop());
 
     TEST(lock2.get_hid() == HID(10, 20));
     TEST(lock2.get_mode() == LockMode::SHARED);
     TEST(&lock2.get_backref() == &xaction);
-    TEST(lock2.runnable());
+    TEST(!lock2.stop());
 
 })
 
@@ -138,7 +138,7 @@ TEST_SUITE(LockTest::run, {
     lock.wait_flag = true;
 
     TEST_SUCCESS(lock.run());
-    TEST(lock.runnable());
+    TEST(!lock.stop());
 })
 
 TEST_SUITE(LockManagerTest::require_lock, {
@@ -154,7 +154,7 @@ TEST_SUITE(LockManagerTest::require_lock, {
         TEST(lock->get_hid() == HID(1, 2));
         TEST(lock->get_mode() == LockMode::SHARED);
         TEST(&lock->get_backref() == &trx);
-        TEST(lock->runnable());
+        TEST(!lock->stop());
 
         auto& module = manager.locks[HID(1, 2).make_hashable()];
         TEST(module.mode == LockMode::SHARED);
@@ -177,7 +177,7 @@ TEST_SUITE(LockManagerTest::require_lock, {
         TEST(lock->get_hid() == HID(1, 2));
         TEST(lock->get_mode() == LockMode::EXCLUSIVE);
         TEST(&lock->get_backref() == &trx);
-        TEST(lock->runnable());
+        TEST(!lock->stop());
 
         auto& module = manager.locks[HID(1, 2).make_hashable()];
         TEST(module.mode == LockMode::EXCLUSIVE);
@@ -202,12 +202,12 @@ TEST_SUITE(LockManagerTest::require_lock, {
         TEST(lock->get_hid() == HID(1, 2));
         TEST(lock->get_mode() == LockMode::SHARED);
         TEST(&lock->get_backref() == &trx);
-        TEST(lock->runnable());
+        TEST(!lock->stop());
 
         TEST(lock2->get_hid() == HID(1, 2));
         TEST(lock2->get_mode() == LockMode::SHARED);
         TEST(&lock2->get_backref() == &trx2);
-        TEST(lock2->runnable());
+        TEST(!lock2->stop());
 
         auto& module = manager.locks[HID(1, 2).make_hashable()];
         TEST(module.mode == LockMode::SHARED);
@@ -341,9 +341,12 @@ TEST_SUITE(LockManagerTest::detect_and_release, {
 TEST_SUITE(LockManagerTest::deadlock, {
     // case 0. exclusive -> exclusive
 
+
     // case 1. shared -> exclusive
+    /// TODO: Impl
 
     // case 2. exclusive -> shared
+    /// TODO: Impl
 })
 
 TEST_SUITE(LockManagerTest::set_database, {

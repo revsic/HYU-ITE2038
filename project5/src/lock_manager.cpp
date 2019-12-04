@@ -77,8 +77,8 @@ Transaction& Lock::get_backref() const {
     return *backref;
 }
 
-bool Lock::runnable() const {
-    return !wait_flag;
+bool Lock::stop() const {
+    return wait_flag;
 }
 
 Status Lock::wait() {
@@ -130,7 +130,7 @@ std::shared_ptr<Lock> LockManager::require_lock(
     while (!locks[id].cv.wait_for(
         own,
         LOCK_WAIT,
-        [&]{ return new_lock->runnable(); })
+        [&]{ return !new_lock->stop(); })
     ) {
         Status res = detect_and_release();
         if (res == Status::SUCCESS) {

@@ -87,8 +87,8 @@ public:
     LockMode get_mode() const;
     /// Return owner transaction.
     Transaction& get_backref() const;
-    /// Whether this lock is runnable or not.
-    bool runnable() const;
+    /// Whether this lock is waiting for others release or not.
+    bool stop() const;
     /// Change lock state as waiting
     Status wait();
     /// Change lock state as runnable.
