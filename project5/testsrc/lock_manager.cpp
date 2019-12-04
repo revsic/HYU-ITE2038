@@ -222,7 +222,7 @@ TEST_SUITE(LockManagerTest::deadlock_find_cycle, {
     auto& locktable = graph_info->locktable;
     auto& trxtable = graph_info->trxtable;
     TEST(detector.find_cycle(locktable, trxtable)
-        == std::vector<trxid_t>({ 2, 5 }));
+        == std::vector<trxid_t>({ 2, 4 }));
     TEST(detector.unit == LockManager::LOCK_WAIT);
     
     graph_info = sample_dag();
@@ -241,7 +241,7 @@ TEST_SUITE(LockManagerTest::deadlock_choose_abort, {
 
     detector.reduce(graph, 0);
     TEST(detector.choose_abort(std::move(graph))
-        == std::vector<trxid_t>({ 2, 5 }));
+        == std::vector<trxid_t>({ 2, 4 }));
 })
 
 TEST_SUITE(LockManagerTest::deadlock_construct_graph, {
