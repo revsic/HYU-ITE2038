@@ -13,6 +13,7 @@ int main() {
     constexpr size_t NUM_THREAD = 4;
     constexpr size_t MAX_TRX = 1000;
     constexpr size_t MAX_TRXSEQ = 1000;
+    constexpr size_t MAX_KEY_RANGE = 100000;
 
     std::atomic<int> n_query(0);
 
@@ -29,7 +30,7 @@ int main() {
                 int num_seq = gen() % MAX_TRXSEQ;
                 for (int k = 0; k < num_seq; ++k) {
                     ++n_query;
-                    prikey_t key = gen() % 100000;
+                    prikey_t key = gen() % MAX_KEY_RANGE;
                     if (gen() % 2 == 0) {
                         dbms.find(tid, key, nullptr, xid);
                     } else {
@@ -49,13 +50,18 @@ int main() {
         }
     });
 
+    using namespace std::chrono;
+
+    auto now = steady_clock::now();
     for (int i = 0; i < NUM_THREAD; ++i) {
         threads[i].join();
     }
+    auto end = steady_clock::now();
+
     runnable = false;
     logger.join();
 
-    std::printf("\n");
+    std::cout << ' ' << duration_cast<milliseconds>(end - now).count() << "ms" << std::endl;
 
     return 0;
 }
