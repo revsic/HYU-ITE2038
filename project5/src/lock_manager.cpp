@@ -30,37 +30,37 @@ bool HierarchicalID::operator==(HierarchicalID const& other) const {
     return tid == other.tid && pid == other.pid;
 }
 
-Lock::Lock() : hid(), mode(LockMode::IDLE), backref(nullptr), wait(false)
+Lock::Lock() : hid(), mode(LockMode::IDLE), backref(nullptr), wait_flag(false)
 {
     // Do Nothing
 }
 
 Lock::Lock(HID hid, LockMode mode, Transaction* backref
-) : hid(hid), mode(mode), backref(backref), wait(false)
+) : hid(hid), mode(mode), backref(backref), wait_flag(false)
 {
     // Do Nothing
 }
 
 Lock::Lock(Lock&& lock) noexcept :
     hid(lock.hid), mode(lock.mode),
-    backref(lock.backref), wait(lock.wait.load())
+    backref(lock.backref), wait_flag(lock.wait_flag.load())
 {
     lock.hid = HID();
     lock.mode = LockMode::IDLE;
     lock.backref = nullptr;
-    lock.wait = false;
+    lock.wait_flag = false;
 }
 
 Lock& Lock::operator=(Lock&& lock) noexcept {
     hid = lock.hid;
     mode = lock.mode;
     backref = lock.backref;
-    wait = lock.wait.load();
+    wait_flag = lock.wait_flag.load();
 
     lock.hid = HID();
     lock.mode = LockMode::IDLE;
     lock.backref = nullptr;
-    lock.wait = false;
+    lock.wait_flag = false;
 
     return *this;
 }
@@ -77,12 +77,17 @@ Transaction& Lock::get_backref() const {
     return *backref;
 }
 
-bool Lock::is_wait() const {
-    return wait;
+bool Lock::runnable() const {
+    return !wait_flag;
+}
+
+Status Lock::wait() {
+    wait_flag = true;
+    return Status::SUCCESS;
 }
 
 Status Lock::run() {
-    wait = false;
+    wait_flag = false;
     return Status::SUCCESS;
 }
 
@@ -120,12 +125,13 @@ std::shared_ptr<Lock> LockManager::require_lock(
     backref->wait = new_lock;
     backref->state = TrxState::WAITING;
 
+    new_lock->wait();
     locks[id].wait.push_back(new_lock);
 
     while (!locks[id].cv.wait_for(
         own,
         LOCK_WAIT,
-        [&]{ return !new_lock->is_wait(); })
+        [&]{ return new_lock->runnable(); })
     ) {
         Status res = detect_and_release();
         if (res == Status::SUCCESS) {
@@ -150,6 +156,12 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
 
     LockStruct& module = iter->second;
     module.run.remove(lock);
+
+    Transaction& backref = lock->get_backref();
+    if (--trxs[backref.get_id()].second == 0) {
+        trxs.erase(backref.get_id());
+    }
+
     if (module.run.size() > 0) {
         return Status::SUCCESS;
     }
@@ -158,18 +170,18 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
         module.mode = LockMode::IDLE;
         return Status::SUCCESS;
     }
-    lock = module.wait.front();
-    lock->run();
 
-    Transaction& backref = lock->get_backref();
-    if (--trxs[backref.get_id()].second == 0) {
-        trxs.erase(backref.get_id());
+    if (module.wait.front()->get_mode() == LockMode::SHARED) {
+        for (auto& lock_ptr : module.wait) {
+            if (lock_ptr->get_mode() == LockMode::SHARED) {
+                lock_ptr->run();
+            }
+        }
+    } else {
+        module.wait.front()->run();
     }
 
-    own.unlock();
     module.cv.notify_all();
-
-    backref.locks.erase(lock->get_hid());
     return Status::SUCCESS;
 }
 

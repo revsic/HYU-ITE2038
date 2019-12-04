@@ -3,6 +3,7 @@
 #include "xaction_manager.hpp"
 #include "test.hpp"
 
+#include <future>
 #include <memory>
 #include <thread>
 
@@ -34,6 +35,7 @@ struct LockManagerTest {
     TEST_METHOD(deadlock_choose_abort);
     TEST_METHOD(deadlock_construct_graph);
     TEST_METHOD(lockable);
+    TEST_METHOD(integrate);
 
     struct GraphInfo {
         LockManager::locktable_t locktable;
@@ -82,14 +84,14 @@ TEST_SUITE(LockTest::constructor, {
     TEST(lock.get_hid() == HID());
     TEST(lock.get_mode() == LockMode::IDLE);
     TEST(lock.backref == nullptr);
-    TEST(!lock.is_wait());
+    TEST(lock.runnable());
 
     Transaction xaction;
     Lock lock2(HID(10, 20), LockMode::SHARED, &xaction);
     TEST(lock2.get_hid() == HID(10, 20));
     TEST(lock2.get_mode() == LockMode::SHARED);
     TEST(&lock2.get_backref() == &xaction);
-    TEST(!lock2.is_wait());
+    TEST(lock2.runnable());
 })
 
 TEST_SUITE(LockTest::move_constructor, {
@@ -100,12 +102,12 @@ TEST_SUITE(LockTest::move_constructor, {
     TEST(lock.get_hid() == HID());
     TEST(lock.get_mode() == LockMode::IDLE);
     TEST(lock.backref == nullptr);
-    TEST(!lock.is_wait());
+    TEST(lock.runnable());
 
     TEST(lock2.get_hid() == HID(10, 20));
     TEST(lock2.get_mode() == LockMode::SHARED);
     TEST(&lock2.get_backref() == &xaction);
-    TEST(!lock2.is_wait());
+    TEST(lock2.runnable());
 })
 
 TEST_SUITE(LockTest::move_assignment, {
@@ -118,12 +120,12 @@ TEST_SUITE(LockTest::move_assignment, {
     TEST(lock.get_hid() == HID());
     TEST(lock.get_mode() == LockMode::IDLE);
     TEST(lock.backref == nullptr);
-    TEST(!lock.is_wait());
+    TEST(lock.runnable());
 
     TEST(lock2.get_hid() == HID(10, 20));
     TEST(lock2.get_mode() == LockMode::SHARED);
     TEST(&lock2.get_backref() == &xaction);
-    TEST(!lock2.is_wait());
+    TEST(lock2.runnable());
 
 })
 
@@ -133,10 +135,10 @@ TEST_SUITE(LockTest::getter, {
 
 TEST_SUITE(LockTest::run, {
     Lock lock;
-    lock.wait = true;
+    lock.wait_flag = true;
 
     TEST_SUCCESS(lock.run());
-    TEST(!lock.is_wait());
+    TEST(lock.runnable());
 })
 
 TEST_SUITE(LockManagerTest::require_lock, {
@@ -152,7 +154,7 @@ TEST_SUITE(LockManagerTest::require_lock, {
         TEST(lock->get_hid() == HID(1, 2));
         TEST(lock->get_mode() == LockMode::SHARED);
         TEST(&lock->get_backref() == &trx);
-        TEST(!lock->is_wait());
+        TEST(lock->runnable());
 
         auto& module = manager.locks[HID(1, 2).make_hashable()];
         TEST(module.mode == LockMode::SHARED);
@@ -175,7 +177,7 @@ TEST_SUITE(LockManagerTest::require_lock, {
         TEST(lock->get_hid() == HID(1, 2));
         TEST(lock->get_mode() == LockMode::EXCLUSIVE);
         TEST(&lock->get_backref() == &trx);
-        TEST(!lock->is_wait());
+        TEST(lock->runnable());
 
         auto& module = manager.locks[HID(1, 2).make_hashable()];
         TEST(module.mode == LockMode::EXCLUSIVE);
@@ -200,12 +202,12 @@ TEST_SUITE(LockManagerTest::require_lock, {
         TEST(lock->get_hid() == HID(1, 2));
         TEST(lock->get_mode() == LockMode::SHARED);
         TEST(&lock->get_backref() == &trx);
-        TEST(!lock->is_wait());
+        TEST(lock->runnable());
 
         TEST(lock2->get_hid() == HID(1, 2));
         TEST(lock2->get_mode() == LockMode::SHARED);
         TEST(&lock2->get_backref() == &trx2);
-        TEST(!lock2->is_wait());
+        TEST(lock2->runnable());
 
         auto& module = manager.locks[HID(1, 2).make_hashable()];
         TEST(module.mode == LockMode::SHARED);
@@ -223,7 +225,115 @@ TEST_SUITE(LockManagerTest::require_lock, {
 })
 
 TEST_SUITE(LockManagerTest::release_lock, {
+    // case 0. single run
+    {
+        LockManager manager;
+        Transaction trx(10);
+        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::EXCLUSIVE);
+        TEST_SUCCESS(manager.release_lock(lock));
 
+        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        TEST(module.mode == LockMode::IDLE);
+        TEST(module.wait.size() == 0);
+        TEST(module.run.size() == 0);
+        TEST(manager.trxs.find(10) == manager.trxs.end());
+    }
+
+    // case 1. multiple run
+    {
+        LockManager manager;
+        Transaction trx(10);
+        Transaction trx2(20);
+        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
+        auto lock2 = manager.require_lock(&trx2, HID(1, 2), LockMode::SHARED);
+        TEST_SUCCESS(manager.release_lock(lock));
+
+        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        TEST(module.mode == LockMode::SHARED);
+        TEST(module.wait.size() == 0);
+        TEST(module.run.size() == 1);
+        TEST(module.run.front() == lock2);
+        TEST(manager.trxs.find(10) == manager.trxs.end());
+        TEST(manager.trxs[20].first == &trx2);
+        TEST(manager.trxs[20].second == 1);
+    }
+
+    // case 2. single run and single wait
+    {
+        LockManager manager;
+        manager.detector.unit = 1h;
+
+        Transaction trx(10);
+        Transaction trx2(20);
+        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
+        auto fut = std::async(std::launch::async, [&] {
+            return manager.require_lock(&trx2, HID(1, 2), LockMode::EXCLUSIVE);
+        });
+
+        TEST_SUCCESS(manager.release_lock(lock));
+        auto lock2 = fut.get();
+
+        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        TEST(module.mode == LockMode::EXCLUSIVE);
+        TEST(module.wait.size() == 0);
+        TEST(module.run.size() == 1);
+        TEST(module.run.front() == lock2);
+        TEST(manager.trxs.find(10) == manager.trxs.end());
+        TEST(manager.trxs[20].first == &trx2);
+        TEST(manager.trxs[20].second == 1);
+    }
+
+    // case 3. require after release
+    {
+        LockManager manager;
+
+        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        manager.detector.unit = 1h;
+
+        Transaction trx(10);
+        Transaction trx2(20);
+        Transaction trx3(30);
+        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::EXCLUSIVE);
+        auto fut = std::async(std::launch::async, [&] {
+            return manager.require_lock(&trx2, HID(1, 2), LockMode::EXCLUSIVE);
+        });
+        auto fut2 = std::async(std::launch::async, [&] {
+            return manager.require_lock(&trx3, HID(1, 2), LockMode::SHARED);
+        });
+
+        TEST_SUCCESS(manager.release_lock(lock));
+        auto lock2 = fut.get();
+
+        auto fut3 = std::async(std::launch::async, [&] {
+            return manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
+        });
+
+        TEST_SUCCESS(manager.release_lock(lock2));
+        auto lock3 = fut2.get();
+        auto lock4 = fut3.get();
+
+        // auto& module = manager.locks[HID(1, 2).make_hashable()];
+        TEST(module.mode == LockMode::SHARED);
+        TEST(module.wait.size() == 0);
+        TEST(module.run.size() == 2);
+        TEST(std::set<std::shared_ptr<Lock>>(module.run.begin(), module.run.end())
+            == std::set<std::shared_ptr<Lock>>({ lock3, lock4 }));
+        TEST(manager.trxs.find(20) == manager.trxs.end());
+        TEST(manager.trxs[10].first == &trx);
+        TEST(manager.trxs[10].second == 1);
+        TEST(manager.trxs[30].first == &trx3);
+        TEST(manager.trxs[30].second == 1);
+
+        TEST_SUCCESS(manager.release_lock(lock3));
+
+        TEST(module.mode == LockMode::SHARED);
+        TEST(module.wait.size() == 0);
+        TEST(module.run.size() == 1);
+        TEST(module.run.front() == lock4);
+        TEST(manager.trxs.find(10) == manager.trxs.end());
+        TEST(manager.trxs[30].first == &trx3);
+        TEST(manager.trxs[30].second == 1);
+    }
 })
 
 TEST_SUITE(LockManagerTest::detect_and_release, {
@@ -231,7 +341,11 @@ TEST_SUITE(LockManagerTest::detect_and_release, {
 })
 
 TEST_SUITE(LockManagerTest::deadlock, {
+    // case 0. exclusive -> exclusive
 
+    // case 1. shared -> exclusive
+
+    // case 2. exclusive -> shared
 })
 
 TEST_SUITE(LockManagerTest::set_database, {
@@ -476,6 +590,10 @@ std::unique_ptr<LockManagerTest::GraphInfo> LockManagerTest::sample_graph() {
     return std::move(graph_info);
 }
 
+TEST_SUITE(LockManagerTest::integrate, {
+
+})
+
 int lock_manager_test() {
     return HierarchicalTest::constructor_test()
         && HierarchicalTest::make_hashable_test()
@@ -500,5 +618,6 @@ int lock_manager_test() {
         && LockManagerTest::deadlock_find_cycle_test()
         && LockManagerTest::deadlock_choose_abort_test()
         && LockManagerTest::deadlock_construct_graph_test()
-        && LockManagerTest::lockable_test();
+        && LockManagerTest::lockable_test()
+        && LockManagerTest::integrate_test();
 }

@@ -87,16 +87,18 @@ public:
     LockMode get_mode() const;
     /// Return owner transaction.
     Transaction& get_backref() const;
-    /// Whether this lock is waiting for others releasing or not.
-    bool is_wait() const;
-    /// Change lock status as runnable.
+    /// Whether this lock is runnable or not.
+    bool runnable() const;
+    /// Change lock state as waiting
+    Status wait();
+    /// Change lock state as runnable.
     Status run();
 
 private:
-    HID hid;                    /// hierarchical ID.
-    LockMode mode;              /// lock mode.
-    Transaction* backref;       /// owner transaction.
-    std::atomic<bool> wait;     /// whether waiting for others or not.
+    HID hid;                        /// hierarchical ID.
+    LockMode mode;                  /// lock mode.
+    Transaction* backref;           /// owner transaction.
+    std::atomic<bool> wait_flag;    /// whether waiting for others or not.
 
 #ifdef TEST_MODULE
     friend struct LockTest;
