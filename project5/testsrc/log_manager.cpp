@@ -121,7 +121,7 @@ TEST_SUITE(LogManagerTest::log_abort, {
 
 TEST_SUITE(LogManagerTest::log_commit, {
     LogManager logmng;
-    lsn_t lsn = logmng.log_abort(10);
+    lsn_t lsn = logmng.log_commit(10);
     TEST(lsn == 1);
     TEST(logmng.log_map[10].size() == 1);
     TEST(logmng.log_map[10].front().lsn == 1);
@@ -132,7 +132,7 @@ TEST_SUITE(LogManagerTest::log_commit, {
 
 TEST_SUITE(LogManagerTest::log_end, {
     LogManager logmng;
-    lsn_t lsn = logmng.log_abort(10);
+    lsn_t lsn = logmng.log_end(10);
     TEST(lsn == 1);
     TEST(logmng.log_map[10].size() == 1);
     TEST(logmng.log_map[10].front().lsn == 1);
