@@ -50,6 +50,9 @@ struct HierarchicalID {
 
     /// Define order about hid for ordered data structure.
     bool operator<(HierarchicalID const& other) const;
+
+    /// Define as equality comparable object.
+    bool operator==(HierarchicalID const& other) const;
 };
 
 /// Type alias for hierarchical ID as HID.

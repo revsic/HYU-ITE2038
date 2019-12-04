@@ -26,6 +26,10 @@ bool HierarchicalID::operator<(HierarchicalID const& other) const {
         || (tid == other.tid && pid < other.pid);
 }
 
+bool HierarchicalID::operator==(HierarchicalID const& other) const {
+    return tid == other.tid && pid == other.pid;
+}
+
 Lock::Lock() : hid(), mode(LockMode::IDLE), backref(nullptr), wait(false)
 {
     // Do Nothing
