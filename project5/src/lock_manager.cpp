@@ -106,10 +106,6 @@ std::shared_ptr<Lock> LockManager::require_lock(
     std::unique_lock<std::mutex> own(mtx);
 
     auto defer = utils::defer([&] {
-        LockStruct& module = locks[id];
-        module.mode = mode;
-        module.run.push_front(new_lock);
-
         if (trxs.find(backref->get_id()) == trxs.end()) {
             trxs[backref->get_id()] = std::make_pair(backref, 0);
         }
@@ -118,7 +114,10 @@ std::shared_ptr<Lock> LockManager::require_lock(
 
     auto iter = locks.find(id);
     if (iter == locks.end() || lockable(iter->second, new_lock)) {
-        // backref and module updates are occured in defer.
+        LockStruct& module = locks[id];
+        module.mode = mode;
+        module.run.push_front(new_lock);
+        // trx table updates are occured in defer.
         return new_lock;
     }
 
@@ -139,11 +138,12 @@ std::shared_ptr<Lock> LockManager::require_lock(
         }
     }
 
+    // module updates are already occurred in release_lock because of deadlock
+
     backref->wait = nullptr;
     backref->state = TrxState::RUNNING;
 
-    locks[id].wait.remove(new_lock);
-    // backref and module updates are occured in defer.
+    // transaction table updates are occured in defer.
     return new_lock;
 }
 
@@ -172,13 +172,25 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
     }
 
     if (module.wait.front()->get_mode() == LockMode::SHARED) {
-        for (auto& lock_ptr : module.wait) {
-            if (lock_ptr->get_mode() == LockMode::SHARED) {
-                lock_ptr->run();
+        module.mode = LockMode::SHARED;
+        for (auto iter = module.wait.begin(); iter != module.wait.end();) {
+            lock = *iter;
+            if (lock->get_mode() != LockMode::SHARED) {
+                ++iter;
+                continue;
             }
+
+            iter = module.wait.erase(iter);
+            module.run.push_front(lock);
+            lock->run();
         }
     } else {
-        module.wait.front()->run();
+        module.mode = LockMode::EXCLUSIVE;
+
+        auto lock = module.wait.front();
+        module.wait.pop_front();
+        module.run.push_front(lock);
+        lock->run();
     }
 
     module.cv.notify_all();
