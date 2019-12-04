@@ -116,12 +116,12 @@ private:
         std::list<Log>& log_list = log_map[xid];
 
         lsn_t lsn = get_lsn();
-        lsn_t last_lsn = INVALID_LSN;
+        lsn_t prev_lsn = INVALID_LSN;
         if (log_list.size() > 0) {
-            last_lsn = log_list.back().lsn;
+            prev_lsn = log_list.front().lsn;
         }
 
-        log_list.emplace_front(lsn, last_lsn, xid, std::forward<Args>(args)...);
+        log_list.emplace_front(lsn, prev_lsn, xid, std::forward<Args>(args)...);
         return lsn;
     }
 

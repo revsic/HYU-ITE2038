@@ -72,7 +72,40 @@ TEST_SUITE(LogManagerTest::get_logs, {
 })
 
 TEST_SUITE(LogManagerTest::log_update, {
+    Record before;
+    before.key = 300;
+    before.value[0] = 'a';
 
+    Record after;
+    after.key = 400;
+    after.value[0] = 'b';
+
+    LogManager logmng;
+    lsn_t lsn = logmng.log_update(10, HID(20, 30), 40, before, after);
+    TEST(lsn == 1);
+    TEST(logmng.log_map[10].size() == 1);
+    TEST(logmng.log_map[10].front().lsn == 1);
+    TEST(logmng.log_map[10].front().prev_lsn == 0);
+    TEST(logmng.log_map[10].front().xid == 10);
+    TEST(logmng.log_map[10].front().type == LogType::UPDATE);
+    TEST(logmng.log_map[10].front().hid == HID(20, 30));
+    TEST(logmng.log_map[10].front().offset == 40);
+    TEST(logmng.log_map[10].front().before.key == 300);
+    TEST(logmng.log_map[10].front().before.value[0] == 'a');
+    TEST(logmng.log_map[10].front().after.key == 400);
+    TEST(logmng.log_map[10].front().after.value[0] == 'b');
+
+    lsn = logmng.log_update(10, HID(60, 70), 80, before, after);
+    TEST(lsn == 2);
+    TEST(logmng.log_map[10].size() == 2);
+    TEST(logmng.log_map[10].front().lsn == 2);
+    TEST(logmng.log_map[10].front().prev_lsn == 1);
+
+    lsn = logmng.log_update(10, HID(90, 100), 110, before, after);
+    TEST(lsn == 3);
+    TEST(logmng.log_map[10].size() == 3);
+    TEST(logmng.log_map[10].front().lsn == 3);
+    TEST(logmng.log_map[10].front().prev_lsn == 2);
 })
 
 TEST_SUITE(LogManagerTest::log_abort, {
