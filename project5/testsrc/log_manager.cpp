@@ -2,7 +2,6 @@
 #include "test.hpp"
 
 struct LogManagerTest {
-#define TEST_METHOD(x) static int x##_test();
     TEST_METHOD(constructor)
     TEST_METHOD(get_lsn)
     TEST_METHOD(get_logs)

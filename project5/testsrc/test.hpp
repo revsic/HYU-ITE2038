@@ -24,6 +24,8 @@ int name##_test() {                                         \
     return 1;                                               \
 }
 
+#define TEST_METHOD(x) static int x##_test();
+
 // int status_test();
 int utils_test();
 int fileio_test();
