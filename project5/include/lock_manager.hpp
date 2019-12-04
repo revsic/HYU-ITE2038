@@ -165,6 +165,10 @@ private:
         LockStruct(LockStruct const&) = delete;
         /// Deleted copy assignment.
         LockStruct& operator=(LockStruct const&) = delete;
+
+#ifdef TEST_MODULE
+        friend struct LockManagerTest;
+#endif
     };
 
     /// Type alias for lock table.
@@ -224,6 +228,10 @@ private:
         /// \return graph_t, created waiting graph.
         static graph_t construct_graph(
             locktable_t const& locks, trxtable_t const& xtable);
+
+#ifdef TEST_MODULE
+        friend struct LockManagerTest;
+#endif
     };
 
     std::mutex mtx;                 /// system level mutex.
