@@ -60,9 +60,12 @@ trxid_t Database::begin_trx() {
 }
 
 Status Database::end_trx(trxid_t id) {
+    logs.remove_trxlog(id);
     return trxs.end_trx(id);
 }
 
 Status Database::abort_trx(trxid_t id) {
-    return trxs.abort_trx(id, *this);
+    Status res = trxs.abort_trx(id, *this);
+    logs.remove_trxlog(id);
+    return res;
 }
