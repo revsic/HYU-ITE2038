@@ -10,52 +10,19 @@
 using namespace std::chrono_literals;
 
 int main() {
-    LockManager manager;
+    Database dbms(4);
+    LockManager& manager = dbms.locks;
 
-    auto& module = manager.locks[HID(1, 2).make_hashable()];
-    manager.detector.unit = 1h;
+    trxid_t xid = dbms.begin_trx();
+    trxid_t xid2 = dbms.begin_trx();
+    TEST_SUCCESS(dbms.trxs.require_lock(xid, HID(1, 2), LockMode::EXCLUSIVE));
+    TEST_SUCCESS(dbms.trxs.require_lock(xid2, HID(2, 1), LockMode::EXCLUSIVE));
 
-    Transaction trx(10);
-    Transaction trx2(20);
-    Transaction trx3(30);
-    auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::EXCLUSIVE);
-    auto fut = std::async(std::launch::async, [&] {
-        return manager.require_lock(&trx2, HID(1, 2), LockMode::EXCLUSIVE);
-    });
-    auto fut2 = std::async(std::launch::async, [&] {
-        return manager.require_lock(&trx3, HID(1, 2), LockMode::SHARED);
+    Status res;
+    std::thread thread([&] {
+        res = dbms.trxs.require_lock(xid, HID(2, 1), LockMode::EXCLUSIVE);
+        return 0;
     });
 
-    TEST_SUCCESS(manager.release_lock(lock));
-    auto lock2 = fut.get();
-
-    auto fut3 = std::async(std::launch::async, [&] {
-        return manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
-    });
-
-    TEST_SUCCESS(manager.release_lock(lock2));
-    auto lock3 = fut2.get();
-    auto lock4 = fut3.get();
-
-    // auto& module = manager.locks[HID(1, 2).make_hashable()];
-    TEST(module.mode == LockMode::SHARED);
-    TEST(module.wait.size() == 0);
-    TEST(module.run.size() == 2);
-    TEST(std::set<std::shared_ptr<Lock>>(module.run.begin(), module.run.end())
-        == std::set<std::shared_ptr<Lock>>({ lock3, lock4 }));
-    TEST(manager.trxs.find(20) == manager.trxs.end());
-    TEST(manager.trxs[10].first == &trx);
-    TEST(manager.trxs[10].second == 1);
-    TEST(manager.trxs[30].first == &trx3);
-    TEST(manager.trxs[30].second == 1);
-
-    TEST_SUCCESS(manager.release_lock(lock3));
-
-    TEST(module.mode == LockMode::SHARED);
-    TEST(module.wait.size() == 0);
-    TEST(module.run.size() == 1);
-    TEST(module.run.front() == lock4);
-    TEST(manager.trxs.find(10) == manager.trxs.end());
-    TEST(manager.trxs[30].first == &trx3);
-    TEST(manager.trxs[30].second == 1);
+    Status res2 = dbms.trxs.require_lock(xid2, HID(1, 2), LockMode::EXCLUSIVE);
 }
