@@ -165,8 +165,7 @@ TEST_SUITE(LockManagerTest::lockstruct_constructor, {
 
 TEST_SUITE(LockManagerTest::deadlock_constructor, {
     LockManager::DeadlockDetector detector;
-    TEST(detector.coeff == 1);
-    TEST(!detector.last_found);
+    TEST(detector.unit == LockManager::LOCK_WAIT);
 })
 
 TEST_SUITE(LockManagerTest::deadlock_schedule, {
@@ -212,12 +211,14 @@ TEST_SUITE(LockManagerTest::deadlock_find_cycle, {
     auto& trxtable = graph_info->trxtable;
     TEST(detector.find_cycle(locktable, trxtable)
         == std::vector<trxid_t>({ 2, 5 }));
+    TEST(detector.unit == LockManager::LOCK_WAIT);
     
     graph_info = sample_dag();
     auto& locktable2 = graph_info->locktable;
     auto& trxtable2 = graph_info->trxtable;
     TEST(detector.find_cycle(locktable2, trxtable2)
         == std::vector<trxid_t>());
+    TEST(detector.unit == LockManager::LOCK_WAIT * 2);
 })
 
 TEST_SUITE(LockManagerTest::deadlock_choose_abort, {

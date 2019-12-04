@@ -193,8 +193,7 @@ private:
         /// Graph type.
         using graph_t = std::unordered_map<trxid_t, Node>;
 
-        int coeff;              /// coefficient for waiting term.
-        bool last_found;        /// whether last detection found deadlock or not.
+        std::chrono::milliseconds unit;     /// duration unit for waiting next deadlock detection.
         std::chrono::time_point<std::chrono::steady_clock> last_use;    /// last detected point.
 
         /// Default constructor.

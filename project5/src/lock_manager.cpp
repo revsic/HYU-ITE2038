@@ -207,16 +207,15 @@ int LockManager::DeadlockDetector::Node::outcount() const {
 }
 
 LockManager::DeadlockDetector::DeadlockDetector() :
-    coeff(1), last_found(false), last_use(std::chrono::steady_clock::now())
+    unit(LOCK_WAIT), last_use(std::chrono::steady_clock::now())
 {
     // Do Nothing
 }
 
 Status LockManager::DeadlockDetector::schedule() {
     using namespace std::chrono;
-    coeff = last_found ? 1 : coeff + 1;
     auto now = steady_clock::now();
-    return LOCK_WAIT * coeff >= duration_cast<milliseconds>(now - last_use)
+    return unit <= duration_cast<milliseconds>(now - last_use)
         ? Status::SUCCESS
         : Status::FAILURE;
 }
@@ -257,14 +256,14 @@ std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
             [](auto const& pair) { return pair.second.refcount() == 0; });
 
         if (iter == graph.end()) {
-            last_found = true;
+            unit = LOCK_WAIT;
             return choose_abort(std::move(graph));
         }
 
         reduce(graph, iter->first);
     }
 
-    last_found = false;
+    unit += LOCK_WAIT;
     return std::vector<trxid_t>();
 }
 
