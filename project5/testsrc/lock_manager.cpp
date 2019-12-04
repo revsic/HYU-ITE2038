@@ -32,7 +32,16 @@ struct LockManagerTest {
     TEST_METHOD(deadlock_choose_abort);
     TEST_METHOD(deadlock_construct_graph);
     TEST_METHOD(lockable);
-    static LockManager::DeadlockDetector::graph_t sample_graph();
+
+    struct GraphInfo {
+        LockManager::locktable_t locktable;
+        LockManager::trxtable_t trxtable;
+        std::unique_ptr<Transaction[]> trxs;
+        LockManager::DeadlockDetector::graph_t graph;
+    };
+
+    static std::unique_ptr<GraphInfo> sample_dag();
+    static std::unique_ptr<GraphInfo> sample_graph();
 };
 
 TEST_SUITE(HierarchicalTest::constructor, {
@@ -165,19 +174,69 @@ TEST_SUITE(LockManagerTest::deadlock_schedule, {
 })
 
 TEST_SUITE(LockManagerTest::deadlock_reduce, {
+    LockManager::DeadlockDetector detector;
+    auto graph_info = sample_graph();
+    auto& graph = graph_info->graph;
+    TEST(graph.size() == 7);
 
+    detector.reduce(graph, 0);
+    TEST(graph.size() == 6);
+    TEST(graph[6].refcount() == 1);
+
+    detector.reduce(graph, 2);
+    TEST(graph.size() == 2);
+    TEST(graph[5].next_id == graph[5].prev_id
+        && graph[5].prev_id == std::set<trxid_t>({ 4 }));
+    TEST(graph[4].next_id == graph[4].prev_id
+        && graph[4].prev_id == std::set<trxid_t>({ 5 }));
+    
+    detector.reduce(graph, 5);
+    TEST(graph.size() == 0);
+
+    graph_info = sample_dag();
+    auto& graph2 = graph_info->graph;
+    TEST(graph2.size() == 6);
+
+    detector.reduce(graph2, 0);
+    TEST(graph2.size() == 4);
+    TEST(graph2[3].refcount() == 1);
+
+    detector.reduce(graph2, 2);
+    TEST(graph2.size() == 0);
 })
 
 TEST_SUITE(LockManagerTest::deadlock_find_cycle, {
-
+    LockManager::DeadlockDetector detector;
+    auto graph_info = sample_graph();
+    auto& locktable = graph_info->locktable;
+    auto& trxtable = graph_info->trxtable;
+    TEST(detector.find_cycle(locktable, trxtable)
+        == std::vector<trxid_t>({ 2, 5 }));
+    
+    graph_info = sample_dag();
+    auto& locktable2 = graph_info->locktable;
+    auto& trxtable2 = graph_info->trxtable;
+    TEST(detector.find_cycle(locktable2, trxtable2)
+        == std::vector<trxid_t>());
 })
 
 TEST_SUITE(LockManagerTest::deadlock_choose_abort, {
+    LockManager::DeadlockDetector detector;
+    auto graph_info = sample_graph();
+    auto& graph = graph_info->graph;
+    TEST(graph.size() == 7);
 
+    detector.reduce(graph, 0);
+    TEST(detector.choose_abort(std::move(graph))
+        == std::vector<trxid_t>({ 2, 5 }));
 })
 
 TEST_SUITE(LockManagerTest::deadlock_construct_graph, {
-    auto graph = sample_graph();
+    auto graph_info = sample_graph();
+    auto& graph = graph_info->graph;
+    TEST(graph[0].next_id == std::set<trxid_t>({ 6 }));
+    TEST(graph[0].prev_id == std::set<trxid_t>());
+
     TEST(graph[1].next_id == std::set<trxid_t>({ 2, 5 }));
     TEST(graph[1].prev_id == std::set<trxid_t>({ 3 }));
 
@@ -194,7 +253,27 @@ TEST_SUITE(LockManagerTest::deadlock_construct_graph, {
     TEST(graph[5].prev_id == std::set<trxid_t>({ 1, 4 }));
 
     TEST(graph[6].next_id == std::set<trxid_t>());
-    TEST(graph[6].prev_id == std::set<trxid_t>({ 2 }));
+    TEST(graph[6].prev_id == std::set<trxid_t>({ 0, 2 }));
+
+    graph_info = sample_dag();
+    auto& graph2 = graph_info->graph;
+    TEST(graph2[0].next_id == std::set<trxid_t>({ 1 }));
+    TEST(graph2[0].prev_id == std::set<trxid_t>());
+
+    TEST(graph2[1].next_id == std::set<trxid_t>({ 3 }));
+    TEST(graph2[1].prev_id == std::set<trxid_t>({ 0 }));
+
+    TEST(graph2[2].next_id == std::set<trxid_t>({ 3 }));
+    TEST(graph2[2].prev_id == std::set<trxid_t>());
+
+    TEST(graph2[3].next_id == std::set<trxid_t>({ 4, 5 }));
+    TEST(graph2[3].prev_id == std::set<trxid_t>({ 1, 2 }));
+
+    TEST(graph2[4].next_id == std::set<trxid_t>());
+    TEST(graph2[4].prev_id == std::set<trxid_t>({ 3 }));
+
+    TEST(graph2[5].next_id == std::set<trxid_t>());
+    TEST(graph2[5].prev_id == std::set<trxid_t>({ 3 }));
 })
 
 TEST_SUITE(LockManagerTest::lockable, {
@@ -216,30 +295,71 @@ TEST_SUITE(LockManagerTest::lockable, {
     TEST(!manager.lockable(module, lock));
 })
 
-LockManager::DeadlockDetector::graph_t LockManagerTest::sample_graph() {
-    LockManager::locktable_t locks;
-    LockManager::trxtable_t trxtable;
+std::unique_ptr<LockManagerTest::GraphInfo> LockManagerTest::sample_dag() {
+    auto graph_info = std::make_unique<GraphInfo>();
+    auto& locktable = graph_info->locktable;
+    auto& trxtable = graph_info->trxtable;
+    
+    graph_info->trxs = std::make_unique<Transaction[]>(6);
+    auto& trxs = graph_info->trxs;
 
-    Transaction trxs[6 + 1];
-    for (int i = 0; i < 6 + 1; ++i) {
+    for (int i = 0; i < 6; ++i) {
         trxs[i] = Transaction(i);
-        trxtable[i] = std::make_pair(&trxs[i], 2);
+        trxtable[i] = std::make_pair(&trxs[i], -1);
     }
 
-    LockManager::LockStruct& module12 = locks[HID(1, 2).make_hashable()];
+    auto& module01 = locktable[HID(0, 1).make_hashable()];
+    module01.mode = LockMode::EXCLUSIVE;
+    module01.run.push_back(std::make_shared<Lock>(HID(0, 1), LockMode::EXCLUSIVE, &trxs[1]));
+    module01.wait.push_back(std::make_shared<Lock>(HID(0, 1), LockMode::EXCLUSIVE, &trxs[0]));
+    trxs[0].wait = module01.wait.back();
+
+    auto& module11 = locktable[HID(1, 1).make_hashable()];
+    module11.mode = LockMode::EXCLUSIVE;
+    module11.run.push_back(std::make_shared<Lock>(HID(1, 1), LockMode::EXCLUSIVE, &trxs[3]));
+    module11.wait.push_back(std::make_shared<Lock>(HID(1, 1), LockMode::SHARED, &trxs[1]));
+    trxs[1].wait = module11.wait.back();
+    module11.wait.push_back(std::make_shared<Lock>(HID(1, 1), LockMode::SHARED, &trxs[2]));
+    trxs[2].wait = module11.wait.back();
+
+    auto& module21 = locktable[HID(2, 1).make_hashable()];
+    module21.mode = LockMode::SHARED;
+    module21.run.push_back(std::make_shared<Lock>(HID(2, 1), LockMode::SHARED, &trxs[4]));
+    module21.run.push_back(std::make_shared<Lock>(HID(2, 1), LockMode::SHARED, &trxs[5]));
+    module21.wait.push_back(std::make_shared<Lock>(HID(2, 1), LockMode::EXCLUSIVE, &trxs[3]));
+    trxs[3].wait = module21.wait.back();
+    
+    graph_info->graph = LockManager::DeadlockDetector::construct_graph(locktable, trxtable);
+    return std::move(graph_info);
+}
+
+std::unique_ptr<LockManagerTest::GraphInfo> LockManagerTest::sample_graph() {
+    auto graph_info = std::make_unique<GraphInfo>();
+    auto& locktable = graph_info->locktable;
+    auto& trxtable = graph_info->trxtable;
+    
+    graph_info->trxs = std::make_unique<Transaction[]>(7);
+    auto& trxs = graph_info->trxs;
+
+    for (int i = 0; i < 7; ++i) {
+        trxs[i] = Transaction(i);
+        trxtable[i] = std::make_pair(&trxs[i], -1);
+    }
+
+    LockManager::LockStruct& module12 = locktable[HID(1, 2).make_hashable()];
     module12.mode = LockMode::EXCLUSIVE;
     module12.run.push_back(std::make_shared<Lock>(HID(1, 2), LockMode::EXCLUSIVE, &trxs[1]));
     module12.wait.push_back(std::make_shared<Lock>(HID(1, 2), LockMode::EXCLUSIVE, &trxs[3]));
     trxs[3].wait = module12.wait.back();
 
-    LockManager::LockStruct& module32 = locks[HID(3, 2).make_hashable()];
+    LockManager::LockStruct& module32 = locktable[HID(3, 2).make_hashable()];
     module32.mode = LockMode::SHARED;
     module32.run.push_back(std::make_shared<Lock>(HID(3, 2), LockMode::SHARED, &trxs[3]));
     module32.run.push_back(std::make_shared<Lock>(HID(3, 2), LockMode::SHARED, &trxs[6]));
     module32.wait.push_back(std::make_shared<Lock>(HID(3, 2), LockMode::EXCLUSIVE, &trxs[2]));
     trxs[2].wait = module32.wait.back();
 
-    LockManager::LockStruct& module22 = locks[HID(2, 2).make_hashable()];
+    LockManager::LockStruct& module22 = locktable[HID(2, 2).make_hashable()];
     module22.mode = LockMode::SHARED;
     module22.run.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::SHARED, &trxs[2]));
     module22.run.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::SHARED, &trxs[5]));
@@ -248,13 +368,20 @@ LockManager::DeadlockDetector::graph_t LockManagerTest::sample_graph() {
     module22.wait.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::EXCLUSIVE, &trxs[4]));
     trxs[4].wait = module22.wait.back();
 
-    LockManager::LockStruct& module42 = locks[HID(4, 2).make_hashable()];
+    LockManager::LockStruct& module42 = locktable[HID(4, 2).make_hashable()];
     module42.mode = LockMode::EXCLUSIVE;
     module42.run.push_back(std::make_shared<Lock>(HID(4, 2), LockMode::EXCLUSIVE, &trxs[4]));
     module42.wait.push_back(std::make_shared<Lock>(HID(4, 2), LockMode::EXCLUSIVE, &trxs[5]));
     trxs[5].wait = module42.wait.back();
 
-    return LockManager::DeadlockDetector::construct_graph(locks, trxtable);
+    LockManager::LockStruct& module52 = locktable[HID(5, 2).make_hashable()];
+    module52.mode = LockMode::EXCLUSIVE;
+    module52.run.push_back(std::make_shared<Lock>(HID(5, 2), LockMode::EXCLUSIVE, &trxs[6]));
+    module52.wait.push_back(std::make_shared<Lock>(HID(5, 2), LockMode::EXCLUSIVE, &trxs[0]));
+    trxs[0].wait = module52.wait.back();
+
+    graph_info->graph = LockManager::DeadlockDetector::construct_graph(locktable, trxtable);
+    return std::move(graph_info);
 }
 
 int lock_manager_test() {
