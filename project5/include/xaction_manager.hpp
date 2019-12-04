@@ -78,6 +78,10 @@ private:
     /// Elevate lock to stronger mode.
     Status elevate_lock(
         LockManager& manager, std::shared_ptr<Lock> lock, LockMode mode);
+
+#ifdef TEST_MODULE
+    friend struct LockManagerTest;
+#endif
 };
 
 
