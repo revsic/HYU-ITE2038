@@ -4,6 +4,7 @@
 #include "test.hpp"
 
 #include <memory>
+#include <thread>
 
 struct HierarchicalTest {
     TEST_METHOD(constructor);
@@ -21,6 +22,7 @@ struct LockTest {
 
 struct LockManagerTest {
     TEST_METHOD(require_lock);
+    TEST_METHOD(async_require_lock);
     TEST_METHOD(release_lock);
     TEST_METHOD(detect_and_release);
     TEST_METHOD(set_database);
@@ -141,6 +143,10 @@ TEST_SUITE(LockManagerTest::require_lock, {
 
 })
 
+TEST_SUITE(LockManagerTest::async_require_lock, {
+
+})
+
 TEST_SUITE(LockManagerTest::release_lock, {
 
 })
@@ -169,7 +175,13 @@ TEST_SUITE(LockManagerTest::deadlock_constructor, {
 })
 
 TEST_SUITE(LockManagerTest::deadlock_schedule, {
+    LockManager manager;
+    manager.detector.unit = 1h;
+    TEST(manager.detector.schedule() == Status::FAILURE);
 
+    manager.detector.unit = manager.LOCK_WAIT;
+    std::this_thread::sleep_for(manager.LOCK_WAIT);
+    TEST_SUCCESS(manager.detector.schedule());
 })
 
 TEST_SUITE(LockManagerTest::deadlock_reduce, {
@@ -395,6 +407,7 @@ int lock_manager_test() {
         && LockTest::getter_test()
         && LockTest::run_test()
         && LockManagerTest::require_lock_test()
+        && LockManagerTest::async_require_lock_test()
         && LockManagerTest::release_lock_test()
         && LockManagerTest::detect_and_release_test()
         && LockManagerTest::set_database_test()
