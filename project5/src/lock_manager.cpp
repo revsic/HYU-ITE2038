@@ -222,7 +222,7 @@ Status LockManager::DeadlockDetector::schedule() {
 }
 
 void LockManager::DeadlockDetector::reduce(
-    graph_t& graph, trxid_t xid, bool chaining
+    graph_t& graph, trxid_t xid
 ) const {
     std::set<trxid_t> chained;
     Node& node = graph.at(xid);
@@ -230,7 +230,7 @@ void LockManager::DeadlockDetector::reduce(
     for (trxid_t next_id : node.next_id) {
         Node& next = graph.at(next_id);
         next.prev_id.erase(xid);
-        if (chaining && next.refcount() == 0) {
+        if (next.refcount() == 0) {
             chained.insert(next_id);
         }
     }
@@ -283,7 +283,7 @@ std::vector<trxid_t> LockManager::DeadlockDetector::choose_abort(
 
         trxid_t xid = iter->first;
         trxs.push_back(xid);
-        reduce(graph, xid, true);
+        reduce(graph, xid);
     }
     return trxs;
 }

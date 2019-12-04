@@ -206,9 +206,7 @@ private:
         /// Reduce graph.
         /// \param graph graph_t&, waiting-graph.
         /// \param xid trxid_t, transaction ID.
-        /// \param chaining bool, whether reduce chaining for null-reference elimination.
-        void reduce(
-            graph_t& graph, trxid_t xid, bool chaining = false) const;
+        void reduce(graph_t& graph, trxid_t xid) const;
 
         /// Find cycle and return xid to aborts.
         /// \param locks locktable_t const&, lock table.
