@@ -100,6 +100,7 @@ private:
 
 #ifdef TEST_MODULE
     friend struct LockTest;
+    friend struct LockManagerTest;
 #endif
 };
 

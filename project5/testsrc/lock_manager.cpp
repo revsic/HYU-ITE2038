@@ -152,7 +152,9 @@ TEST_SUITE(LockManagerTest::lockstruct_constructor, {
 })
 
 TEST_SUITE(LockManagerTest::deadlock_constructor, {
-
+    LockManager::DeadlockDetector detector;
+    TEST(detector.coeff == 1);
+    TEST(!detector.last_found);
 })
 
 TEST_SUITE(LockManagerTest::deadlock_schedule, {
@@ -176,7 +178,22 @@ TEST_SUITE(LockManagerTest::deadlock_construct_graph, {
 })
 
 TEST_SUITE(LockManagerTest::lockable, {
+    LockManager manager;
+    LockManager::LockStruct module;
+    module.mode = LockMode::IDLE;
 
+    HID hid(10, 20);
+    auto lock = std::make_shared<Lock>(hid, LockMode::SHARED, nullptr);
+    TEST(manager.lockable(module, lock));
+
+    module.mode = LockMode::SHARED;
+    TEST(manager.lockable(module, lock));
+
+    lock->mode = LockMode::EXCLUSIVE;
+    TEST(!manager.lockable(module, lock));
+
+    module.mode = LockMode::EXCLUSIVE;
+    TEST(!manager.lockable(module, lock));
 })
 
 int lock_manager_test() {
