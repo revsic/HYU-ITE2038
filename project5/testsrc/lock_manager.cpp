@@ -114,11 +114,15 @@ TEST_SUITE(LockTest::move_assignment, {
 })
 
 TEST_SUITE(LockTest::getter, {
-
+    /// getter is already tested in previous tests
 })
 
 TEST_SUITE(LockTest::run, {
+    Lock lock;
+    lock.wait = true;
 
+    TEST_SUCCESS(lock.run());
+    TEST(!lock.is_wait());
 })
 
 TEST_SUITE(LockManagerTest::require_lock, {
