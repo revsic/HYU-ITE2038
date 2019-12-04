@@ -41,6 +41,7 @@ Status Transaction::end_trx(LockManager& manager) {
 }
 
 Status Transaction::abort_trx(Database& dbms) {
+    state = TrxState::ABORTED;
     for (Log const& log : dbms.logs.get_logs(id)) {
         FileManager* file = dbms.tables.find_file(log.hid.tid);
         CHECK_NULL(file);
@@ -50,6 +51,7 @@ Status Transaction::abort_trx(Database& dbms) {
             });
     }
 
+    dbms.logs.remove_trxlog(id);
     return release_locks(dbms.locks);
 }
 
@@ -66,8 +68,11 @@ Status Transaction::require_lock(
         return Status::SUCCESS;
     }
 
-    locks[hid] = manager.require_lock(this, hid, mode);
-    return Status::SUCCESS;
+    auto lock = manager.require_lock(this, hid, mode);
+    if (state == TrxState::RUNNING) {
+        locks[hid] = std::move(lock);
+    }
+    return state == TrxState::RUNNING ? Status::SUCCESS : Status::FAILURE;
 }
 
 Status Transaction::release_locks(LockManager& manager) {

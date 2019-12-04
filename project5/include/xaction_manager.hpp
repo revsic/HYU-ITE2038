@@ -12,6 +12,7 @@ enum class TrxState {
     IDLE = 0,
     RUNNING = 1,
     WAITING = 2,
+    ABORTED = 3,
 };
 
 /// Transaction structure.
