@@ -41,10 +41,6 @@ Lock::Lock(HID hid, LockMode mode, Transaction* backref
     // Do Nothing
 }
 
-Lock::~Lock() {
-    // TODO: Impl lock destructor.
-}
-
 Lock::Lock(Lock&& lock) noexcept :
     hid(lock.hid), mode(lock.mode),
     backref(lock.backref), wait(lock.wait.load())
@@ -94,10 +90,6 @@ LockManager::LockStruct::LockStruct() :
     mode(LockMode::IDLE), cv(), run(), wait()
 {
     // Do Nothing
-}
-
-LockManager::~LockManager() {
-    // TODO: Impl shutdown
 }
 
 std::shared_ptr<Lock> LockManager::require_lock(

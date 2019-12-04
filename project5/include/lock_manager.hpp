@@ -12,6 +12,10 @@
 
 #include "hashable.hpp"
 
+#ifdef TEST_MODULE
+#include "test.hpp"
+#endif
+
 /// open literals for chrono data types.
 using namespace std::chrono_literals;
 
@@ -67,7 +71,7 @@ public:
     /// Construct lock with given relative informations.
     Lock(HID hid, LockMode mode, Transaction* backref);
     /// Default destructor.
-    ~Lock();
+    ~Lock() = default;
     /// Move constructor.
     Lock(Lock&& lock) noexcept;
     /// Deleted copy constructor.
@@ -102,7 +106,7 @@ public:
     /// Default constructor.
     LockManager() = default;
     /// Default destructor.
-    ~LockManager();
+    ~LockManager() = default;
     /// Deleted move constructor.
     LockManager(LockManager&&) = delete;
     /// Deleted copy constructor.
@@ -134,6 +138,10 @@ public:
     Status set_database(Database& db);
 
 private:
+#ifdef TEST_MODULE
+    friend class LockManagerTest;
+#endif
+
     /// Unit for waiting lockable situation.
     static constexpr std::chrono::milliseconds LOCK_WAIT = 10ms;
 
