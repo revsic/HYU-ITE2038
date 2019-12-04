@@ -134,10 +134,6 @@ S2PL 구현을 위해서 TRX는 operation 과정에서 lock을 잡기만 할 뿐
     - all
     - unit test
     - add log about commit, abort
-- lock manager
-    - all
-    - unit test
-    - max number of shared mutex (balancing exclusive lock)
 
 ### Future work
 - Concurrency Control
@@ -171,6 +167,7 @@ S2PL 구현을 위해서 TRX는 operation 과정에서 lock을 잡기만 할 뿐
     - unit test (all pass)
 - lock manager
     - lock manager for database concurrency control.
+    - unit test (all pass)
 - transaction manager
     - managing transaction.
 - log manager
