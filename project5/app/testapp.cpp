@@ -1,45 +1,61 @@
-#include <functional>
-#include <vector>
-#include "buffer_manager.hpp"
-#include "bptree.hpp"
+#include <chrono>
+#include <future>
+
+#include "dbms.hpp"
 
 #define TEST(expr) if(!(expr)) { printf("%s, line %d: err\n", __FILE__, __LINE__); return 0; }
 #define TEST_STATUS(expr) if(!(expr)) { printf("%s, line %d: err\n", __FILE__, __LINE__); return Status::FAILURE; }
 #define TEST_SUCCESS(val) TEST(val == Status::SUCCESS);
 
-struct Defer {
-    std::function<void()> callback;
-
-    template <typename F>
-    Defer(F&& callback) : callback(std::forward<F>(callback)) { }
-
-    ~Defer() {
-        callback();
-    }
-};
+using namespace std::chrono_literals;
 
 int main() {
-    BufferManager manager(5);
-    FileManager file("testfile");
+    LockManager manager;
 
-    // BPTree bpt(&file, &buffers);
+    auto& module = manager.locks[HID(1, 2).make_hashable()];
+    manager.detector.unit = 1h;
 
-    Defer deferer([&] {
-        manager.shutdown();
-        file.~FileManager();
-        remove("testfile");
+    Transaction trx(10);
+    Transaction trx2(20);
+    Transaction trx3(30);
+    auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::EXCLUSIVE);
+    auto fut = std::async(std::launch::async, [&] {
+        return manager.require_lock(&trx2, HID(1, 2), LockMode::EXCLUSIVE);
+    });
+    auto fut2 = std::async(std::launch::async, [&] {
+        return manager.require_lock(&trx3, HID(1, 2), LockMode::SHARED);
     });
 
-    int idx = manager.load(file, FILE_HEADER_PAGENUM);
-    TEST(idx == 0);
+    TEST_SUCCESS(manager.release_lock(lock));
+    auto lock2 = fut.get();
 
-    idx = manager.load(file, 1, true);
-    TEST(idx == 1);
+    auto fut3 = std::async(std::launch::async, [&] {
+        return manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
+    });
 
-    TEST_SUCCESS(manager.release_block(1));
-    TEST(manager.num_buffer == 1);
-    TEST(manager.lru == manager.buffers[0]);
-    TEST(manager.mru == manager.buffers[0]);
-    TEST(manager.buffers[0]->next_use == nullptr);
-    TEST(manager.buffers[0]->prev_use == nullptr);
+    TEST_SUCCESS(manager.release_lock(lock2));
+    auto lock3 = fut2.get();
+    auto lock4 = fut3.get();
+
+    // auto& module = manager.locks[HID(1, 2).make_hashable()];
+    TEST(module.mode == LockMode::SHARED);
+    TEST(module.wait.size() == 0);
+    TEST(module.run.size() == 2);
+    TEST(std::set<std::shared_ptr<Lock>>(module.run.begin(), module.run.end())
+        == std::set<std::shared_ptr<Lock>>({ lock3, lock4 }));
+    TEST(manager.trxs.find(20) == manager.trxs.end());
+    TEST(manager.trxs[10].first == &trx);
+    TEST(manager.trxs[10].second == 1);
+    TEST(manager.trxs[30].first == &trx3);
+    TEST(manager.trxs[30].second == 1);
+
+    TEST_SUCCESS(manager.release_lock(lock3));
+
+    TEST(module.mode == LockMode::SHARED);
+    TEST(module.wait.size() == 0);
+    TEST(module.run.size() == 1);
+    TEST(module.run.front() == lock4);
+    TEST(manager.trxs.find(10) == manager.trxs.end());
+    TEST(manager.trxs[30].first == &trx3);
+    TEST(manager.trxs[30].second == 1);
 }
