@@ -149,7 +149,7 @@ private:
     using unit_time_t = std::chrono::microseconds;
 
     /// Unit for waiting lockable situation.
-    static constexpr unit_time_t LOCK_WAIT = 100us;
+    static constexpr unit_time_t LOCK_WAIT = 1us;
 
     /// Lock struct for one specified page.
     struct LockStruct {

@@ -7,7 +7,7 @@
 #include "dbms.hpp"
 
 int main() {
-    Database dbms(100000, false);
+    Database dbms(100000, true);
     tableid_t tid = dbms.open_table("database1.db");
 
     constexpr size_t NUM_THREAD = 4;
@@ -61,6 +61,9 @@ int main() {
 
     runnable = false;
     logger.join();
+
+    dbms.verbose(true);
+    dbms.print_tree(tid);
 
     size_t tick = duration_cast<milliseconds>(end - now).count();
     std::cout
