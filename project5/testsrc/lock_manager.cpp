@@ -283,13 +283,11 @@ TEST_SUITE(LockManagerTest::release_lock, {
         TEST(manager.trxs[20].second == 1);
     }
 
-    // case 3. require after release
+    // case 3. complicated
     {
+        // target scenario: e1 + e2 + s3 -> unlock e1 -> s4 -> unlock e2 -> unlock s3
+        // real run (in my pc) : e1 + e2 + e3 -> unlock e1 -> unlocke2 -> s4 -> unlock s3
         LockManager manager;
-
-        auto& module = manager.locks[HID(1, 2).make_hashable()];
-        manager.detector.unit = 1h;
-
         Transaction trx(10);
         Transaction trx2(20);
         Transaction trx3(30);
@@ -312,7 +310,7 @@ TEST_SUITE(LockManagerTest::release_lock, {
         auto lock3 = fut2.get();
         auto lock4 = fut3.get();
 
-        // auto& module = manager.locks[HID(1, 2).make_hashable()];
+        auto& module = manager.locks[HID(1, 2).make_hashable()];
         TEST(module.mode == LockMode::SHARED);
         TEST(module.wait.size() == 0);
         TEST(module.run.size() == 2);
@@ -330,14 +328,14 @@ TEST_SUITE(LockManagerTest::release_lock, {
         TEST(module.wait.size() == 0);
         TEST(module.run.size() == 1);
         TEST(module.run.front() == lock4);
-        TEST(manager.trxs.find(10) == manager.trxs.end());
-        TEST(manager.trxs[30].first == &trx3);
-        TEST(manager.trxs[30].second == 1);
+        TEST(manager.trxs.find(30) == manager.trxs.end());
+        TEST(manager.trxs[10].first == &trx);
+        TEST(manager.trxs[10].second == 1);
     }
 })
 
 TEST_SUITE(LockManagerTest::detect_and_release, {
-
+    // it will be tested on LockManagerTest::deadlock(_test)
 })
 
 TEST_SUITE(LockManagerTest::deadlock, {
