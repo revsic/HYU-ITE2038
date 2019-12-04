@@ -146,8 +146,10 @@ private:
     friend class LockManagerTest;
 #endif
 
+    using unit_time_t = std::chrono::microseconds;
+
     /// Unit for waiting lockable situation.
-    static constexpr std::chrono::milliseconds LOCK_WAIT = 10ms;
+    static constexpr unit_time_t LOCK_WAIT = 100us;
 
     /// Lock struct for one specified page.
     struct LockStruct {
@@ -192,7 +194,7 @@ private:
         /// Graph type.
         using graph_t = std::unordered_map<trxid_t, Node>;
 
-        std::chrono::milliseconds unit;     /// duration unit for waiting next deadlock detection.
+        unit_time_t unit;           /// duration unit for waiting next deadlock detection.
         std::chrono::time_point<std::chrono::steady_clock> last_use;    /// last detected point.
 
         /// Default constructor.
