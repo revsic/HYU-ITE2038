@@ -1,4 +1,5 @@
 #include <cstring>
+#include <thread>
 
 #include "dbms.hpp"
 #include "utils.hpp"
@@ -51,7 +52,6 @@ Status Transaction::abort_trx(Database& dbms) {
             });
     }
 
-    dbms.logs.remove_trxlog(id);
     return release_locks(dbms.locks);
 }
 
@@ -90,6 +90,10 @@ trxid_t Transaction::get_id() const {
 
 TrxState Transaction::get_state() const {
     return state;
+}
+
+std::shared_ptr<Lock> Transaction::get_wait() const {
+    return wait;
 }
 
 std::map<HID, std::shared_ptr<Lock>> const& Transaction::get_locks() const {
@@ -141,6 +145,9 @@ Status TransactionManager::abort_trx(trxid_t id, Database& dbms) {
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
     CHECK_SUCCESS(iter->second.abort_trx(dbms));
+    while(iter->second.get_wait() != nullptr) {
+        std::this_thread::yield();
+    }
     trxs.erase(iter);
     return Status::SUCCESS;
 }

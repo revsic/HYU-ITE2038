@@ -68,6 +68,9 @@ public:
     /// Get transaction state.
     TrxState get_state() const;
 
+    /// Get waiting lock.
+    std::shared_ptr<Lock> get_wait() const;
+
     /// Get all locks.
     std::map<HID, std::shared_ptr<Lock>> const& get_locks() const;
 
