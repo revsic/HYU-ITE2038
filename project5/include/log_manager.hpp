@@ -7,6 +7,10 @@
 #include "headers.hpp"
 #include "lock_manager.hpp"
 
+#ifdef TEST_MODULE
+#include "test.hpp"
+#endif
+
 /// Log types.
 enum class LogType {
     INVALID = 0,
@@ -120,6 +124,10 @@ private:
         log_list.emplace_front(lsn, last_lsn, xid, std::forward<Args>(args)...);
         return lsn;
     }
+
+#ifdef TEST_MODULE
+    friend struct LogManagerTest;
+#endif
 };
 
 #endif
