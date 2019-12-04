@@ -48,8 +48,8 @@ lsn_t LogManager::log_end(trxid_t xid) {
     return wrapper(xid, LogType::END);
 }
 
-std::list<Log> const& LogManager::get_logs(trxid_t xid) const {
-    return log_map.at(xid);
+std::list<Log> const& LogManager::get_logs(trxid_t xid) {
+    return log_map[xid];
 }
 
 Status LogManager::remove_trxlog(trxid_t xid) {

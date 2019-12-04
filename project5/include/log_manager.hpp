@@ -89,7 +89,7 @@ public:
 
     /// Get all logs about given transaction ID.
     /// \return std::list<Log> const&, log list in reverse chronological order.
-    std::list<Log> const& get_logs(trxid_t xid) const;
+    std::list<Log> const& get_logs(trxid_t xid);
 
     /// Remove transaction log about given transaction ID.
     /// \param xid trxid_t, transaction ID.
