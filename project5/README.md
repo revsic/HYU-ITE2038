@@ -126,6 +126,8 @@ S2PL 구현을 위해서 TRX는 operation 과정에서 lock을 잡기만 할 뿐
 ## Works
 
 ### TODO
+- bptree
+    - concurrency test
 - transaction manager
     - all
     - unit test
