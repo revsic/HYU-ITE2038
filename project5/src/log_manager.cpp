@@ -26,7 +26,7 @@ Log::Log(
     std::memcpy(&this->after, &after, sizeof(Record));
 }
 
-LogManager::LogManager() : last_lsn(0) {
+LogManager::LogManager() : mtx(), last_lsn(0), log_map() {
     // Do Nothing
 }
 

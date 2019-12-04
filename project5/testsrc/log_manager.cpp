@@ -52,15 +52,23 @@ TEST_SUITE(log_constructor, {
 })
 
 TEST_SUITE(LogManagerTest::constructor, {
-
+    LogManager logmng;
+    TEST(logmng.last_lsn == 0);
+    TEST(logmng.log_map.size() == 0);
 })
 
 TEST_SUITE(LogManagerTest::get_lsn, {
+    LogManager logmng;
+    TEST(1 == logmng.get_lsn());
 
+    logmng.last_lsn = static_cast<size_t>(-1);
+    TEST(1 == logmng.get_lsn());
 })
 
 TEST_SUITE(LogManagerTest::get_logs, {
-    
+    LogManager logmng;
+    logmng.log_map[10].emplace_back();
+    TEST(&logmng.get_logs(10) == &logmng.log_map[10]);
 })
 
 TEST_SUITE(LogManagerTest::log_update, {
