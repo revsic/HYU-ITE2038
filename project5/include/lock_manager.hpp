@@ -134,10 +134,6 @@ public:
     /// \return Status, whether success to release lock or not.
     Status release_lock(std::shared_ptr<Lock> lock);
 
-    /// Detect deadlock and release if it is found.
-    /// \return Status, whether deadlock found or not.
-    Status detect_and_release();
-
     /// Set base database structure.
     /// \param db Database&, database.
     Status set_database(Database& db);
@@ -243,6 +239,10 @@ private:
     /// \return bool, whether lockable or not.
     bool lockable(
         LockStruct const& module, std::shared_ptr<Lock> const& target) const;
+
+    /// Detect deadlock and release if it is found.
+    /// \return Status, whether deadlock found or not.
+    Status detect_and_release();
 };
 
 #endif
