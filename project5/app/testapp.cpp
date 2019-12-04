@@ -7,7 +7,7 @@
 #include "dbms.hpp"
 
 int main() {
-    Database dbms(100000);
+    Database dbms(100000, false);
     tableid_t tid = dbms.open_table("database1.db");
 
     constexpr size_t NUM_THREAD = 4;
@@ -39,6 +39,7 @@ int main() {
                         dbms.update(tid, key, record, xid);
                     }
                 }
+                dbms.end_trx(xid);
             }
         });
     }
@@ -61,7 +62,11 @@ int main() {
     runnable = false;
     logger.join();
 
-    std::cout << ' ' << duration_cast<milliseconds>(end - now).count() << "ms" << std::endl;
+    size_t tick = duration_cast<milliseconds>(end - now).count();
+    std::cout
+        << ' '
+        << tick << "ms (" << (static_cast<double>(n_query.load()) / tick) << "/ms)"
+        << std::endl;
 
     return 0;
 }
