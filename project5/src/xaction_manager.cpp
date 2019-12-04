@@ -74,6 +74,7 @@ Status Transaction::release_locks(LockManager& manager) {
     for (auto& pair : locks) {
         CHECK_SUCCESS(manager.release_lock(pair.second));
     }
+    locks.clear();
     return Status::SUCCESS;
 }
 
