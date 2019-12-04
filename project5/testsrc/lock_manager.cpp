@@ -340,7 +340,27 @@ TEST_SUITE(LockManagerTest::detect_and_release, {
 
 TEST_SUITE(LockManagerTest::deadlock, {
     // case 0. exclusive -> exclusive
+    Database dbms(4);
+    LockManager& manager = dbms.locks;
 
+    trxid_t xid = dbms.begin_trx();
+    trxid_t xid2 = dbms.begin_trx();
+    TEST_SUCCESS(dbms.trxs.require_lock(xid, HID(1, 2), LockMode::EXCLUSIVE));
+    TEST_SUCCESS(dbms.trxs.require_lock(xid2, HID(2, 1), LockMode::EXCLUSIVE));
+
+    Status res;
+    std::thread thread([&] {
+        res = dbms.trxs.require_lock(xid, HID(2, 1), LockMode::EXCLUSIVE);
+        return 0;
+    });
+
+    Status res2 = dbms.trxs.require_lock(xid2, HID(1, 2), LockMode::EXCLUSIVE);
+    thread.join();
+
+    TEST((res == Status::SUCCESS && res2 == Status::FAILURE)
+        || (res == Status::FAILURE && res2 == Status::SUCCESS));
+    TEST((res == Status::SUCCESS && dbms.trxs.trxs[xid2].state == TrxState::ABORTED)
+        || (res == Status::FAILURE && dbms.trxs.trxs[xid].state == TrxState::ABORTED));
 
     // case 1. shared -> exclusive
     /// TODO: Impl
