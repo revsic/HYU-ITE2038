@@ -143,6 +143,10 @@ private:
 
     trxid_t last_id;                                    /// last transaction ID.
     std::unordered_map<trxid_t, Transaction> trxs;      /// all managed transactions.
+
+#ifdef TEST_MODULE
+    friend struct LockManagerTest;
+#endif
 };
 
 #endif

@@ -145,10 +145,9 @@ Status TransactionManager::abort_trx(trxid_t id, Database& dbms) {
     auto iter = trxs.find(id);
     CHECK_TRUE(iter != trxs.end());
     CHECK_SUCCESS(iter->second.abort_trx(dbms));
-    // while(iter->second.get_wait() != nullptr) {
-    //     std::this_thread::yield();
-    // }
-    // trxs.erase(iter);
+    if (iter->second.get_wait() == nullptr) {
+        trxs.erase(iter);
+    }
     return Status::SUCCESS;
 }
 
