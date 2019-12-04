@@ -109,15 +109,36 @@ TEST_SUITE(LogManagerTest::log_update, {
 })
 
 TEST_SUITE(LogManagerTest::log_abort, {
-
+    LogManager logmng;
+    lsn_t lsn = logmng.log_abort(10);
+    TEST(lsn == 1);
+    TEST(logmng.log_map[10].size() == 1);
+    TEST(logmng.log_map[10].front().lsn == 1);
+    TEST(logmng.log_map[10].front().prev_lsn == 0);
+    TEST(logmng.log_map[10].front().xid == 10);
+    TEST(logmng.log_map[10].front().type == LogType::ABORT);
 })
 
 TEST_SUITE(LogManagerTest::log_commit, {
-
+    LogManager logmng;
+    lsn_t lsn = logmng.log_abort(10);
+    TEST(lsn == 1);
+    TEST(logmng.log_map[10].size() == 1);
+    TEST(logmng.log_map[10].front().lsn == 1);
+    TEST(logmng.log_map[10].front().prev_lsn == 0);
+    TEST(logmng.log_map[10].front().xid == 10);
+    TEST(logmng.log_map[10].front().type == LogType::COMMIT);
 })
 
 TEST_SUITE(LogManagerTest::log_end, {
-
+    LogManager logmng;
+    lsn_t lsn = logmng.log_abort(10);
+    TEST(lsn == 1);
+    TEST(logmng.log_map[10].size() == 1);
+    TEST(logmng.log_map[10].front().lsn == 1);
+    TEST(logmng.log_map[10].front().prev_lsn == 0);
+    TEST(logmng.log_map[10].front().xid == 10);
+    TEST(logmng.log_map[10].front().type == LogType::END);
 })
 
 TEST_SUITE(LogManagerTest::remove_trxlog, {
