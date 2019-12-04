@@ -1,3 +1,4 @@
+#include "lock_manager.hpp"
 #include "test.hpp"
 
 struct HierarchicalTest {
@@ -31,15 +32,34 @@ struct LockManagerTest {
 };
 
 TEST_SUITE(HierarchicalTest::constructor, {
+    HID hid;
+    TEST(hid.tid == INVALID_TABLEID);
+    TEST(hid.pid == INVALID_PAGENUM);
 
+    hid = HID(10, 20);
+    TEST(hid.tid == 10);
+    TEST(hid.pid == 20);
 })
 
 TEST_SUITE(HierarchicalTest::make_hashable, {
+    HID hid(10, 20);
+    TEST(hid.tid == 10);
+    TEST(hid.pid == 20);
 
+    HashableID hashable = hid.make_hashable();
+    TEST(std::get<0>(hashable.data) == 10);
+    TEST(std::get<1>(hashable.data) == 20);
 })
 
 TEST_SUITE(HierarchicalTest::comparison, {
+    TEST(!(HID(10, 10) < HID(10, 10)));
+    TEST(HID(10, 10) < HID(10, 20));
+    TEST(HID(10, 20) < HID(20, 20));
+    TEST(!(HID(10, 20) < HID(10, 10)));
+    TEST(!(HID(20, 20) < HID(10, 20)));
 
+    TEST(HID(10, 10) == HID(10, 10));
+    TEST(!(HID(10, 10) == HID(10, 20)));
 })
 
 TEST_SUITE(LockTest::constructor, {
