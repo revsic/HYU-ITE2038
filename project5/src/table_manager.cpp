@@ -1,3 +1,4 @@
+#include "dbms.hpp"
 #include "table_manager.hpp"
 
 Table::Table() : file(), bpt(nullptr, nullptr) {
@@ -78,6 +79,10 @@ std::string const& Table::filename() const {
     return file.get_filename();
 }
 
+Status Table::set_database(Database& dbms) {
+    return bpt.set_database(dbms);
+}
+
 void Table::verbose(bool on) {
     bpt.verbose(on);
 }
@@ -86,14 +91,21 @@ FileManager& Table::filemng() {
     return file;
 }
 
-TableManager::TableManager(TableManager&& other) noexcept :
-    tables(std::move(other.tables))
-{
+TableManager::TableManager() : tables(), dbms(nullptr) {
     // Do Nothing
+}
+
+TableManager::TableManager(TableManager&& other) noexcept :
+    tables(std::move(other.tables)), dbms(other.dbms)
+{
+    other.dbms = nullptr;
 }
 
 TableManager& TableManager::operator=(TableManager&& other) noexcept {
     tables = std::move(other.tables);
+    dbms = other.dbms;
+
+    other.dbms = nullptr;
     return *this;
 }
 
@@ -114,9 +126,11 @@ tableid_t TableManager::load(
         tid = convert(id);
     }
 
-    tables[tid] = Table(filename, buffers);
+    Table& table = tables[tid];
+    table = Table(filename, buffers);
     // set rehashed id
-    tables[tid].rehash(id);
+    table.rehash(id);
+    table.set_database(*dbms);
     return tid;
 }
 
@@ -135,6 +149,11 @@ Status TableManager::remove(tableid_t id) {
     }
 
     tables.erase(iter);
+    return Status::SUCCESS;
+}
+
+Status TableManager::set_database(Database& dbms) {
+    this->dbms = &dbms;
     return Status::SUCCESS;
 }
 
