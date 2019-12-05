@@ -9,10 +9,11 @@
 
 /// Transaction state.
 enum class TrxState {
-    IDLE = 0,
-    RUNNING = 1,
-    WAITING = 2,
-    ABORTED = 3,
+    INVALID = 0,
+    IDLE = 1,
+    RUNNING = 2,
+    WAITING = 3,
+    ABORTED = 4,
 };
 
 /// Transaction structure.
@@ -136,6 +137,9 @@ public:
     /// \param id trxid_t, transaction ID.
     /// \return Status, whether success to release locks or not.
     Status release_locks(trxid_t id);
+
+    /// Get transaction state.
+    TrxState trx_state(trxid_t id) const;
 
 private:
     std::mutex mtx;                 /// System level mutex.

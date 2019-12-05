@@ -78,6 +78,10 @@ Status Database::abort_trx(trxid_t id) {
     return res;
 }
 
+TrxState Database::trx_state(trxid_t id) const {
+    return trxs.trx_state(id);
+}
+
 void Database::verbose(bool on) {
     tables.verbose(on);
 }

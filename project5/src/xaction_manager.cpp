@@ -164,3 +164,11 @@ Status TransactionManager::release_locks(trxid_t id) {
     CHECK_TRUE(iter != trxs.end());
     return iter->second.release_locks(*lock_manager);
 }
+
+TrxState TransactionManager::trx_state(trxid_t id) const {
+    auto iter = trxs.find(id);
+    if (iter == trxs.end()) {
+        return TrxState::INVALID;
+    }
+    return iter->second.get_state();
+}
