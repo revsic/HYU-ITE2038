@@ -8,13 +8,15 @@
 #include "lock_manager.hpp"
 #include "table_manager.hpp"
 
-BPTree::BPTree(FileManager* file, BufferManager* buffers) :
-    leaf_order(DEFAULT_LEAF_ORDER),
-    internal_order(DEFAULT_INTERNAL_ORDER),
-    delayed_merge(DEFAULT_DELAYED_MERGE),
-    verbose_output(false),
-    file(file),
-    buffers(buffers) {
+BPTree::BPTree(FileManager* file, BufferManager* buffers)
+    : leaf_order(DEFAULT_LEAF_ORDER)
+    , internal_order(DEFAULT_INTERNAL_ORDER)
+    , delayed_merge(DEFAULT_DELAYED_MERGE)
+    , verbose_output(false)
+    , file(file)
+    , buffers(buffers)
+    , dbms(nullptr)
+{
     // Do nothing
 }
 
@@ -25,11 +27,13 @@ BPTree::BPTree(BPTree&& other) noexcept
     , verbose_output(other.verbose_output)
     , file(other.file)
     , buffers(other.buffers)
+    , dbms(other.dbms)
 {
     other.leaf_order = other.internal_order = 0;
     other.delayed_merge = other.verbose_output = false;
     other.file = nullptr;
     other.buffers = nullptr;
+    other.dbms = nullptr;
 }
 
 BPTree& BPTree::operator=(BPTree&& other) noexcept {
@@ -39,11 +43,13 @@ BPTree& BPTree::operator=(BPTree&& other) noexcept {
     verbose_output = other.verbose_output;
     file = other.file;
     buffers = other.buffers;
+    dbms = other.dbms;
 
     other.leaf_order = other.internal_order = 0;
     other.delayed_merge = other.verbose_output = false;
     other.file = nullptr;
     other.buffers = nullptr;
+    other.dbms = nullptr;
 
     return *this;
 }
