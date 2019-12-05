@@ -19,9 +19,11 @@ int main() {
     constexpr size_t MAX_TRX = 1000;
     constexpr size_t MAX_TRXSEQ = 1000;
     constexpr size_t MAX_KEY_RANGE = 100000;
+    constexpr size_t MAX_ABORTS = 10;
 
     std::atomic<int> ntrxs(0);
     std::atomic<int> nquery(0);
+    std::atomic<int> updates(0);
     std::atomic<int> aborts(0);
 
     Record record;
@@ -48,19 +50,23 @@ int main() {
                     }
                 }
 
-                Status res = Status::SUCCESS;
                 trxid_t xid = dbms.begin_trx();
-                for (int k = 0; k < num_seq && res == Status::SUCCESS; ++k) {
+                TrxState state = dbms.trx_state(xid);
+                for (int k = 0; k < num_seq && state == TrxState::RUNNING; ++k) {
                     ++nquery;
                     if (seqs[k].cat == Seq::Cat::FIND) {
-                        res = dbms.find(tid, seqs[k].key, nullptr, xid);
+                        dbms.find(tid, seqs[k].key, nullptr, xid);
                     } else {
-                        res = dbms.update(tid, seqs[k].key, record, xid);
+                        ++updates;
+                        dbms.update(tid, seqs[k].key, record, xid);
                     }
+                    state = dbms.trx_state(xid);
                 }
                 dbms.end_trx(xid);
-                if (res == Status::FAILURE) {
-                    ++aborts;
+                if (state == TrxState::ABORTED) {
+                    if (++aborts > MAX_ABORTS) {
+                        break;
+                    }
                 }
             }
         });
@@ -89,7 +95,8 @@ int main() {
 
     size_t tick = duration_cast<milliseconds>(end - now).count();
     std::cout << '\r'
-        << nquery.load() << "q " << ntrxs.load() << "t "
+        << nquery.load() << " queris (" << updates.load() << " updates), "
+        << ntrxs.load() << " trxs, "
         << tick << "ms (" << (static_cast<double>(nquery.load()) / tick) << "/ms, "
         << aborts.load() << " aborted)"
         << std::endl;
