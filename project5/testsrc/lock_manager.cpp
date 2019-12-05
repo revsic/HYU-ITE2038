@@ -395,7 +395,7 @@ TEST_SUITE(LockManagerTest::deadlock_schedule, {
 
     manager.detector.unit = manager.LOCK_WAIT;
     std::this_thread::sleep_for(manager.LOCK_WAIT);
-    TEST_SUCCESS(manager.detector.schedule());
+    TEST(manager.detector.schedule() == Status::FAILURE);
 })
 
 TEST_SUITE(LockManagerTest::deadlock_reduce, {
@@ -435,8 +435,11 @@ TEST_SUITE(LockManagerTest::deadlock_find_cycle, {
     auto graph_info = sample_graph();
     auto& locktable = graph_info->locktable;
     auto& trxtable = graph_info->trxtable;
-    TEST(detector.find_cycle(locktable, trxtable)
-        == std::vector<trxid_t>({ 2, 4 }));
+
+    auto aborts = detector.find_cycle(locktable, trxtable);
+    std::set<trxid_t> aborts_set(aborts.begin(), aborts.end());
+    TEST(aborts_set == std::set<trxid_t>({ 2, 4 })
+        || aborts_set == std::set<trxid_t>({ 2, 5 }));
     TEST(detector.unit == LockManager::LOCK_WAIT);
     
     graph_info = sample_dag();
@@ -454,8 +457,10 @@ TEST_SUITE(LockManagerTest::deadlock_choose_abort, {
     TEST(graph.size() == 7);
 
     detector.reduce(graph, 0);
-    TEST(detector.choose_abort(std::move(graph))
-        == std::vector<trxid_t>({ 2, 4 }));
+    auto aborts = detector.choose_abort(std::move(graph));
+    std::set<trxid_t> aborts_set(aborts.begin(), aborts.end());
+    TEST(aborts_set == std::set<trxid_t>({ 2, 4 })
+        || aborts_set == std::set<trxid_t>({ 2, 5 }));
 })
 
 TEST_SUITE(LockManagerTest::deadlock_construct_graph, {
