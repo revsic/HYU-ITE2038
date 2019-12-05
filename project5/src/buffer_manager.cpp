@@ -175,7 +175,9 @@ pagenum_t Ubuffer::to_pagenum() const {
 }
 
 BufferManager::BufferManager(int num_buffer)
-    : capacity(num_buffer)
+    : dbms(nullptr)
+    , mtx()
+    , capacity(num_buffer)
     , num_buffer(0)
     , lru(nullptr)
     , mru(nullptr)
