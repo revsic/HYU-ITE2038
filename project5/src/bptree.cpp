@@ -203,6 +203,7 @@ Status BPTree::find(prikey_t key, Record* record, trxid_t xid) const {
         return Status::FAILURE;
     }
     if (xid != INVALID_TRXID) {
+        CHECK_NULL(dbms);
         buffer = require_buffering(c, xid, LockMode::SHARED);
         CHECK_NULL(buffer.buffer());
     }
@@ -315,6 +316,7 @@ Status BPTree::update(prikey_t key, Record record, trxid_t xid) const {
     if (xid != INVALID_TRXID) {
         CHECK_NULL(dbms);
         buffer = require_buffering(c, xid, LockMode::EXCLUSIVE);
+        CHECK_NULL(buffer.buffer());
     }
     Record before;
     int idx = find_key_from_leaf<Access::WRITE>(
