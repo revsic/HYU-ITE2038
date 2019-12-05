@@ -142,7 +142,7 @@ public:
     TrxState trx_state(trxid_t id) const;
 
 private:
-    std::mutex mtx;                 /// System level mutex.
+    mutable std::mutex mtx;         /// System level mutex.
     LockManager* lock_manager;      /// Lock manager pointer.
 
     trxid_t last_id;                                    /// last transaction ID.
