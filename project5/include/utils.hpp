@@ -51,27 +51,6 @@ auto defer(F&& functor) {
     return Defer<F>(std::forward<F>(functor));
 }
 
-struct Spinlock {
-    std::atomic_flag flag;
-
-    Spinlock() : flag(ATOMIC_FLAG_INIT) {
-        // Do Nothing
-    }
-
-    ~Spinlock() = default;
-    Spinlock(Spinlock const&) = delete;
-    Spinlock& operator=(Spinlock const&) = delete;
-
-    void lock() {
-        while (flag.test_and_set(std::memory_order_acquire))
-            {}
-    }
-
-    void unlock() {
-        flag.clear();
-    }
-};
-
 }
 
 #endif
