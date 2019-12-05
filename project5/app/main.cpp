@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
             break;
         case 'f':
             in >> input;
-            if (db_find(tid, input, arr, INVALID_TRXID) == 0) {
+            if (db_find(tid, input, arr) == 0) {
                 std::cout
                     << "Key: " << input << ' '
                     << "Value: " << arr << std::endl;
@@ -60,6 +60,10 @@ int main(int argc, char* argv[]) {
                     << "Key: " << rec.key << ' '
                     << "Value: " << rec.value << std::endl;
             }
+            break;
+        case 'u':
+            in >> input >> value;
+            db_update(tid, input, value.c_str());
             break;
         case 'q':
             runnable = false;
