@@ -97,9 +97,9 @@ public:
     Status remove_trxlog(trxid_t xid);
 
 private:
-    std::recursive_mutex mtx;                       /// System level mutex.
+    std::mutex mtx;                                 /// System level mutex.
     lsn_t last_lsn;                                 /// last log sequence number.
-    std::map<trxid_t, std::list<Log>> log_map;      /// logs.
+    std::unordered_map<trxid_t, std::list<Log>> log_map;      /// logs.
 
     /// Get possible log sequence number.
     /// \return lsn_t, monotonically increasing lsn.
@@ -112,7 +112,7 @@ private:
     /// \return lsn_t, allocated log sequence number.
     template <typename... Args>
     lsn_t wrapper(trxid_t xid, Args&&... args) {
-        std::unique_lock<std::recursive_mutex> own(mtx);
+        std::unique_lock<std::mutex> own(mtx);
         std::list<Log>& log_list = log_map[xid];
 
         lsn_t lsn = get_lsn();

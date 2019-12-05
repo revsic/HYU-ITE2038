@@ -53,12 +53,12 @@ std::list<Log> const& LogManager::get_logs(trxid_t xid) {
 }
 
 Status LogManager::remove_trxlog(trxid_t xid) {
+    std::unique_lock<std::mutex> lock(mtx);
     return log_map.erase(xid) > 0
         ? Status::SUCCESS : Status::FAILURE;
 }
 
 lsn_t LogManager::get_lsn() {
-    std::unique_lock<std::recursive_mutex> own(mtx);
     if (++last_lsn == 0) {
         ++last_lsn;
     }
