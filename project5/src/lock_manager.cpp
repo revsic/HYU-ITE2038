@@ -97,6 +97,12 @@ LockManager::LockStruct::LockStruct() :
     // Do Nothing
 }
 
+LockManager::LockManager() :
+    mtx(), locks(), trxs(), detector(), db(nullptr)
+{
+    // Do Nothing
+}
+
 std::shared_ptr<Lock> LockManager::require_lock(
     Transaction* backref, HID hid, LockMode mode
 ) {
