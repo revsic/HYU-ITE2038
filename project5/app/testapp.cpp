@@ -25,6 +25,12 @@ int main() {
     Database dbms(100000, false);
     tableid_t tid = dbms.open_table("database1.db");
 
+    std::vector<Record> keys = dbms.find_range(
+        tid,
+        std::numeric_limits<prikey_t>::min(),
+        std::numeric_limits<prikey_t>::max());
+    int key_range = std::min(MAX_KEY_RANGE, keys.size());
+
     std::atomic<int> ntrxs(0);
     std::atomic<int> nquery(0);
     std::atomic<int> updates(0);
@@ -44,7 +50,7 @@ int main() {
                 Seq seqs[MAX_TRXSEQ];
                 int num_seq = gen() % MAX_TRXSEQ;
                 for (int k = 0; k < num_seq; ++k) {
-                    prikey_t key = gen() % MAX_KEY_RANGE;
+                    prikey_t key = keys[gen() % key_range].key;
                     if (gen() % 2 == 0) {
                         seqs[k] = Seq{ Seq::Cat::FIND, key };
                     } else {
