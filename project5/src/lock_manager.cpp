@@ -110,13 +110,10 @@ std::shared_ptr<Lock> LockManager::require_lock(
     auto new_lock = std::make_shared<Lock>(hid, mode, backref);
 
     std::unique_lock<std::mutex> own(mtx);
-
-    auto defer = utils::defer([&] {
-        if (trxs.find(backref->get_id()) == trxs.end()) {
-            trxs[backref->get_id()] = std::make_pair(backref, 0);
-        }
-        trxs[backref->get_id()].second++;
-    });
+    if (trxs.find(backref->get_id()) == trxs.end()) {
+        trxs[backref->get_id()] = std::make_pair(backref, 0);
+    }
+    trxs[backref->get_id()].second++;
 
     auto iter = locks.find(id);
     if (iter == locks.end() || lockable(iter->second, new_lock)) {
@@ -133,9 +130,11 @@ std::shared_ptr<Lock> LockManager::require_lock(
     new_lock->wait();
     locks[id].wait.push_back(new_lock);
 
+    auto& module = locks[id];
+
     while (!locks[id].cv.wait_for(
         own,
-        LOCK_WAIT,
+        1us,
         [&]{ return !new_lock->stop()
             || backref->get_state() == TrxState::ABORTED; })
     ) {
@@ -146,7 +145,6 @@ std::shared_ptr<Lock> LockManager::require_lock(
     }
 
     // module updates are already occurred in release_lock because of deadlock
-
     backref->wait = nullptr;
     if (backref->state == TrxState::WAITING) {
         backref->state = TrxState::RUNNING;
@@ -170,7 +168,7 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire_lock) 
     module.run.remove(lock);
 
     Transaction& backref = lock->get_backref();
-    if (--trxs[backref.get_id()].second == 0) {
+    if (--trxs[backref.get_id()].second <= 0) {
         trxs.erase(backref.get_id());
     }
 
@@ -217,6 +215,7 @@ Status LockManager::detect_and_release() {
 
     for (trxid_t xid : found) {
         CHECK_SUCCESS(db->abort_trx(xid));
+        trxs.erase(xid);
     }
     return Status::SUCCESS;
 }
@@ -243,7 +242,7 @@ int LockManager::DeadlockDetector::Node::outcount() const {
 }
 
 LockManager::DeadlockDetector::DeadlockDetector() :
-    unit(LOCK_WAIT), last_use(std::chrono::steady_clock::now())
+    unit(1us), last_use(std::chrono::steady_clock::now())
 {
     // Do Nothing
 }
@@ -292,14 +291,14 @@ std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
             [](auto const& pair) { return pair.second.refcount() == 0; });
 
         if (iter == graph.end()) {
-            unit = LOCK_WAIT;
+            unit = 1us;
             return choose_abort(std::move(graph));
         }
 
         reduce(graph, iter->first);
     }
 
-    unit += LOCK_WAIT;
+    unit += 1us;
     return std::vector<trxid_t>();
 }
 
