@@ -2,6 +2,10 @@
 
 이번 과제는 Concurrency Control을 위한 Transaction과 Lock Manager 지원을 목표로 한다.
 
+## 0. Real implementation
+
+Reference [README2.md](./README2.md)
+
 ## 1, Definition
 
 ### 1.1. Transaction
