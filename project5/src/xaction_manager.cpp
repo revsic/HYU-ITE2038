@@ -58,7 +58,7 @@ Status Transaction::abort_trx(Database& dbms) {
 Status Transaction::require_lock(
     LockManager& manager, HID hid, LockMode mode
 ) {
-    CHECK_TRUE(state != TrxState::IDLE);
+    CHECK_TRUE(state != TrxState::IDLE && state != TrxState::ABORTED);
     if (locks.find(hid) != locks.end()) {
         std::shared_ptr<Lock> lock = locks.at(hid);
         if (static_cast<int>(mode) > static_cast<int>(lock->get_mode())) {
