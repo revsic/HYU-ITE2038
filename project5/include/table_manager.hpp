@@ -14,6 +14,8 @@
 #include "test.hpp"
 #endif
 
+class Database;
+
 /// Table.
 class Table {
 public:
@@ -106,6 +108,9 @@ public:
     /// \return std::string const&, filename.
     std::string const& filename() const;
 
+    /// Set database.
+    Status set_database(Database& dbms);
+
     /// Set verbosity.
     void verbose(bool on = false);
 
@@ -127,7 +132,7 @@ private:
 class TableManager {
 public:
     /// Default constructor.
-    TableManager() = default;
+    TableManager();
 
     /// Default destructor.
     ~TableManager() = default;
@@ -160,6 +165,9 @@ public:
     /// \return Status, whether success to remove the table or not.
     Status remove(tableid_t id);
 
+    /// Set database.
+    Status set_database(Database& dbms);
+
     /// Set verbosity.
     void verbose(bool on = false);
 
@@ -171,6 +179,7 @@ public:
 private:
     /// map from table ID to table object.
     std::unordered_map<tableid_t, Table> tables;
+    Database* dbms;         /// Database pointer.
 
     friend class Transaction;
 
