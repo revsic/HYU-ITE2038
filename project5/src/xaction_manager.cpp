@@ -83,13 +83,9 @@ Status Transaction::require_lock(
 }
 
 Status Transaction::release_locks(LockManager& manager) {
-    bool acquire_lock = state != TrxState::ABORTED;
-    
     std::unique_lock<std::mutex> own(*mtx);
-    auto copied = std::move(locks);
-    own.unlock();
-
-    for (auto& pair : copied) {
+    bool acquire_lock = state != TrxState::ABORTED;
+    for (auto& pair : locks) {
         CHECK_SUCCESS(manager.release_lock(pair.second, acquire_lock));
     }
     return Status::SUCCESS;
