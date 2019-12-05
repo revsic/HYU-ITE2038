@@ -4,6 +4,7 @@ Database::Database(int num_buffer, bool seq) :
     sequential(seq), mtx(), tables(), buffers(num_buffer),
     locks(), logs(), trxs(locks)
 {
+    tables.set_database(*this);
     buffers.set_database(*this);
     locks.set_database(*this);
 }
