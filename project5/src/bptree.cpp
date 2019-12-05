@@ -204,6 +204,7 @@ Status BPTree::find(prikey_t key, Record* record, trxid_t xid) const {
     }
     if (xid != INVALID_TRXID) {
         buffer = require_buffering(c, xid, LockMode::SHARED);
+        CHECK_NULL(buffer.buffer());
     }
     return find_key_from_leaf(key, buffer, record);
 }
