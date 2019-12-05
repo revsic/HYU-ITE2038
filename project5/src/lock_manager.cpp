@@ -134,7 +134,7 @@ std::shared_ptr<Lock> LockManager::require_lock(
 
     while (!locks[id].cv.wait_for(
         own,
-        1us,
+        LOCK_WAIT,
         [&]{ return !new_lock->stop()
             || backref->get_state() == TrxState::ABORTED; })
     ) {
@@ -242,7 +242,7 @@ int LockManager::DeadlockDetector::Node::outcount() const {
 }
 
 LockManager::DeadlockDetector::DeadlockDetector() :
-    unit(1us), last_use(std::chrono::steady_clock::now())
+    unit(LOCK_WAIT), last_use(std::chrono::steady_clock::now())
 {
     // Do Nothing
 }
@@ -291,14 +291,14 @@ std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
             [](auto const& pair) { return pair.second.refcount() == 0; });
 
         if (iter == graph.end()) {
-            unit = 1us;
+            unit = LOCK_WAIT;
             return choose_abort(std::move(graph));
         }
 
         reduce(graph, iter->first);
     }
 
-    unit += 1us;
+    unit += LOCK_WAIT;
     return std::vector<trxid_t>();
 }
 
