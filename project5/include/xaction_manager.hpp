@@ -76,6 +76,7 @@ public:
     std::map<HID, std::shared_ptr<Lock>> const& get_locks() const;
 
 private:
+    std::unique_ptr<std::mutex> mtx;                /// mutex;
     trxid_t id;                                     /// transaction ID.
     TrxState state;                                 /// transaction state.
     std::shared_ptr<Lock> wait;                     /// waiting lock.

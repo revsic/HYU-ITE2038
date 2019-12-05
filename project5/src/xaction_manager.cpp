@@ -6,34 +6,36 @@
 #include "xaction_manager.hpp"
 
 Transaction::Transaction()
-    : id(INVALID_TRXID), state(TrxState::IDLE), wait(nullptr), locks()
+    : id(INVALID_TRXID), state(TrxState::IDLE)
+    , wait(nullptr), locks(), mtx(nullptr)
 {
     // Do Nothing
 }
 
-Transaction::Transaction(trxid_t id) :
-    id(id), state(TrxState::RUNNING), wait(nullptr), locks()
+Transaction::Transaction(trxid_t id)
+    : id(id), state(TrxState::RUNNING), wait(nullptr)
+    , locks(), mtx(std::make_unique<std::mutex>())
 {
     // Do Nothing
 }
 
 Transaction::Transaction(Transaction&& trx) noexcept
-    : id(trx.id), state(trx.state), wait(trx.wait), locks(std::move(trx.locks))
+    : id(trx.id), state(trx.state), wait(std::move(trx.wait))
+    , locks(std::move(trx.locks)), mtx(std::move(trx.mtx))
 {
     trx.id = INVALID_TRXID;
     trx.state = TrxState::IDLE;
-    trx.wait = nullptr;
 }
 
 Transaction& Transaction::operator=(Transaction&& trx) noexcept {
     id = trx.id;
     state = trx.state;
-    wait = trx.wait;
+    wait = std::move(trx.wait);
     locks = std::move(trx.locks);
+    mtx = std::move(trx.mtx);
 
     trx.id = INVALID_TRXID;
     trx.state = TrxState::IDLE;
-    trx.wait = nullptr;
     return *this;
 }
 
@@ -59,17 +61,22 @@ Status Transaction::require_lock(
     LockManager& manager, HID hid, LockMode mode
 ) {
     CHECK_TRUE(state != TrxState::IDLE && state != TrxState::ABORTED);
+    std::unique_lock<std::mutex> own(*mtx);
     if (locks.find(hid) != locks.end()) {
         std::shared_ptr<Lock> lock = locks.at(hid);
+        own.unlock();
+
         if (static_cast<int>(mode) > static_cast<int>(lock->get_mode())) {
             return elevate_lock(manager, std::move(lock), mode);
         }
 
         return Status::SUCCESS;
     }
+    own.unlock();
 
     auto lock = manager.require_lock(this, hid, mode);
     if (state == TrxState::RUNNING) {
+        own.lock();
         locks[hid] = std::move(lock);
     }
     return state == TrxState::RUNNING ? Status::SUCCESS : Status::FAILURE;
@@ -77,10 +84,14 @@ Status Transaction::require_lock(
 
 Status Transaction::release_locks(LockManager& manager) {
     bool acquire_lock = state != TrxState::ABORTED;
-    for (auto& pair : locks) {
+    
+    std::unique_lock<std::mutex> own(*mtx);
+    auto copied = std::move(locks);
+    own.unlock();
+
+    for (auto& pair : copied) {
         CHECK_SUCCESS(manager.release_lock(pair.second, acquire_lock));
     }
-    locks.clear();
     return Status::SUCCESS;
 }
 
