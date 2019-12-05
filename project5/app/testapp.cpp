@@ -22,7 +22,7 @@ struct Seq {
 int Seq::updates[NUM_THREAD][MAX_TRX + 1][MAX_TRXSEQ + 1];
 
 int main() {
-    Database dbms(100000, false);
+    Database dbms(100000, true);
     tableid_t tid = dbms.open_table("database1.db");
 
     std::vector<Record> keys = dbms.find_range(
@@ -71,7 +71,7 @@ int main() {
                         std::snprintf(
                             reinterpret_cast<char*>(rec.value),
                             sizeof(Record) - sizeof(prikey_t),
-                            "%lld value", seqs[k].key);
+                            "%ld value", seqs[k].key);
                         dbms.update(tid, seqs[k].key, rec, xid);
                         Seq::updates[i][j][idx++] = seqs[k].key;
                     }
@@ -93,7 +93,10 @@ int main() {
     bool runnable = true;
     std::thread logger([&] {
         while (runnable) {
-            std::printf("\r%d", nquery.load());
+            int n = nquery.load();
+            if (n % 1000 == 0) {
+                std::printf("\r%d", n);
+            }
         }
     });
 
@@ -129,14 +132,13 @@ int main() {
                 Record rec;
                 dbms.find(tid, key, &rec);
 
-                auto str = std::to_string(k) + " value";
-                if (std::strncmp(
+                auto str = std::to_string(key) + " value";
+                if (std::strcmp(
                         reinterpret_cast<char*>(rec.value),
-                        str.c_str(),
-                        sizeof(Record) - sizeof(prikey_t))
+                        str.c_str())
                 ) {
                     std::cout
-                        << "\rtest failed: " << key
+                        << "test failed: " << key
                         << ", " << reinterpret_cast<char*>(rec.value) << std::endl;
                     return 0;
                 }
