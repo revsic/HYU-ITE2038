@@ -22,7 +22,7 @@ struct Seq {
 int Seq::updates[NUM_THREAD][MAX_TRX + 1][MAX_TRXSEQ + 1];
 
 int main() {
-    Database dbms(100000, true);
+    Database dbms(100000, false);
     tableid_t tid = dbms.open_table("database1.db");
 
     std::vector<Record> keys = dbms.find_range(
