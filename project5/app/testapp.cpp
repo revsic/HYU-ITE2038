@@ -6,6 +6,11 @@
 
 #include "dbms.hpp"
 
+struct Seq {
+    enum class Cat { FIND, UPDATE } cat;
+    prikey_t key;
+};
+
 int main() {
     Database dbms(100000, false);
     tableid_t tid = dbms.open_table("database1.db");
@@ -15,7 +20,12 @@ int main() {
     constexpr size_t MAX_TRXSEQ = 1000;
     constexpr size_t MAX_KEY_RANGE = 100000;
 
-    std::atomic<int> n_query(0);
+    std::atomic<int> ntrxs(0);
+    std::atomic<int> nquery(0);
+    std::atomic<int> aborts(0);
+
+    Record record;
+    std::strncpy(reinterpret_cast<char*>(record.value), "hello", 10);
 
     std::thread threads[NUM_THREAD];
     for (int i = 0; i < NUM_THREAD; ++i) {
@@ -24,22 +34,34 @@ int main() {
             std::default_random_engine gen(rd());
 
             int num_trx = gen() % MAX_TRX;
-            for (int j = 0; j < num_trx; ++j) {
-                trxid_t xid = dbms.begin_trx();
+            ntrxs += num_trx;
 
+            for (int j = 0; j < num_trx; ++j) {
+                Seq seqs[MAX_TRXSEQ];
                 int num_seq = gen() % MAX_TRXSEQ;
                 for (int k = 0; k < num_seq; ++k) {
-                    ++n_query;
                     prikey_t key = gen() % MAX_KEY_RANGE;
                     if (gen() % 2 == 0) {
-                        dbms.find(tid, key, nullptr, xid);
+                        seqs[k] = Seq{ Seq::Cat::FIND, key };
                     } else {
-                        Record record;
-                        std::strncpy(reinterpret_cast<char*>(record.value), "hello", 10);
-                        dbms.update(tid, key, record, xid);
+                        seqs[k] = Seq{ Seq::Cat::UPDATE, key };
+                    }
+                }
+
+                Status res = Status::SUCCESS;
+                trxid_t xid = dbms.begin_trx();
+                for (int k = 0; k < num_seq && res == Status::SUCCESS; ++k) {
+                    ++nquery;
+                    if (seqs[k].cat == Seq::Cat::FIND) {
+                        res = dbms.find(tid, seqs[k].key, nullptr, xid);
+                    } else {
+                        res = dbms.update(tid, seqs[k].key, record, xid);
                     }
                 }
                 dbms.end_trx(xid);
+                if (res == Status::FAILURE) {
+                    ++aborts;
+                }
             }
         });
     }
@@ -47,7 +69,7 @@ int main() {
     bool runnable = true;
     std::thread logger([&] {
         while (runnable) {
-            std::printf("\r%d", n_query.load());
+            std::printf("\r%d", nquery.load());
         }
     });
 
@@ -66,9 +88,10 @@ int main() {
     // dbms.print_tree(tid);
 
     size_t tick = duration_cast<milliseconds>(end - now).count();
-    std::cout
-        << ' '
-        << tick << "ms (" << (static_cast<double>(n_query.load()) / tick) << "/ms)"
+    std::cout << '\r'
+        << nquery.load() << "q " << ntrxs.load() << "t "
+        << tick << "ms (" << (static_cast<double>(nquery.load()) / tick) << "/ms, "
+        << aborts.load() << " aborted)"
         << std::endl;
 
     return 0;
