@@ -111,7 +111,7 @@ private:
 class LockManager {
 public:
     /// Default constructor.
-    LockManager() = default;
+    LockManager();
     /// Default destructor.
     ~LockManager() = default;
     /// Deleted move constructor.
