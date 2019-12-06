@@ -15,11 +15,11 @@ constexpr size_t MAX_ABORTS = std::numeric_limits<size_t>::max();
 struct Seq {
     enum class Cat { FIND, UPDATE } cat;
     prikey_t key;
-
-    static std::pair<int, bool> updates[NUM_THREAD][MAX_TRX + 1][MAX_TRXSEQ + 1];
 };
 
-std::pair<int, bool> Seq::updates[NUM_THREAD][MAX_TRX + 1][MAX_TRXSEQ + 1];
+std::mutex mtx;
+std::unordered_map<int, bool> updated;
+int update_list[NUM_THREAD][MAX_TRX + 1][MAX_TRXSEQ + 1];
 
 int main() {
     Database dbms(100000, false);
@@ -46,7 +46,7 @@ int main() {
             int num_trx = gen() % MAX_TRX;
             ntrxs += num_trx;
 
-            Seq::updates[i][MAX_TRX][0] = { num_trx, true };
+            update_list[i][MAX_TRX][0] = num_trx;
             for (int j = 0; j < num_trx; ++j) {
                 Seq seqs[MAX_TRXSEQ];
                 int num_seq = gen() % MAX_TRXSEQ;
@@ -78,22 +78,24 @@ int main() {
                         if (dbms.update(tid, seqs[k].key, rec, xid) == Status::FAILURE) {
                             ++failure;
                         }
-                        Seq::updates[i][j][idx++] = { seqs[k].key, true };
+                        update_list[i][j][idx++] = seqs[k].key;
                     }
                     state = dbms.trx_state(xid);
                 }
 
-                Seq::updates[i][j][MAX_TRXSEQ] = { idx, true };
-
+                update_list[i][j][MAX_TRXSEQ] = idx;
                 dbms.end_trx(xid);
+
                 if (state == TrxState::ABORTED) {
                     if (++aborts > MAX_ABORTS) {
                         break;
                     }
-
+                } else {
+                    mtx.lock();
                     for (int k = 0; k < idx; ++k) {
-                        Seq::updates[i][j][k].second = false;
+                        updated[update_list[i][j][k]] = true;
                     }
+                    mtx.unlock();
                 }
             }
         });
@@ -133,22 +135,22 @@ int main() {
         << std::endl;
 
     for (int i = 0; i < NUM_THREAD; ++i) {
-        int ntrx = Seq::updates[i][MAX_TRX][0].first;
+        int ntrx = update_list[i][MAX_TRX][0];
         for (int j = 0; j < ntrx; ++j) {
-            int nseq = Seq::updates[i][j][MAX_TRXSEQ].first;
+            int nseq = update_list[i][j][MAX_TRXSEQ];
             for (int k = 0; k < nseq; ++k) {
-                prikey_t key = Seq::updates[i][j][k].first;
-                bool commited = Seq::updates[i][j][k].second;
+                prikey_t key = update_list[i][j][k];
 
                 Record rec;
                 dbms.find(tid, key, &rec);
 
                 auto str = std::to_string(key) + " value";
+                bool committed = updated.find(key) != updated.end();
                 bool test = !std::strcmp(reinterpret_cast<char*>(rec.value), str.c_str());
-                if ((commited && !test) || (!commited && test)) {
+                if (committed != test) {
                     std::cout
                         << "test failed: " << key
-                        << (commited ? " commited" : " aborted")
+                        << (committed ? " committed" : " aborted")
                         << ", " << reinterpret_cast<char*>(rec.value) << std::endl;
                     return 0;
                 }
