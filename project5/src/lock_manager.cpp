@@ -168,11 +168,6 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire_lock) 
     if (found != module.run.end()) {
         module.run.erase(found);
     } else {
-DBG(lock->get_backref().get_id())
-DBG(static_cast<int>(lock->get_backref().get_state()))
-DBG(lock->get_hid().pid);
-DBG(lock->stop())
-DBG((std::find(module.wait.begin(), module.wait.end(), lock) != module.wait.end()));
         module.wait.remove(lock);
         lock->run();
     }
@@ -221,7 +216,6 @@ Status LockManager::detect_and_release() {
     CHECK_TRUE(found.size() > 0);
 
     for (trxid_t xid : found) {
-DBG(xid)
         CHECK_SUCCESS(db->abort_trx(xid));
     }
     return Status::SUCCESS;
