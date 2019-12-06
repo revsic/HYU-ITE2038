@@ -174,10 +174,6 @@ private:
 
     /// Type alias for lock table.
     using locktable_t = std::unordered_map<HashableID, LockStruct>;
-    /// Type alias for transaction table.
-    using trxtable_t = std::unordered_map<
-        trxid_t,
-        std::pair<Transaction*, int>>;
 
     /// Deadloock detector.
     struct DeadlockDetector {
@@ -210,10 +206,8 @@ private:
 
         /// Find cycle and return xid to aborts.
         /// \param locks locktable_t const&, lock table.
-        /// \param xtable trxtable_t const&, transaction table.
         /// \return std::vector<trxid_t>, transaction IDs.
-        std::vector<trxid_t> find_cycle(
-            locktable_t const& locks, trxtable_t const& xtable);
+        std::vector<trxid_t> find_cycle(locktable_t const& locks);
 
         /// Choose transactions to abort.
         /// \param graph graph_t, waiting-graph.
@@ -222,10 +216,8 @@ private:
 
         /// Construct waiting-graph from lock table.
         /// \param locks locktable_t const&, lock table.
-        /// \param xtable trxtable_t const&, transaction table.
         /// \return graph_t, created waiting graph.
-        static graph_t construct_graph(
-            locktable_t const& locks, trxtable_t const& xtable);
+        static graph_t construct_graph(locktable_t const& locks);
 
 #ifdef TEST_MODULE
         friend struct LockManagerTest;
@@ -234,7 +226,6 @@ private:
 
     std::mutex mtx;                 /// system level mutex.
     locktable_t locks;              /// lock table.
-    trxtable_t trxs;                /// relative transaction table.
     DeadlockDetector detector;      /// deadlock detector.
     Database* db;                   /// database system.
 

@@ -1,4 +1,5 @@
 #include <condition_variable>
+#include <thread>
 
 #include "dbms.hpp"
 #include "lock_manager.hpp"
@@ -98,7 +99,7 @@ LockManager::LockStruct::LockStruct() :
 }
 
 LockManager::LockManager() :
-    mtx(), locks(), trxs(), detector(), db(nullptr)
+    mtx(), locks(), detector(), db(nullptr)
 {
     // Do Nothing
 }
@@ -110,10 +111,6 @@ std::shared_ptr<Lock> LockManager::require_lock(
     auto new_lock = std::make_shared<Lock>(hid, mode, backref);
 
     std::unique_lock<std::mutex> own(mtx);
-    if (trxs.find(backref->get_id()) == trxs.end()) {
-        trxs[backref->get_id()] = std::make_pair(backref, 0);
-    }
-    trxs[backref->get_id()].second++;
 
     auto iter = locks.find(id);
     if (iter == locks.end() || lockable(iter->second, new_lock)) {
@@ -124,17 +121,19 @@ std::shared_ptr<Lock> LockManager::require_lock(
         return new_lock;
     }
 
+    while (backref->wait != nullptr) {
+        std::this_thread::yield();
+    }
+
     backref->wait = new_lock;
     backref->state = TrxState::WAITING;
 
     new_lock->wait();
     locks[id].wait.push_back(new_lock);
 
-    auto& module = locks[id];
-
     while (!locks[id].cv.wait_for(
         own,
-        LOCK_WAIT,
+        1us,
         [&]{ return !new_lock->stop()
             || backref->get_state() == TrxState::ABORTED; })
     ) {
@@ -165,12 +164,20 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire_lock) 
     CHECK_TRUE(iter != locks.end());
 
     LockStruct& module = iter->second;
-    module.run.remove(lock);
+    auto found = std::find(module.run.begin(), module.run.end(), lock);
+    if (found != module.run.end()) {
+        module.run.erase(found);
+    } else {
+DBG(lock->get_backref().get_id())
+DBG(static_cast<int>(lock->get_backref().get_state()))
+DBG(lock->get_hid().pid);
+DBG(lock->stop())
+DBG((std::find(module.wait.begin(), module.wait.end(), lock) != module.wait.end()));
+        module.wait.remove(lock);
+        lock->run();
+    }
 
     Transaction& backref = lock->get_backref();
-    if (--trxs[backref.get_id()].second <= 0) {
-        trxs.erase(backref.get_id());
-    }
 
     if (module.run.size() > 0) {
         return Status::SUCCESS;
@@ -210,12 +217,12 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire_lock) 
 Status LockManager::detect_and_release() {
     CHECK_SUCCESS(detector.schedule());
 
-    std::vector<trxid_t> found = detector.find_cycle(locks, trxs);
+    std::vector<trxid_t> found = detector.find_cycle(locks);
     CHECK_TRUE(found.size() > 0);
 
     for (trxid_t xid : found) {
+DBG(xid)
         CHECK_SUCCESS(db->abort_trx(xid));
-        trxs.erase(xid);
     }
     return Status::SUCCESS;
 }
@@ -242,7 +249,7 @@ int LockManager::DeadlockDetector::Node::outcount() const {
 }
 
 LockManager::DeadlockDetector::DeadlockDetector() :
-    unit(LOCK_WAIT), last_use(std::chrono::steady_clock::now())
+    unit(1us), last_use(std::chrono::steady_clock::now())
 {
     // Do Nothing
 }
@@ -280,10 +287,10 @@ void LockManager::DeadlockDetector::reduce(
 }
 
 std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
-    locktable_t const& locks, trxtable_t const& xtable
+    locktable_t const& locks
 ) {
     last_use = std::chrono::steady_clock::now();
-    graph_t graph = construct_graph(locks, xtable);
+    graph_t graph = construct_graph(locks);
 
     while (graph.size() > 0) {
         auto iter = std::find_if(
@@ -291,14 +298,14 @@ std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
             [](auto const& pair) { return pair.second.refcount() == 0; });
 
         if (iter == graph.end()) {
-            unit = LOCK_WAIT;
+            unit = 1us;
             return choose_abort(std::move(graph));
         }
 
         reduce(graph, iter->first);
     }
 
-    unit += LOCK_WAIT;
+    unit += 1us;
     return std::vector<trxid_t>();
 }
 
@@ -323,27 +330,19 @@ std::vector<trxid_t> LockManager::DeadlockDetector::choose_abort(
 }
 
 auto LockManager::DeadlockDetector::construct_graph(
-    locktable_t const& locks, trxtable_t const& xtable
+    locktable_t const& locks
 ) -> LockManager::DeadlockDetector::graph_t {
     graph_t graph;
 
-    for (auto const& iter : xtable) {
-        trxid_t xid = iter.first;
-
-        auto const& value = iter.second;
-        Transaction* trx = value.first;
-
-        if (trx->wait == nullptr) {
-            continue;
-        }
-
-        HID wait_id = trx->wait->get_hid();
-        LockStruct const& module = locks.at(wait_id.make_hashable());
-
-        for (auto const& run_lock : module.run) {
-            trxid_t run_xid = run_lock->get_backref().get_id();
-            graph[run_xid].prev_id.insert(xid);
-            graph[xid].next_id.insert(run_xid);
+    for (auto const& iter : locks) {
+        auto const& module = iter.second;
+        for (auto const& wait_lock : module.wait) {
+            trxid_t wait_xid = wait_lock->get_backref().get_id();
+            for (auto const& run_lock : module.run) {
+                trxid_t run_xid = run_lock->get_backref().get_id();
+                graph[run_xid].prev_id.insert(wait_xid);
+                graph[wait_xid].next_id.insert(run_xid);
+            }
         }
     }
 
