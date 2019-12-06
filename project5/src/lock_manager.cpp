@@ -170,6 +170,7 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire_lock) 
     } else {
         module.wait.remove(lock);
         lock->run();
+        return Status::SUCCESS;
     }
 
     Transaction& backref = lock->get_backref();
