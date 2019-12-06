@@ -14,7 +14,7 @@ public:
     /// Construct database with the number of buffers.
     /// \param num_buffer int, number of buffers.
     /// \param seq int, sequential access or not.
-    Database(int num_buffer, bool seq = true);
+    Database(int num_buffer, bool seq = false);
 
     /// Default destructor.
     ~Database() = default;
