@@ -340,7 +340,7 @@ TEST_SUITE(LockManagerTest::detect_and_release, {
 
 TEST_SUITE(LockManagerTest::deadlock, {
     // case 0. exclusive -> exclusive
-    Database dbms(4);
+    Database dbms(4, false);
     LockManager& manager = dbms.locks;
 
     trxid_t xid = dbms.begin_trx();
