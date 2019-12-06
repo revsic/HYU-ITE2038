@@ -44,6 +44,7 @@ Status Transaction::end_trx(LockManager& manager) {
 }
 
 Status Transaction::abort_trx(Database& dbms) {
+    std::unique_lock<std::mutex> own(*mtx);
     state = TrxState::ABORTED;
     for (Log const& log : dbms.logs.get_logs(id)) {
         FileManager* file = dbms.tables.find_file(log.hid.tid);
@@ -54,13 +55,14 @@ Status Transaction::abort_trx(Database& dbms) {
             });
     }
 
+    own.unlock();
     return release_locks(dbms.locks);
 }
 
 Status Transaction::require_lock(
     LockManager& manager, HID hid, LockMode mode
 ) {
-    CHECK_TRUE(state != TrxState::IDLE && state != TrxState::ABORTED);
+    CHECK_TRUE(state == TrxState::RUNNING);
     std::unique_lock<std::mutex> own(*mtx);
     if (locks.find(hid) != locks.end()) {
         std::shared_ptr<Lock> lock = locks.at(hid);
