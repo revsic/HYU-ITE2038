@@ -135,9 +135,3 @@ private:
 `acquire_lock`의 경우 크게 처음으로 Page에 lock을 요청한 경우와 이미 lock을 보유하고 있지만, 권한을 더 강하게 잡아야 하는 경우로 나뉘며, 이는 `elevate_lock` 메소드에서 처리하였다.
 
 DeadlockDetector에 의해서 Abort를 해야 할 때에는 `Database` 구조체에서 LogManager를 불러와 관련 Update Log에 따라 복원을 진행한다. 이후 소유하고 있던 Lock을 모두 release 하면서 루틴을 종료한다.
-
-## 4. 현재 상황
-
-현재에는 모든 루틴이 구현되어 있지만, Abort 관련 시스템 내부 루틴에서 Deadlock이 발견되어 수정 중에 있다.
-
-정상적인 수행을 위해 Database는 transaction을 발급할 때 lock을 걸고, `end_trx`로 트랜잭션을 종료할 때 lock을 푸는 방식으로 강제적인 serialization을 구현하고 있고, 이 경우 deadlock이 발생하지 않아 abort 없이 정상 수행이 가능하다.
