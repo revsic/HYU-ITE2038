@@ -87,6 +87,10 @@ Status Transaction::require_lock(
 Status Transaction::release_locks(LockManager& manager) {
     std::unique_lock<std::mutex> own(*mtx);
     bool acquire_lock = state != TrxState::ABORTED;
+    if (wait != nullptr) {
+        CHECK_SUCCESS(manager.release_lock(wait, acquire_lock));
+    }
+
     for (auto& pair : locks) {
         CHECK_SUCCESS(manager.release_lock(pair.second, acquire_lock));
     }
