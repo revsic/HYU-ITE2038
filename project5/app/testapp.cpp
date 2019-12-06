@@ -22,7 +22,7 @@ std::unordered_map<int, bool> updated;
 int update_list[NUM_THREAD][MAX_TRX + 1][MAX_TRXSEQ + 1];
 
 int main() {
-    Database dbms(100000, false);
+    Database dbms(100000);
     tableid_t tid = dbms.open_table("db");
 
     std::vector<Record> keys = dbms.find_range(
