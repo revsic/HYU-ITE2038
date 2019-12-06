@@ -22,8 +22,8 @@ struct Seq {
 int Seq::updates[NUM_THREAD][MAX_TRX + 1][MAX_TRXSEQ + 1];
 
 int main() {
-    Database dbms(100000);
-    tableid_t tid = dbms.open_table("database1.db");
+    Database dbms(100000, false);
+    tableid_t tid = dbms.open_table("db");
 
     std::vector<Record> keys = dbms.find_range(
         tid,
@@ -35,6 +35,7 @@ int main() {
     std::atomic<int> nquery(0);
     std::atomic<int> updates(0);
     std::atomic<int> aborts(0);
+    std::atomic<int> failure(0);
 
     std::thread threads[NUM_THREAD];
     for (int i = 0; i < NUM_THREAD; ++i) {
@@ -64,7 +65,9 @@ int main() {
                 for (int k = 0; k < num_seq && state == TrxState::RUNNING; ++k) {
                     ++nquery;
                     if (seqs[k].cat == Seq::Cat::FIND) {
-                        dbms.find(tid, seqs[k].key, nullptr, xid);
+                        if (dbms.find(tid, seqs[k].key, nullptr, xid) == Status::FAILURE) {
+                            ++failure;
+                        }
                     } else {
                         ++updates;
                         Record rec;
@@ -72,7 +75,9 @@ int main() {
                             reinterpret_cast<char*>(rec.value),
                             sizeof(Record) - sizeof(prikey_t),
                             "%ld value", seqs[k].key);
-                        dbms.update(tid, seqs[k].key, rec, xid);
+                        if (dbms.update(tid, seqs[k].key, rec, xid) == Status::FAILURE) {
+                            ++failure;
+                        }
                         Seq::updates[i][j][idx++] = seqs[k].key;
                     }
                     state = dbms.trx_state(xid);
@@ -119,7 +124,8 @@ int main() {
         << nquery.load() << " queris (" << updates.load() << " updates), "
         << ntrxs.load() << " trxs, "
         << tick << "ms (" << (static_cast<double>(nquery.load()) / tick) << "/ms, "
-        << aborts.load() << " aborted)"
+        << aborts.load() << " aborted, "
+        << failure.load() << " failure)"
         << std::endl;
 
     for (int i = 0; i < NUM_THREAD; ++i) {
