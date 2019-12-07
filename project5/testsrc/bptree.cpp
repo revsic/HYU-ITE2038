@@ -42,7 +42,8 @@ struct BPTreeTest {
     TEST_NAME(delete_entry);
     TEST_NAME(remove);
     TEST_NAME(destroy_tree);
-    TEST_NAME(update)
+    TEST_NAME(update);
+    TEST_NAME(concurrency)
 };
 
 void bpt_test_postprocess(FileManager& file, BufferManager& buffers) {
@@ -1544,6 +1545,10 @@ TEST_SUITE(BPTreeTest::update, {
     }
 })
 
+TEST_SUITE(BPTreeTest::concurrency, {
+    /// TODO: Impl
+})
+
 int bptree_test() {
     srand(time(NULL));
     return BPTreeTest::constructor_test()
@@ -1583,5 +1588,6 @@ int bptree_test() {
         && BPTreeTest::delete_entry_test()
         && BPTreeTest::remove_test()
         && BPTreeTest::destroy_tree_test()
-        && BPTreeTest::update_test();
+        && BPTreeTest::update_test()
+        && BPTreeTest::concurrency_test();
 }

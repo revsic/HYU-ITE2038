@@ -39,6 +39,7 @@ struct BufferManagerTest {
     static int release_file_test();
     static int release_test();
     static int find_test();
+    static int concurrency_test();
 };
 
 TEST_SUITE(UbufferTest::constructor, {
@@ -560,6 +561,10 @@ TEST_SUITE(BufferManagerTest::free_page, {
     remove("testfile");
 })
 
+TEST_SUITE(BufferManagerTest::concurrency, {
+    /// TODO: Impl.
+})
+
 int buffer_manager_test() {
     return UbufferTest::constructor_test()
         && UbufferTest::assignment_test()
@@ -587,5 +592,6 @@ int buffer_manager_test() {
         && BufferManagerTest::find_test()
         && BufferManagerTest::buffering_test()
         && BufferManagerTest::new_page_test()
-        && BufferManagerTest::free_page_test();
+        && BufferManagerTest::free_page_test()
+        && BufferManagerTest::concurrency_test();
 }
