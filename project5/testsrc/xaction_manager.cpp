@@ -20,7 +20,7 @@ TEST_METHOD(abort_trx);
 TEST_METHOD(require_lock);
 TEST_METHOD(release_locks);
 TEST_METHOD(trx_state);
-}
+};
 
 TEST_SUITE(TransactionTest::constructor, {
 
