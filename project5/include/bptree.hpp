@@ -10,45 +10,7 @@
 #ifdef TEST_MODULE
 #include "test.hpp"
 #endif
-
-/// Read-write specialization.
-namespace _RWSpec {
-    /// Access type.
-    enum class Access {
-        READ = 0,
-        WRITE = 1,
-    };
-
-    /// Compile time method selection.
-    /// \param Access constant, access type selection, default read.
-    template <Access>
-    struct Action {
-        /// Run buffer in read mode.
-        /// \param F typename, Status(Record const&).
-        /// \param buf Ubuffer&, buffer.
-        /// \param callback F&&, callback method.
-        /// \return auto, return value of callback.
-        template <typename F>
-        static auto run(Ubuffer& buf, F&& callback) {
-            return buf.read(std::forward<F>(callback));
-        }
-    };
-
-    /// Write access specialization.
-    template <>
-    struct Action<Access::WRITE> {
-        /// Run buffer in write mode.
-        /// \param F typename, Status(Record&).
-        /// \param buf Ubuffer&, buffer.
-        /// \param callback F&&, callback method.
-        /// \return auto, return value of callback.
-        template <typename F>
-        static auto run(Ubuffer& buf, F&& callback) {
-            return buf.write(std::forward<F>(callback));
-        }
-    };
-};
-        
+   
 /// B+Tree record iterator.
 class BPTreeIterator;
 
@@ -163,8 +125,6 @@ private:
 
     friend class BPTreeIterator;
 
-    using Access = _RWSpec::Access;
-
     /// Return buffer specified by pageid.
     /// \param pagenum pagenum_t, page id.
     /// \return Ubuffer, buffer.
@@ -172,11 +132,12 @@ private:
 
     /// Return buffer speicified by pid with lock acquirance.
     /// \param pagenum pagenum_t, page id.
+    /// \param idx size_t, record index.
     /// \param xid trxid_t, transaction id.
     /// \param mode LockMode, lock mode.
     /// \return Ubuffer, buffer.
     Ubuffer require_buffering(
-        pagenum_t pagenum, trxid_t xid, LockMode mode) const;
+        pagenum_t pagenum, size_t rid, trxid_t xid, LockMode mode) const;
 
     /// Create page on buffer.
     /// \param leaf bool, whether generated page is leaf page or internal.
@@ -209,18 +170,11 @@ private:
     pagenum_t find_leaf(prikey_t key, Ubuffer& buffer) const;
 
     /// Find the key from the giveen buffer and run callback.
-    /// \tparam T constant, Access, access token.
-    /// \tparam F typename, Status(Record&), callback type.
     /// \param key prikey_t, primary key.
     /// \param buffer Ubuffer&, target buffer.
-    /// \param callback F&&, callback for found record.
-    /// \return int, index of the record in page.
-    template <Access T, typename F>
-    int find_key_from_leaf(
-        prikey_t key, Ubuffer& buffer, F&& callback
-    ) const {
-        using PageT = std::conditional_t<T == Access::READ, Page const, Page>;
-        return _RWSpec::Action<T>::run(buffer, [&](PageT& page) {
+    /// \return Urecord, record buffer.
+    Urecord find_key_from_leaf(prikey_t key, Ubuffer& buffer) const {
+        int idx = buffer.read([=](Page const& page) {
             if (!page.page_header().is_leaf) {
                 return -1;
             }
@@ -229,13 +183,16 @@ private:
             for (i = 0; i < num_key && page.records()[i].key != key; ++i)
                 {}
             
-            if (i < num_key
-                && callback(page.records()[i]) == Status::SUCCESS
-            ) {
+            if (i < num_key) {
                 return i;
             }
             return -1;
         });
+
+        if (idx == -1) {
+            return Urecord(nullptr);
+        }
+        return Urecord(buffer.clone(), idx);
     }
 
     /// Find the key from the given buffer and write the result to `record`.

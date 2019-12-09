@@ -208,12 +208,21 @@ Status BPTree::find(prikey_t key, Record* record, trxid_t xid) const {
     if (c == INVALID_PAGENUM) {
         return Status::FAILURE;
     }
+    Urecord rec = find_key_from_leaf(key, buffer);
+    CHECK_NULL(rec.buffer());
+
     if (xid != INVALID_TRXID) {
         CHECK_NULL(dbms);
-        buffer = require_buffering(c, xid, LockMode::SHARED);
+        buffer = require_buffering(c, rec.index(), xid, LockMode::SHARED);
         CHECK_NULL(buffer.buffer());
     }
-    return find_key_from_leaf(key, buffer, record);
+
+    if (record != nullptr) {
+        rec.read_void([&](Record const& rec) {
+            std::memcpy(record, &rec, sizeof(Record));
+        });
+    }
+    return Status::SUCCESS;
 }
 
 std::vector<Record> BPTree::find_range(prikey_t start, prikey_t end) const {
@@ -319,27 +328,30 @@ Status BPTree::update(prikey_t key, Record record, trxid_t xid) const {
     if (c == INVALID_PAGENUM) {
         return Status::FAILURE;
     }
+    Urecord rec = find_key_from_leaf(key, buffer);
+    CHECK_NULL(rec.buffer());
+
     if (xid != INVALID_TRXID) {
         CHECK_NULL(dbms);
-        buffer = require_buffering(c, xid, LockMode::EXCLUSIVE);
+        buffer = require_buffering(c, rec.index(), xid, LockMode::EXCLUSIVE);
         CHECK_NULL(buffer.buffer());
     }
+
     Record before;
-    int idx = find_key_from_leaf<Access::WRITE>(
-        key, buffer,
-        [&](Record& rec) {
-            std::memcpy(&before, &rec, sizeof(Record));
-            std::memcpy(
-                rec.value, record.value,
-                sizeof(Record) - sizeof(prikey_t));
-            return Status::SUCCESS;
-        });
-    if (idx != -1 && xid != INVALID_TRXID) {
+    Status status = rec.write_void([&](Record& rec) {
+        std::memcpy(&before, &rec, sizeof(Record));
+        std::memcpy(
+            rec.value, record.value,
+            sizeof(Record) - sizeof(prikey_t));
+        return Status::SUCCESS;
+    });
+
+    if (status == Status::SUCCESS && xid != INVALID_TRXID) {
         record.key = before.key;
-        HID hid(TableManager::convert(file->get_id()), c);
-        dbms->logs.log_update(xid, hid, idx, before, record);
+        HID hid(TableManager::convert(file->get_id()), c, rec.index());
+        dbms->logs.log_update(xid, hid, rec.index(), before, record);
     }
-    return idx != -1 ? Status::SUCCESS : Status::FAILURE;
+    return status;
 }
 
 Status BPTree::destroy_tree() const {
@@ -405,9 +417,9 @@ Ubuffer BPTree::buffering(pagenum_t pagenum) const {
 }
 
 Ubuffer BPTree::require_buffering(
-    pagenum_t pagenum, trxid_t xid, LockMode mode
+    pagenum_t pagenum, size_t rid, trxid_t xid, LockMode mode
 ) const {
-    return buffers->require_buffering(*file, pagenum, xid, mode);
+    return buffers->require_buffering(*file, pagenum, rid, xid, mode);
 }
 
 Ubuffer BPTree::create_page(bool leaf) const {
@@ -487,15 +499,13 @@ pagenum_t BPTree::find_leaf(prikey_t key, Ubuffer& buffer) const {
 Status BPTree::find_key_from_leaf(
     prikey_t key, Ubuffer& buffer, Record* record
 ) const {
-    int idx = find_key_from_leaf<Access::READ>(
-        key, buffer,
-        [=](Record const& rec) {
-            if (record != nullptr) {
-                std::memcpy(record, &rec, sizeof(Record));
-            }
-            return Status::SUCCESS;
-        });
-    return idx != -1 ? Status::SUCCESS : Status::FAILURE;
+    Urecord rec = find_key_from_leaf(key, buffer);
+    CHECK_NULL(rec.buffer());
+    return rec.read_void([=](Record const& rec) {
+        if (record != nullptr) {
+            std::memcpy(record, &rec, sizeof(Record));
+        }
+    });
 }
 
 Status BPTree::find_pagenum_from_internal(
