@@ -26,6 +26,13 @@ struct UbufferTest {
     static int read_write_test();
 };
 
+struct UrecordTest {
+    static int constructor_test();
+    static int assignment_test();
+    static int key_test();
+    static int read_write_test();
+};
+
 struct BufferManagerTest {
     static int constructor_test();
     static int mru_lru_test();
@@ -69,6 +76,22 @@ TEST_SUITE(UbufferTest::to_pagenum, {
 })
 
 TEST_SUITE(UbufferTest::read_write, {
+    // TODO: impl test
+})
+
+TEST_SUITE(UrecordTest::constructor, {
+    // TODO: impl test
+})
+
+TEST_SUITE(UrecordTest::assignment, {
+    // TODO: impl test
+})
+
+TEST_SUITE(UrecordTest::key, {
+    // TODO: impl test
+})
+
+TEST_SUITE(UrecordTest::read_write, {
     // TODO: impl test
 })
 
@@ -573,6 +596,10 @@ int buffer_manager_test() {
         && UbufferTest::page_test()
         && UbufferTest::to_pagenum_test()
         && UbufferTest::read_write_test()
+        && UrecordTest::constructor_test()
+        && UrecordTest::assignment_test()
+        && UrecordTest::key_test()
+        && UrecordTest::read_write_test()
         && BufferTest::page_test()
         && BufferTest::adjacent_buffers_test()
         && BufferTest::read_write_test()
