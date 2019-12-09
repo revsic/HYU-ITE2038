@@ -174,6 +174,46 @@ pagenum_t Ubuffer::to_pagenum() const {
     return pagenum;
 }
 
+Urecord::Urecord(std::nullptr_t) : idx(0), buf(nullptr) {
+    // Do Nothing
+}
+
+Urecord::Urecord(Ubuffer&& buf, size_t idx) :
+    idx(idx), buf(std::move(buf))
+{
+    // Do Nothing
+}
+
+Urecord::Urecord(Urecord&& other) noexcept :
+    idx(other.idx), buf(std::move(other.buf))
+{
+    other.idx = 0;
+}
+
+Urecord& Urecord::operator=(Urecord&& other) noexcept {
+    idx = other.idx;
+    other.idx = 0;
+
+    buf = std::move(other.buf);
+    return *this;
+}
+
+prikey_t Urecord::key() {
+    return read([](Record const& rec) { return rec.key; });
+}
+
+size_t Urecord::index() const {
+    return idx;
+}
+
+Buffer* Urecord::buffer() {
+    return buf.buffer();
+}
+
+Buffer const* Urecord::buffer() const {
+    return buf.buffer();
+}
+
 BufferManager::BufferManager(int num_buffer)
     : dbms(nullptr)
     , mtx()
@@ -232,12 +272,12 @@ Ubuffer BufferManager::buffering(FileManager& file, pagenum_t pagenum, bool virt
 }
 
 Ubuffer BufferManager::require_buffering(
-    FileManager& file, pagenum_t pagenum, trxid_t xid, LockMode mode
+    FileManager& file, pagenum_t pagenum, size_t rid, trxid_t xid, LockMode mode
 ) {
     if (dbms == nullptr) {
         return Ubuffer(nullptr);
     }
-    HID hid(TableManager::convert(file.get_id()), pagenum);
+    HID hid(TableManager::convert(file.get_id()), pagenum, rid);
     Status res = dbms->trxs.require_lock(xid, hid, mode);
     if (res == Status::FAILURE) {
         return Ubuffer(nullptr);

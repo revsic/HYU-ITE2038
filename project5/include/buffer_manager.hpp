@@ -262,6 +262,93 @@ private:
 #endif
 };
 
+/// Ubuffer record wrapper for user provision.
+class Urecord {
+public:
+    /// Default constructor.
+    Urecord(std::nullptr_t);
+
+    /// Construct urecord with given buffer and record index.
+    /// \param ubuf Ubuffer&&, buffer for user provision.
+    /// \param idx size_t, record index.
+    Urecord(Ubuffer&& ubuf, size_t idx);
+
+    /// Default destructor.
+    ~Urecord() = default;
+
+    /// Deleted copy constructor.
+    Urecord(Urecord const&) = delete;
+
+    /// Move constructor.
+    Urecord(Urecord&& other) noexcept;
+
+    /// Deleted copy assignment.
+    Urecord& operator=(Urecord const&) = delete;
+
+    /// Move assignment.
+    Urecord& operator=(Urecord&& other) noexcept;
+
+    /// Get primary key from record.
+    prikey_t key();
+
+    /// Get index of record.
+    size_t index() const;
+
+    /// Get buffer pointer.
+    Buffer* buffer();
+
+    /// Get buffer pointer.
+    Buffer const* buffer() const;
+
+    /// Read record with given callback.
+    /// \tparam typename F, callback typee, R(Record const&).
+    /// \param callback F&&, callback.
+    /// \return R, return value of callback.
+    template <typename F>
+    inline auto read(F&& callback) {
+        return buf.read([&](Page const& page) {
+            return callback(page.records()[idx]);
+        });
+    }
+
+    /// Read record with given callback which has return type as void.
+    /// \tparam typename F, callback typee, void(Record const&).
+    /// \param callback F&&, callback.
+    /// \return Status, whether success to read value or not.
+    template <typename F>
+    inline auto read_void(F&& callback) {
+        return buf.read_void([&](Page const& page) {
+            callback(page.records()[idx]);
+        });
+    }
+
+    /// Write record with given callback.
+    /// \tparam typename F, callback type, R(Record&).
+    /// \param callback, F&&, callback.
+    /// \return R, return value of callback.
+    template <typename F>
+    inline auto write(F&& callback) {
+        return buf.write([&](Page& page) {
+            return callback(page.records()[idx]);
+        });
+    }
+
+    /// Write record with given callback.
+    /// \tparam typename F, callback type, void(Record&).
+    /// \param callback, F&&, callback.
+    /// \return Status, whether success to write value or not.
+    template <typename F>
+    inline auto write_void(F&& callback) {
+        return buf.write_void([&](Page& page) {
+            return callback(page.records()[idx]);
+        });
+    }
+
+private:
+    size_t idx;             /// index of record.
+    Ubuffer buf;            /// buffer for user provision.
+};
+
 /// Page replacement policy.
 struct ReleasePolicy {
     /// Initial searching state.
@@ -322,10 +409,12 @@ public:
     /// Return requested buffer with lock acquirement.
     /// \param file FileManager&, file manager.
     /// \param pagenum pagenum_t, page ID.
+    /// \param rid size_t, record index.
     /// \param xid trxid_t, transaction ID.
     /// \return Ubuffer, bnuffer for user provision.
     Ubuffer require_buffering(
-        FileManager& file, pagenum_t pagenum, trxid_t xid, LockMode mode);
+        FileManager& file, pagenum_t pagenum, size_t rid,
+        trxid_t xid, LockMode mode);
 
     /// Create page with given file manager (thread-safe).
     /// \param file FileManager&, file manager.
