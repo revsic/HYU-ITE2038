@@ -98,6 +98,8 @@ Deadlock Detection은 Transaction 간 종속 정도를 나타내는 Waiting-Grap
 
 Scheduling은 매번 graph를 구성 reduce 하는 방식이 많은 시간을 소용할 듯하여, 마지막 detection에서 deadlock이 존재했는지 아닌지를 따져 존재했다면 `DeadlockDetector::unit`을 기본값으로 초기화, 아닌 경우 대기 시간을 늘려가며 효율적으로 graph를 탐색하기 위한 방법론이다.
 
+본 LockSystem에서는 Record based lock이 아닌 Page based lock을 구현하였는데, 이는 record 기반에 비해 잦은 abort를 만들어낼 수 있다는 단점을 가진다. 하지만, 이를 단순히 record based system으로 확장시킨 [record-lock](https://github.com/revsic/HYU-ITE2038/tree/record-lock) branch에서는 보다 잦고 예민한 데드락 감도에 의해 실제 프로세스를 제대로 처리하지 못하는 경우가 잦았다. 구현상 문제일 수 있지만, 현재에는 구동가능한 어플리케이션을 위해 page-based lock 시스템을 구현한다.
+
 ## 3. Transaction Manager.
 
 Transaction Manager은 monotonically increasing order에 따라 Transaction ID를 부여하고, 사용자가 XID를 통해 Transaction을 제어할 수 있도록 돕는다.
