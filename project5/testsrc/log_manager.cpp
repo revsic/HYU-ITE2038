@@ -37,12 +37,12 @@ TEST_SUITE(log_constructor, {
     after.key = 400;
     after.value[0] = 'b';
 
-    Log log3(4, 2, 3, LogType::UPDATE, HID(10, 20), 100, before, after);
+    Log log3(4, 2, 3, LogType::UPDATE, HID(1, 10, 20), 100, before, after);
     TEST(log3.lsn == 4);
     TEST(log3.prev_lsn == 2);
     TEST(log3.xid == 3);
     TEST(log3.type == LogType::UPDATE);
-    TEST(log3.hid == HID(10, 20));
+    TEST(log3.hid == HID(1, 10, 20));
     TEST(log3.offset == 100);
     TEST(log3.before.key == 300);
     TEST(log3.before.value[0] == 'a');
@@ -80,27 +80,27 @@ TEST_SUITE(LogManagerTest::log_update, {
     after.value[0] = 'b';
 
     LogManager logmng;
-    lsn_t lsn = logmng.log_update(10, HID(20, 30), 40, before, after);
+    lsn_t lsn = logmng.log_update(10, HID(1, 20, 30), 40, before, after);
     TEST(lsn == 1);
     TEST(logmng.log_map[10].size() == 1);
     TEST(logmng.log_map[10].front().lsn == 1);
     TEST(logmng.log_map[10].front().prev_lsn == 0);
     TEST(logmng.log_map[10].front().xid == 10);
     TEST(logmng.log_map[10].front().type == LogType::UPDATE);
-    TEST(logmng.log_map[10].front().hid == HID(20, 30));
+    TEST(logmng.log_map[10].front().hid == HID(1, 20, 30));
     TEST(logmng.log_map[10].front().offset == 40);
     TEST(logmng.log_map[10].front().before.key == 300);
     TEST(logmng.log_map[10].front().before.value[0] == 'a');
     TEST(logmng.log_map[10].front().after.key == 400);
     TEST(logmng.log_map[10].front().after.value[0] == 'b');
 
-    lsn = logmng.log_update(10, HID(60, 70), 80, before, after);
+    lsn = logmng.log_update(10, HID(1, 60, 70), 80, before, after);
     TEST(lsn == 2);
     TEST(logmng.log_map[10].size() == 2);
     TEST(logmng.log_map[10].front().lsn == 2);
     TEST(logmng.log_map[10].front().prev_lsn == 1);
 
-    lsn = logmng.log_update(10, HID(90, 100), 110, before, after);
+    lsn = logmng.log_update(10, HID(1, 90, 100), 110, before, after);
     TEST(lsn == 3);
     TEST(logmng.log_map[10].size() == 3);
     TEST(logmng.log_map[10].front().lsn == 3);
