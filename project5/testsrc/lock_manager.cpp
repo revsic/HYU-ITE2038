@@ -51,31 +51,35 @@ TEST_SUITE(HierarchicalTest::constructor, {
     HID hid;
     TEST(hid.tid == INVALID_TABLEID);
     TEST(hid.pid == INVALID_PAGENUM);
+    TEST(hid.pid == 0);
 
-    hid = HID(10, 20);
+    hid = HID(10, 20, 30);
     TEST(hid.tid == 10);
     TEST(hid.pid == 20);
+    TEST(hid.rid == 30);
 })
 
 TEST_SUITE(HierarchicalTest::make_hashable, {
-    HID hid(10, 20);
+    HID hid(10, 20, 30);
     TEST(hid.tid == 10);
     TEST(hid.pid == 20);
+    TEST(hid.rid == 30);
 
     HashableID hashable = hid.make_hashable();
     TEST(std::get<0>(hashable.data) == 10);
     TEST(std::get<1>(hashable.data) == 20);
+    TEST(std::get<2>(hashable.data) == 30);
 })
 
 TEST_SUITE(HierarchicalTest::comparison, {
-    TEST(!(HID(10, 10) < HID(10, 10)));
-    TEST(HID(10, 10) < HID(10, 20));
-    TEST(HID(10, 20) < HID(20, 20));
-    TEST(!(HID(10, 20) < HID(10, 10)));
-    TEST(!(HID(20, 20) < HID(10, 20)));
+    TEST(!(HID(10, 10, 10) < HID(10, 10, 10)));
+    TEST(HID(10, 10, 10) < HID(10, 10, 20));
+    TEST(HID(10, 10, 20) < HID(10, 20, 20));
+    TEST(!(HID(10, 10, 20) < HID(10, 10, 10)));
+    TEST(!(HID(10, 20, 20) < HID(10, 10, 20)));
 
-    TEST(HID(10, 10) == HID(10, 10));
-    TEST(!(HID(10, 10) == HID(10, 20)));
+    TEST(HID(10, 10, 20) == HID(10, 10, 20));
+    TEST(!(HID(10, 10, 10) == HID(10, 10, 20)));
 })
 
 TEST_SUITE(LockTest::constructor, {
@@ -86,8 +90,8 @@ TEST_SUITE(LockTest::constructor, {
     TEST(!lock.stop());
 
     Transaction xaction;
-    Lock lock2(HID(10, 20), LockMode::SHARED, &xaction);
-    TEST(lock2.get_hid() == HID(10, 20));
+    Lock lock2(HID(10, 20, 30), LockMode::SHARED, &xaction);
+    TEST(lock2.get_hid() == HID(10, 20, 30));
     TEST(lock2.get_mode() == LockMode::SHARED);
     TEST(&lock2.get_backref() == &xaction);
     TEST(!lock2.stop());
@@ -95,7 +99,7 @@ TEST_SUITE(LockTest::constructor, {
 
 TEST_SUITE(LockTest::move_constructor, {
     Transaction xaction;
-    Lock lock(HID(10, 20), LockMode::SHARED, &xaction);
+    Lock lock(HID(10, 20, 30), LockMode::SHARED, &xaction);
     Lock lock2(std::move(lock));
 
     TEST(lock.get_hid() == HID());
@@ -103,7 +107,7 @@ TEST_SUITE(LockTest::move_constructor, {
     TEST(lock.backref == nullptr);
     TEST(!lock.stop());
 
-    TEST(lock2.get_hid() == HID(10, 20));
+    TEST(lock2.get_hid() == HID(10, 20, 30));
     TEST(lock2.get_mode() == LockMode::SHARED);
     TEST(&lock2.get_backref() == &xaction);
     TEST(!lock2.stop());
@@ -111,7 +115,7 @@ TEST_SUITE(LockTest::move_constructor, {
 
 TEST_SUITE(LockTest::move_assignment, {
     Transaction xaction;
-    Lock lock(HID(10, 20), LockMode::SHARED, &xaction);
+    Lock lock(HID(10, 20, 30), LockMode::SHARED, &xaction);
     Lock lock2;
     
     lock2 = std::move(lock);
@@ -121,7 +125,7 @@ TEST_SUITE(LockTest::move_assignment, {
     TEST(lock.backref == nullptr);
     TEST(!lock.stop());
 
-    TEST(lock2.get_hid() == HID(10, 20));
+    TEST(lock2.get_hid() == HID(10, 20, 30));
     TEST(lock2.get_mode() == LockMode::SHARED);
     TEST(&lock2.get_backref() == &xaction);
     TEST(!lock2.stop());
@@ -145,17 +149,17 @@ TEST_SUITE(LockManagerTest::require_lock, {
     {
         LockManager manager;
         Transaction trx(10);
-        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
+        auto lock = manager.require_lock(&trx, HID(1, 2, 3), LockMode::SHARED);
 
         TEST(trx.state == TrxState::RUNNING);
         TEST(trx.wait == nullptr);
 
-        TEST(lock->get_hid() == HID(1, 2));
+        TEST(lock->get_hid() == HID(1, 2, 3));
         TEST(lock->get_mode() == LockMode::SHARED);
         TEST(&lock->get_backref() == &trx);
         TEST(!lock->stop());
 
-        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        auto& module = manager.locks[HID(1, 2, 3).make_hashable()];
         TEST(module.mode == LockMode::SHARED);
         TEST(module.wait.size() == 0);
         TEST(module.run.size() == 1);
@@ -166,17 +170,17 @@ TEST_SUITE(LockManagerTest::require_lock, {
     {
         LockManager manager;
         Transaction trx(10);
-        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::EXCLUSIVE);
+        auto lock = manager.require_lock(&trx, HID(1, 2, 3), LockMode::EXCLUSIVE);
 
         TEST(trx.state == TrxState::RUNNING);
         TEST(trx.wait == nullptr);
 
-        TEST(lock->get_hid() == HID(1, 2));
+        TEST(lock->get_hid() == HID(1, 2, 3));
         TEST(lock->get_mode() == LockMode::EXCLUSIVE);
         TEST(&lock->get_backref() == &trx);
         TEST(!lock->stop());
 
-        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        auto& module = manager.locks[HID(1, 2, 3).make_hashable()];
         TEST(module.mode == LockMode::EXCLUSIVE);
         TEST(module.wait.size() == 0);
         TEST(module.run.size() == 1);
@@ -188,23 +192,23 @@ TEST_SUITE(LockManagerTest::require_lock, {
         LockManager manager;
         Transaction trx(10);
         Transaction trx2(20);
-        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
-        auto lock2 = manager.require_lock(&trx2, HID(1, 2), LockMode::SHARED);
+        auto lock = manager.require_lock(&trx, HID(1, 2, 3), LockMode::SHARED);
+        auto lock2 = manager.require_lock(&trx2, HID(1, 2, 3), LockMode::SHARED);
 
         TEST(trx.state == TrxState::RUNNING);
         TEST(trx.wait == nullptr);
 
-        TEST(lock->get_hid() == HID(1, 2));
+        TEST(lock->get_hid() == HID(1, 2, 3));
         TEST(lock->get_mode() == LockMode::SHARED);
         TEST(&lock->get_backref() == &trx);
         TEST(!lock->stop());
 
-        TEST(lock2->get_hid() == HID(1, 2));
+        TEST(lock2->get_hid() == HID(1, 2, 3));
         TEST(lock2->get_mode() == LockMode::SHARED);
         TEST(&lock2->get_backref() == &trx2);
         TEST(!lock2->stop());
 
-        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        auto& module = manager.locks[HID(1, 2, 3).make_hashable()];
         TEST(module.mode == LockMode::SHARED);
         TEST(module.wait.size() == 0);
         TEST(module.run.size() == 2);
@@ -219,10 +223,10 @@ TEST_SUITE(LockManagerTest::release_lock, {
     {
         LockManager manager;
         Transaction trx(10);
-        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::EXCLUSIVE);
+        auto lock = manager.require_lock(&trx, HID(1, 2, 3), LockMode::EXCLUSIVE);
         TEST_SUCCESS(manager.release_lock(lock));
 
-        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        auto& module = manager.locks[HID(1, 2, 3).make_hashable()];
         TEST(module.mode == LockMode::IDLE);
         TEST(module.wait.size() == 0);
         TEST(module.run.size() == 0);
@@ -233,11 +237,11 @@ TEST_SUITE(LockManagerTest::release_lock, {
         LockManager manager;
         Transaction trx(10);
         Transaction trx2(20);
-        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
-        auto lock2 = manager.require_lock(&trx2, HID(1, 2), LockMode::SHARED);
+        auto lock = manager.require_lock(&trx, HID(1, 2, 3), LockMode::SHARED);
+        auto lock2 = manager.require_lock(&trx2, HID(1, 2, 3), LockMode::SHARED);
         TEST_SUCCESS(manager.release_lock(lock));
 
-        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        auto& module = manager.locks[HID(1, 2, 3).make_hashable()];
         TEST(module.mode == LockMode::SHARED);
         TEST(module.wait.size() == 0);
         TEST(module.run.size() == 1);
@@ -251,15 +255,15 @@ TEST_SUITE(LockManagerTest::release_lock, {
 
         Transaction trx(10);
         Transaction trx2(20);
-        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
+        auto lock = manager.require_lock(&trx, HID(1, 2, 3), LockMode::SHARED);
         auto fut = std::async(std::launch::async, [&] {
-            return manager.require_lock(&trx2, HID(1, 2), LockMode::EXCLUSIVE);
+            return manager.require_lock(&trx2, HID(1, 2, 3), LockMode::EXCLUSIVE);
         });
 
         TEST_SUCCESS(manager.release_lock(lock));
         auto lock2 = fut.get();
 
-        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        auto& module = manager.locks[HID(1, 2, 3).make_hashable()];
         TEST(module.mode == LockMode::EXCLUSIVE);
         TEST(module.wait.size() == 0);
         TEST(module.run.size() == 1);
@@ -274,26 +278,26 @@ TEST_SUITE(LockManagerTest::release_lock, {
         Transaction trx(10);
         Transaction trx2(20);
         Transaction trx3(30);
-        auto lock = manager.require_lock(&trx, HID(1, 2), LockMode::EXCLUSIVE);
+        auto lock = manager.require_lock(&trx, HID(1, 2, 3), LockMode::EXCLUSIVE);
         auto fut = std::async(std::launch::async, [&] {
-            return manager.require_lock(&trx2, HID(1, 2), LockMode::EXCLUSIVE);
+            return manager.require_lock(&trx2, HID(1, 2, 3), LockMode::EXCLUSIVE);
         });
         auto fut2 = std::async(std::launch::async, [&] {
-            return manager.require_lock(&trx3, HID(1, 2), LockMode::SHARED);
+            return manager.require_lock(&trx3, HID(1, 2, 3), LockMode::SHARED);
         });
 
         TEST_SUCCESS(manager.release_lock(lock));
         auto lock2 = fut.get();
 
         auto fut3 = std::async(std::launch::async, [&] {
-            return manager.require_lock(&trx, HID(1, 2), LockMode::SHARED);
+            return manager.require_lock(&trx, HID(1, 2, 3), LockMode::SHARED);
         });
 
         TEST_SUCCESS(manager.release_lock(lock2));
         auto lock3 = fut2.get();
         auto lock4 = fut3.get();
 
-        auto& module = manager.locks[HID(1, 2).make_hashable()];
+        auto& module = manager.locks[HID(1, 2, 3).make_hashable()];
         TEST(module.mode == LockMode::SHARED);
         TEST(module.wait.size() == 0);
         TEST(module.run.size() == 2);
@@ -320,16 +324,16 @@ TEST_SUITE(LockManagerTest::deadlock, {
 
     trxid_t xid = dbms.begin_trx();
     trxid_t xid2 = dbms.begin_trx();
-    TEST_SUCCESS(dbms.trxs.require_lock(xid, HID(1, 2), LockMode::EXCLUSIVE));
-    TEST_SUCCESS(dbms.trxs.require_lock(xid2, HID(2, 1), LockMode::EXCLUSIVE));
+    TEST_SUCCESS(dbms.trxs.require_lock(xid, HID(1, 2, 3), LockMode::EXCLUSIVE));
+    TEST_SUCCESS(dbms.trxs.require_lock(xid2, HID(1, 3, 2), LockMode::EXCLUSIVE));
 
     Status res;
     std::thread thread([&] {
-        res = dbms.trxs.require_lock(xid, HID(2, 1), LockMode::EXCLUSIVE);
+        res = dbms.trxs.require_lock(xid, HID(1, 3, 2), LockMode::EXCLUSIVE);
         return 0;
     });
 
-    Status res2 = dbms.trxs.require_lock(xid2, HID(1, 2), LockMode::EXCLUSIVE);
+    Status res2 = dbms.trxs.require_lock(xid2, HID(1, 2, 3), LockMode::EXCLUSIVE);
     thread.join();
 
     TEST((res == Status::SUCCESS && res2 == Status::FAILURE)
@@ -484,7 +488,7 @@ TEST_SUITE(LockManagerTest::lockable, {
     LockManager::LockStruct module;
     module.mode = LockMode::IDLE;
 
-    HID hid(10, 20);
+    HID hid(10, 20, 30);
     auto lock = std::make_shared<Lock>(hid, LockMode::SHARED, nullptr);
     TEST(manager.lockable(module, lock));
 
@@ -509,25 +513,25 @@ std::unique_ptr<LockManagerTest::GraphInfo> LockManagerTest::sample_dag() {
         trxs[i] = Transaction(i);
     }
 
-    auto& module01 = locktable[HID(0, 1).make_hashable()];
+    auto& module01 = locktable[HID(0, 1, 2).make_hashable()];
     module01.mode = LockMode::EXCLUSIVE;
-    module01.run.push_back(std::make_shared<Lock>(HID(0, 1), LockMode::EXCLUSIVE, &trxs[1]));
-    module01.wait.push_back(std::make_shared<Lock>(HID(0, 1), LockMode::EXCLUSIVE, &trxs[0]));
+    module01.run.push_back(std::make_shared<Lock>(HID(0, 1, 2), LockMode::EXCLUSIVE, &trxs[1]));
+    module01.wait.push_back(std::make_shared<Lock>(HID(0, 1, 2), LockMode::EXCLUSIVE, &trxs[0]));
     trxs[0].wait = module01.wait.back();
 
-    auto& module11 = locktable[HID(1, 1).make_hashable()];
+    auto& module11 = locktable[HID(0, 2, 2).make_hashable()];
     module11.mode = LockMode::EXCLUSIVE;
-    module11.run.push_back(std::make_shared<Lock>(HID(1, 1), LockMode::EXCLUSIVE, &trxs[3]));
-    module11.wait.push_back(std::make_shared<Lock>(HID(1, 1), LockMode::SHARED, &trxs[1]));
+    module11.run.push_back(std::make_shared<Lock>(HID(0, 2, 2), LockMode::EXCLUSIVE, &trxs[3]));
+    module11.wait.push_back(std::make_shared<Lock>(HID(0, 2, 2), LockMode::SHARED, &trxs[1]));
     trxs[1].wait = module11.wait.back();
-    module11.wait.push_back(std::make_shared<Lock>(HID(1, 1), LockMode::SHARED, &trxs[2]));
+    module11.wait.push_back(std::make_shared<Lock>(HID(0, 2, 2), LockMode::SHARED, &trxs[2]));
     trxs[2].wait = module11.wait.back();
 
-    auto& module21 = locktable[HID(2, 1).make_hashable()];
+    auto& module21 = locktable[HID(1, 3, 2).make_hashable()];
     module21.mode = LockMode::SHARED;
-    module21.run.push_back(std::make_shared<Lock>(HID(2, 1), LockMode::SHARED, &trxs[4]));
-    module21.run.push_back(std::make_shared<Lock>(HID(2, 1), LockMode::SHARED, &trxs[5]));
-    module21.wait.push_back(std::make_shared<Lock>(HID(2, 1), LockMode::EXCLUSIVE, &trxs[3]));
+    module21.run.push_back(std::make_shared<Lock>(HID(1, 3, 2), LockMode::SHARED, &trxs[4]));
+    module21.run.push_back(std::make_shared<Lock>(HID(1, 3, 2), LockMode::SHARED, &trxs[5]));
+    module21.wait.push_back(std::make_shared<Lock>(HID(1, 3, 2), LockMode::EXCLUSIVE, &trxs[3]));
     trxs[3].wait = module21.wait.back();
     
     graph_info->graph = LockManager::DeadlockDetector::construct_graph(locktable);
@@ -545,38 +549,38 @@ std::unique_ptr<LockManagerTest::GraphInfo> LockManagerTest::sample_graph() {
         trxs[i] = Transaction(i);
     }
 
-    LockManager::LockStruct& module12 = locktable[HID(1, 2).make_hashable()];
+    LockManager::LockStruct& module12 = locktable[HID(1, 2, 3).make_hashable()];
     module12.mode = LockMode::EXCLUSIVE;
-    module12.run.push_back(std::make_shared<Lock>(HID(1, 2), LockMode::EXCLUSIVE, &trxs[1]));
-    module12.wait.push_back(std::make_shared<Lock>(HID(1, 2), LockMode::EXCLUSIVE, &trxs[3]));
+    module12.run.push_back(std::make_shared<Lock>(HID(1, 2, 3), LockMode::EXCLUSIVE, &trxs[1]));
+    module12.wait.push_back(std::make_shared<Lock>(HID(1, 2, 3), LockMode::EXCLUSIVE, &trxs[3]));
     trxs[3].wait = module12.wait.back();
 
-    LockManager::LockStruct& module32 = locktable[HID(3, 2).make_hashable()];
+    LockManager::LockStruct& module32 = locktable[HID(1, 3, 2).make_hashable()];
     module32.mode = LockMode::SHARED;
-    module32.run.push_back(std::make_shared<Lock>(HID(3, 2), LockMode::SHARED, &trxs[3]));
-    module32.run.push_back(std::make_shared<Lock>(HID(3, 2), LockMode::SHARED, &trxs[6]));
-    module32.wait.push_back(std::make_shared<Lock>(HID(3, 2), LockMode::EXCLUSIVE, &trxs[2]));
+    module32.run.push_back(std::make_shared<Lock>(HID(1, 3, 2), LockMode::SHARED, &trxs[3]));
+    module32.run.push_back(std::make_shared<Lock>(HID(1, 3, 2), LockMode::SHARED, &trxs[6]));
+    module32.wait.push_back(std::make_shared<Lock>(HID(1, 3, 2), LockMode::EXCLUSIVE, &trxs[2]));
     trxs[2].wait = module32.wait.back();
 
-    LockManager::LockStruct& module22 = locktable[HID(2, 2).make_hashable()];
+    LockManager::LockStruct& module22 = locktable[HID(1, 2, 2).make_hashable()];
     module22.mode = LockMode::SHARED;
-    module22.run.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::SHARED, &trxs[2]));
-    module22.run.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::SHARED, &trxs[5]));
-    module22.wait.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::EXCLUSIVE, &trxs[1]));
+    module22.run.push_back(std::make_shared<Lock>(HID(1, 2, 2), LockMode::SHARED, &trxs[2]));
+    module22.run.push_back(std::make_shared<Lock>(HID(1, 2, 2), LockMode::SHARED, &trxs[5]));
+    module22.wait.push_back(std::make_shared<Lock>(HID(1, 2, 2), LockMode::EXCLUSIVE, &trxs[1]));
     trxs[1].wait = module22.wait.back();
-    module22.wait.push_back(std::make_shared<Lock>(HID(2, 2), LockMode::EXCLUSIVE, &trxs[4]));
+    module22.wait.push_back(std::make_shared<Lock>(HID(1, 2, 2), LockMode::EXCLUSIVE, &trxs[4]));
     trxs[4].wait = module22.wait.back();
 
-    LockManager::LockStruct& module42 = locktable[HID(4, 2).make_hashable()];
+    LockManager::LockStruct& module42 = locktable[HID(1, 4, 2).make_hashable()];
     module42.mode = LockMode::EXCLUSIVE;
-    module42.run.push_back(std::make_shared<Lock>(HID(4, 2), LockMode::EXCLUSIVE, &trxs[4]));
-    module42.wait.push_back(std::make_shared<Lock>(HID(4, 2), LockMode::EXCLUSIVE, &trxs[5]));
+    module42.run.push_back(std::make_shared<Lock>(HID(1, 4, 2), LockMode::EXCLUSIVE, &trxs[4]));
+    module42.wait.push_back(std::make_shared<Lock>(HID(1, 4, 2), LockMode::EXCLUSIVE, &trxs[5]));
     trxs[5].wait = module42.wait.back();
 
-    LockManager::LockStruct& module52 = locktable[HID(5, 2).make_hashable()];
+    LockManager::LockStruct& module52 = locktable[HID(1, 5, 2).make_hashable()];
     module52.mode = LockMode::EXCLUSIVE;
-    module52.run.push_back(std::make_shared<Lock>(HID(5, 2), LockMode::EXCLUSIVE, &trxs[6]));
-    module52.wait.push_back(std::make_shared<Lock>(HID(5, 2), LockMode::EXCLUSIVE, &trxs[0]));
+    module52.run.push_back(std::make_shared<Lock>(HID(1, 5, 2), LockMode::EXCLUSIVE, &trxs[6]));
+    module52.wait.push_back(std::make_shared<Lock>(HID(1, 5, 2), LockMode::EXCLUSIVE, &trxs[0]));
     trxs[0].wait = module52.wait.back();
 
     graph_info->graph = LockManager::DeadlockDetector::construct_graph(locktable);
@@ -584,7 +588,7 @@ std::unique_ptr<LockManagerTest::GraphInfo> LockManagerTest::sample_graph() {
 }
 
 TEST_SUITE(LockManagerTest::integrate, {
-
+    /// TODO: impl.
 })
 
 int lock_manager_test() {

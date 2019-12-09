@@ -7,28 +7,29 @@
 #include "xaction_manager.hpp"
 
 HierarchicalID::HierarchicalID()
-    : HierarchicalID(INVALID_TABLEID, INVALID_PAGENUM)
+    : HierarchicalID(INVALID_TABLEID, INVALID_PAGENUM, 0)
 {
     // Do Nothing
 }
 
-HierarchicalID::HierarchicalID(tableid_t tid, pagenum_t pid) :
-    tid(tid), pid(pid)
+HierarchicalID::HierarchicalID(tableid_t tid, pagenum_t pid, size_t rid) :
+    tid(tid), pid(pid), rid(rid)
 {
     // Do Nothing
 }
 
 HashableID HierarchicalID::make_hashable() const {
-    return HashableID(utils::token, tid, pid);
+    return HashableID(utils::token, tid, pid, rid);
 }
 
 bool HierarchicalID::operator<(HierarchicalID const& other) const {
     return tid < other.tid
-        || (tid == other.tid && pid < other.pid);
+        || (tid == other.tid && pid < other.pid)
+        || (tid == other.tid && pid == other.pid && rid < other.rid);
 }
 
 bool HierarchicalID::operator==(HierarchicalID const& other) const {
-    return tid == other.tid && pid == other.pid;
+    return tid == other.tid && pid == other.pid && rid == other.rid;
 }
 
 Lock::Lock() : hid(), mode(LockMode::IDLE), backref(nullptr), wait_flag(false)

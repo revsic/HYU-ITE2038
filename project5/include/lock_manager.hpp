@@ -32,13 +32,14 @@ enum class LockMode {
     EXCLUSIVE = 2,
 };
 
-/// Pack of tableid, pageid.
-using HashableID = HashablePack<tableid_t, pagenum_t>;
+/// Pack of tableid, pageid, record index.
+using HashableID = HashablePack<tableid_t, pagenum_t, size_t>;
 
 /// Hierarchical ID for pointing specific page ID. 
 struct HierarchicalID {
     tableid_t tid;              /// Table ID.
     pagenum_t pid;              /// Page ID.
+    size_t rid;                 /// Record index.
 
     /// Default constructor.
     HierarchicalID();
@@ -46,7 +47,8 @@ struct HierarchicalID {
     /// Construct hid with given table, page ID.
     /// \param tid tableid_t, table ID.
     /// \param pid pagenum_t, page ID.
-    HierarchicalID(tableid_t tid, pagenum_t pid);
+    /// \param rid size_t, record index.
+    HierarchicalID(tableid_t tid, pagenum_t pid, size_t rid);
 
     /// Make ID in hashable format.
     /// \return HashableID, hashable hid.
