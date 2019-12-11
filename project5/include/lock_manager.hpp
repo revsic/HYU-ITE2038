@@ -148,10 +148,10 @@ private:
     friend class LockManagerTest;
 #endif
 
-    using unit_time_t = std::chrono::microseconds;
+    using unit_time_t = std::chrono::nanoseconds;
 
     /// Unit for waiting lockable situation.
-    static constexpr unit_time_t LOCK_WAIT = 1us;
+    static constexpr unit_time_t LOCK_WAIT = 1ns;
 
     /// Lock struct for one specified page.
     struct LockStruct {
