@@ -118,7 +118,6 @@ std::shared_ptr<Lock> LockManager::require_lock(
         LockStruct& module = locks[id];
         module.mode = mode;
         module.run.push_front(new_lock);
-        // trx table updates are occured in defer.
         return new_lock;
     }
 
@@ -150,7 +149,6 @@ std::shared_ptr<Lock> LockManager::require_lock(
         backref->state = TrxState::RUNNING;
     }
 
-    // transaction table updates are occured in defer.
     return new_lock;
 }
 
@@ -171,7 +169,6 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire_lock) 
     } else {
         module.wait.remove(lock);
         lock->run();
-        return Status::SUCCESS;
     }
 
     Transaction& backref = lock->get_backref();
