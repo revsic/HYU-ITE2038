@@ -82,6 +82,7 @@ private:
     std::shared_ptr<Lock> wait;                     /// waiting lock.
     std::map<HID, std::shared_ptr<Lock>> locks;     /// all locks which trx owned.
 
+    friend class Lock;
     friend class LockManager;
 
     /// Elevate lock to stronger mode.
@@ -89,6 +90,7 @@ private:
         LockManager& manager, std::shared_ptr<Lock> lock, LockMode mode);
 
 #ifdef TEST_MODULE
+    friend class LockTest;
     friend struct LockManagerTest;
 #endif
 };

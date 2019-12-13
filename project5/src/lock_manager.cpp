@@ -90,6 +90,11 @@ Status Lock::wait() {
 
 Status Lock::run() {
     wait_flag = false;
+    backref->wait = nullptr;
+
+    TrxState waiting = TrxState::WAITING;
+    backref->state.compare_exchange_strong(
+        waiting, TrxState::RUNNING);
     return Status::SUCCESS;
 }
 
@@ -144,11 +149,6 @@ std::shared_ptr<Lock> LockManager::require_lock(
     }
 
     // module updates are already occurred in release_lock because of deadlock
-    backref->wait = nullptr;
-    if (backref->state == TrxState::WAITING) {
-        backref->state = TrxState::RUNNING;
-    }
-
     return new_lock;
 }
 

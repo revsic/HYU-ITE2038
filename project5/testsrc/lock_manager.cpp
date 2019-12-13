@@ -138,7 +138,9 @@ TEST_SUITE(LockTest::getter, {
 
 TEST_SUITE(LockTest::run, {
     Lock lock;
+    Transaction trx;
     lock.wait_flag = true;
+    lock.backref = &trx;
 
     TEST_SUCCESS(lock.run());
     TEST(!lock.stop());
@@ -338,8 +340,8 @@ TEST_SUITE(LockManagerTest::deadlock, {
 
     TEST((res == Status::SUCCESS && res2 == Status::FAILURE)
         || (res == Status::FAILURE && res2 == Status::SUCCESS));
-    TEST((res == Status::SUCCESS && dbms.trxs.trxs[xid2].state == TrxState::ABORTED)
-        || (res == Status::FAILURE && dbms.trxs.trxs[xid].state == TrxState::ABORTED));
+    TEST((res == Status::SUCCESS && dbms.trxs.trxs.find(xid2) == dbms.trxs.trxs.end())
+        || (res == Status::FAILURE && dbms.trxs.trxs.find(xid) == dbms.trxs.trxs.end()));
 
     // case 1. shared -> exclusive
     /// TODO: Impl
