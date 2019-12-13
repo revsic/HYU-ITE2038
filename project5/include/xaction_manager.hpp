@@ -78,7 +78,7 @@ public:
 private:
     std::unique_ptr<std::mutex> mtx;                /// mutex;
     trxid_t id;                                     /// transaction ID.
-    TrxState state;                                 /// transaction state.
+    std::atomic<TrxState> state;                    /// transaction state.
     std::shared_ptr<Lock> wait;                     /// waiting lock.
     std::map<HID, std::shared_ptr<Lock>> locks;     /// all locks which trx owned.
 

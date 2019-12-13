@@ -20,20 +20,22 @@ Transaction::Transaction(trxid_t id)
 }
 
 Transaction::Transaction(Transaction&& trx) noexcept
-    : id(trx.id), state(trx.state), wait(std::move(trx.wait))
+    : id(trx.id), state(trx.state.load()), wait(std::move(trx.wait))
     , locks(std::move(trx.locks)), mtx(std::move(trx.mtx))
 {
+    trx.state = TrxState::IDLE;
     trx.id = INVALID_TRXID;
     trx.state = TrxState::IDLE;
 }
 
 Transaction& Transaction::operator=(Transaction&& trx) noexcept {
     id = trx.id;
-    state = trx.state;
+    state = trx.state.load();
     wait = std::move(trx.wait);
     locks = std::move(trx.locks);
     mtx = std::move(trx.mtx);
 
+    trx.state = TrxState::IDLE;
     trx.id = INVALID_TRXID;
     trx.state = TrxState::IDLE;
     return *this;
