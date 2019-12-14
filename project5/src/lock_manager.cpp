@@ -99,7 +99,7 @@ Status Lock::run() {
 }
 
 LockManager::LockStruct::LockStruct() :
-    mode(LockMode::IDLE), cv(), run(), wait()
+    mode(LockMode::IDLE), run(), wait()
 {
     // Do Nothing
 }
@@ -116,7 +116,7 @@ std::shared_ptr<Lock> LockManager::require_lock(
     HashableID id = hid.make_hashable();
     auto new_lock = std::make_shared<Lock>(hid, mode, backref);
 
-    std::unique_lock<std::mutex> own(mtx);
+    std::unique_lock<std::recursive_mutex> own(mtx);
 
     auto iter = locks.find(id);
     if (iter == locks.end() || lockable(iter->second, new_lock)) {
@@ -136,27 +136,18 @@ std::shared_ptr<Lock> LockManager::require_lock(
     new_lock->wait();
     locks[id].wait.push_back(new_lock);
 
-    while (!locks[id].cv.wait_for(
-        own,
-        LOCK_WAIT,
-        [&]{ return !new_lock->stop()
-            || backref->get_state() == TrxState::ABORTED; })
-    ) {
-        Status res = detect_and_release();
-        if (res == Status::SUCCESS) {
-            locks[id].cv.notify_all();
-        }
+    own.unlock();
+    while (new_lock->stop() && backref->get_state() != TrxState::ABORTED) {
+        detect_and_release();
+        std::this_thread::yield();
     }
 
     // module updates are already occurred in release_lock because of deadlock
     return new_lock;
 }
 
-Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire_lock) {
-    std::unique_lock<std::mutex> own(mtx, std::defer_lock);
-    if (acquire_lock) {
-        own.lock();
-    }
+Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
+    std::unique_lock<std::recursive_mutex> own(mtx);
 
     HashableID hid = lock->get_hid().make_hashable();
     auto iter = locks.find(hid);
@@ -204,13 +195,16 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire_lock) 
         lock->run();
     }
 
-    module.cv.notify_all();
     return Status::SUCCESS;
 }
 
 Status LockManager::detect_and_release() {
     CHECK_SUCCESS(detector.schedule());
 
+    CHECK_TRUE(!detector.detection_lock.test_and_set());
+    auto defer = utils::defer([&]{ detector.detection_lock.clear(); });
+
+    std::unique_lock<std::recursive_mutex> own(mtx);
     std::vector<trxid_t> found = detector.find_cycle(locks);
     CHECK_TRUE(found.size() > 0);
 
@@ -242,17 +236,18 @@ int LockManager::DeadlockDetector::Node::outcount() const {
 }
 
 LockManager::DeadlockDetector::DeadlockDetector() :
-    unit(LOCK_WAIT), last_use(std::chrono::steady_clock::now())
+    detection_lock(ATOMIC_FLAG_INIT), tick_mtx(), tick(0)
 {
     // Do Nothing
 }
 
 Status LockManager::DeadlockDetector::schedule() {
-    using namespace std::chrono;
-    auto now = steady_clock::now();
-    return unit <= duration_cast<milliseconds>(now - last_use)
-        ? Status::SUCCESS
-        : Status::FAILURE;
+    std::unique_lock<std::mutex> own(tick_mtx);
+    if (tick == 0) {
+        return Status::SUCCESS;
+    }
+    --tick;
+    return Status::FAILURE;
 }
 
 void LockManager::DeadlockDetector::reduce(
@@ -282,7 +277,6 @@ void LockManager::DeadlockDetector::reduce(
 std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
     locktable_t const& locks
 ) {
-    last_use = std::chrono::steady_clock::now();
     graph_t graph = construct_graph(locks);
 
     while (graph.size() > 0) {
@@ -291,14 +285,16 @@ std::vector<trxid_t> LockManager::DeadlockDetector::find_cycle(
             [](auto const& pair) { return pair.second.refcount() == 0; });
 
         if (iter == graph.end()) {
-            unit = LOCK_WAIT;
+            std::unique_lock<std::mutex> own(tick_mtx);
+            tick = 0;
             return choose_abort(std::move(graph));
         }
 
         reduce(graph, iter->first);
     }
 
-    unit += LOCK_WAIT;
+    std::unique_lock<std::mutex> own(tick_mtx);
+    tick += 10;
     return std::vector<trxid_t>();
 }
 

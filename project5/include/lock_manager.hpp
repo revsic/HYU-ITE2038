@@ -2,7 +2,6 @@
 #define LOCK_MANAGER_HPP
 
 #include <atomic>
-#include <chrono>
 #include <condition_variable>
 #include <list>
 #include <memory>
@@ -135,9 +134,8 @@ public:
     
     /// Relase lock.
     /// \param lock std::shared_ptr<Lock>, target lock.
-    /// \param acquire_lock bool, acquire system lock or not.
     /// \return Status, whether success to release lock or not.
-    Status release_lock(std::shared_ptr<Lock> lock, bool acquire_lock = true);
+    Status release_lock(std::shared_ptr<Lock> lock);
 
     /// Set base database structure.
     /// \param db Database&, database.
@@ -148,15 +146,9 @@ private:
     friend class LockManagerTest;
 #endif
 
-    using unit_time_t = std::chrono::nanoseconds;
-
-    /// Unit for waiting lockable situation.
-    static constexpr unit_time_t LOCK_WAIT = 1ns;
-
     /// Lock struct for one specified page.
     struct LockStruct {
         LockMode mode;                              /// current lock mode.
-        std::condition_variable cv;                 /// condition variable.
         std::list<std::shared_ptr<Lock>> run;       /// running locks.
         std::list<std::shared_ptr<Lock>> wait;      /// waiting locks.
 
@@ -192,8 +184,9 @@ private:
         /// Graph type.
         using graph_t = std::unordered_map<trxid_t, Node>;
 
-        unit_time_t unit;           /// duration unit for waiting next deadlock detection.
-        std::chrono::time_point<std::chrono::steady_clock> last_use;    /// last detected point.
+        std::atomic_flag detection_lock;
+        std::mutex tick_mtx;
+        size_t tick;            /// wait interval
 
         /// Default constructor.
         DeadlockDetector();
@@ -226,7 +219,7 @@ private:
 #endif
     };
 
-    std::mutex mtx;                 /// system level mutex.
+    std::recursive_mutex mtx;       /// system level mutex.
     locktable_t locks;              /// lock table.
     DeadlockDetector detector;      /// deadlock detector.
     Database* db;                   /// database system.
