@@ -134,8 +134,9 @@ public:
     
     /// Relase lock.
     /// \param lock std::shared_ptr<Lock>, target lock.
+    /// \param acquire acquire lock or not, default true.
     /// \return Status, whether success to release lock or not.
-    Status release_lock(std::shared_ptr<Lock> lock);
+    Status release_lock(std::shared_ptr<Lock> lock, bool acquire = true);
 
     /// Set base database structure.
     /// \param db Database&, database.
@@ -219,7 +220,7 @@ private:
 #endif
     };
 
-    std::recursive_mutex mtx;       /// system level mutex.
+    std::mutex mtx;       /// system level mutex.
     locktable_t locks;              /// lock table.
     DeadlockDetector detector;      /// deadlock detector.
     Database* db;                   /// database system.

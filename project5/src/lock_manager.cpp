@@ -116,7 +116,7 @@ std::shared_ptr<Lock> LockManager::require_lock(
     HashableID id = hid.make_hashable();
     auto new_lock = std::make_shared<Lock>(hid, mode, backref);
 
-    std::unique_lock<std::recursive_mutex> own(mtx);
+    std::unique_lock<std::mutex> own(mtx);
 
     auto iter = locks.find(id);
     if (iter == locks.end() || lockable(iter->second, new_lock)) {
@@ -146,8 +146,11 @@ std::shared_ptr<Lock> LockManager::require_lock(
     return new_lock;
 }
 
-Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
-    std::unique_lock<std::recursive_mutex> own(mtx);
+Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire) {
+    std::unique_lock<std::mutex> own(mtx, std::defer_lock);
+    if (acquire) {
+        own.lock();
+    }
 
     HashableID hid = lock->get_hid().make_hashable();
     auto iter = locks.find(hid);
@@ -169,7 +172,7 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock) {
     }
 
     if (module.wait.size() == 0) {
-        module.mode = LockMode::IDLE;
+        locks.erase(iter);
         return Status::SUCCESS;
     }
 
@@ -204,7 +207,7 @@ Status LockManager::detect_and_release() {
     CHECK_TRUE(!detector.detection_lock.test_and_set());
     auto defer = utils::defer([&]{ detector.detection_lock.clear(); });
 
-    std::unique_lock<std::recursive_mutex> own(mtx);
+    std::unique_lock<std::mutex> own(mtx);
     std::vector<trxid_t> found = detector.find_cycle(locks);
     CHECK_TRUE(found.size() > 0);
 
@@ -254,8 +257,12 @@ void LockManager::DeadlockDetector::reduce(
     graph_t& graph, trxid_t xid
 ) const {
     std::set<trxid_t> chained;
-    Node& node = graph.at(xid);
+    auto iter = graph.find(xid);
+    if (iter == graph.end()) {
+        return;
+    }
 
+    Node& node = iter->second;
     for (trxid_t next_id : node.next_id) {
         Node& next = graph.at(next_id);
         next.prev_id.erase(xid);
@@ -269,8 +276,8 @@ void LockManager::DeadlockDetector::reduce(
     }
 
     graph.erase(graph.find(xid));
-    for (trxid_t xid : chained) {
-        reduce(graph, xid);
+    for (trxid_t next_xid : chained) {
+        reduce(graph, next_xid);
     }
 }
 
