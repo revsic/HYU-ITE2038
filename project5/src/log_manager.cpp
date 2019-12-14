@@ -48,8 +48,9 @@ lsn_t LogManager::log_end(trxid_t xid) {
     return wrapper(xid, LogType::END);
 }
 
-std::list<Log> const& LogManager::get_logs(trxid_t xid) {
-    return log_map[xid];
+std::list<Log> LogManager::get_logs(trxid_t xid) {
+    std::unique_lock<std::mutex> own(mtx);
+    return std::move(log_map[xid]);
 }
 
 Status LogManager::remove_trxlog(trxid_t xid) {
