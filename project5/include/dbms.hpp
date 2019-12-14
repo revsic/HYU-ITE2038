@@ -128,7 +128,7 @@ public:
     Status abort_trx(trxid_t id);
 
     /// Return tranaction state.
-    TrxState trx_state(trxid_t id) const;
+    TrxState trx_state(trxid_t id);
 
     /// Set verbosity.
     void verbose(bool on = false);
