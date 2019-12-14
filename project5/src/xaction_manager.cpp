@@ -68,34 +68,34 @@ Status Transaction::require_lock(
     std::unique_lock<std::mutex> own(*mtx);
     if (locks.find(hid) != locks.end()) {
         std::shared_ptr<Lock> lock = locks.at(hid);
-        own.unlock();
-
         if (static_cast<int>(mode) > static_cast<int>(lock->get_mode())) {
+            own.unlock();
             return elevate_lock(manager, std::move(lock), mode);
         }
 
         return Status::SUCCESS;
     }
-    own.unlock();
 
+    own.unlock();
     auto lock = manager.require_lock(this, hid, mode);
+
     if (state == TrxState::RUNNING) {
         own.lock();
         locks[hid] = std::move(lock);
+        return Status::SUCCESS;
     }
-    return state == TrxState::RUNNING ? Status::SUCCESS : Status::FAILURE;
+    return Status::FAILURE;
 }
 
 Status Transaction::release_locks(LockManager& manager) {
     std::unique_lock<std::mutex> own(*mtx);
-    bool acquire_lock = state != TrxState::ABORTED;
     if (wait != nullptr) {
-        CHECK_SUCCESS(manager.release_lock(wait, acquire_lock));
+        CHECK_SUCCESS(manager.release_lock(wait));
     }
-
     for (auto& pair : locks) {
-        CHECK_SUCCESS(manager.release_lock(pair.second, acquire_lock));
+        CHECK_SUCCESS(manager.release_lock(pair.second));
     }
+    locks.clear();
     return Status::SUCCESS;
 }
 
