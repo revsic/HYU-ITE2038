@@ -175,30 +175,17 @@ Status TransactionManager::abort_trx(trxid_t id, Database& dbms) {
 Status TransactionManager::require_lock(
     trxid_t id, HID hid, LockMode mode
 ) {
-    std::unique_lock<std::mutex> own(mtx);
-    auto iter = trxs.find(id);
-    own.unlock();
-
-    CHECK_TRUE(iter != trxs.end());
-    return iter->second.require_lock(*lock_manager, hid, mode);
+    return use_trx<Status>(
+        id, Status::FAILURE,
+        &Transaction::require_lock, *lock_manager, hid, mode);
 }
 
 Status TransactionManager::release_locks(trxid_t id) {
-    std::unique_lock<std::mutex> own(mtx);
-    auto iter = trxs.find(id);
-    own.unlock();
-
-    CHECK_TRUE(iter != trxs.end());
-    return iter->second.release_locks(*lock_manager);
+    return use_trx<Status>(
+        id, Status::FAILURE,
+        &Transaction::release_locks, *lock_manager);
 }
 
-TrxState TransactionManager::trx_state(trxid_t id) const {
-    std::unique_lock<std::mutex> own(mtx);
-    auto iter = trxs.find(id);
-    own.unlock();
-
-    if (iter == trxs.end()) {
-        return TrxState::INVALID;
-    }
-    return iter->second.get_state();
+TrxState TransactionManager::trx_state(trxid_t id) {
+    return use_trx<TrxState>(id, TrxState::INVALID, &Transaction::get_state);
 }

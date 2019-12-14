@@ -142,7 +142,7 @@ public:
     Status release_locks(trxid_t id);
 
     /// Get transaction state.
-    TrxState trx_state(trxid_t id) const;
+    TrxState trx_state(trxid_t id);
 
 private:
     mutable std::mutex mtx;         /// System level mutex.
@@ -150,6 +150,18 @@ private:
 
     trxid_t last_id;                                    /// last transaction ID.
     std::unordered_map<trxid_t, Transaction> trxs;      /// all managed transactions.
+
+    template <typename R, typename F, typename... Args>
+    inline auto use_trx(trxid_t id, R&& retn, F&& method, Args&&... args) {
+        std::unique_lock<std::mutex> own(mtx);
+        auto iter = trxs.find(id);
+        if (iter == trxs.end()) {
+            return std::forward<R>(retn);
+        }
+
+        own.unlock();
+        return (iter->second.*method)(std::forward<Args>(args)...);
+    }
 
 #ifdef TEST_MODULE
     friend struct LockManagerTest;
