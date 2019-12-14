@@ -48,7 +48,8 @@ Status Transaction::end_trx(LockManager& manager) {
 Status Transaction::abort_trx(Database& dbms) {
     std::unique_lock<std::mutex> own(*mtx);
     state = TrxState::ABORTED;
-    for (Log const& log : dbms.logs.get_logs(id)) {
+    std::list<Log> logs = dbms.logs.get_logs(id);
+    for (Log const& log : logs) {
         FileManager* file = dbms.tables.find_file(log.hid.tid);
         CHECK_NULL(file);
         dbms.buffers.buffering(*file, log.hid.pid).write_void(
@@ -89,11 +90,12 @@ Status Transaction::require_lock(
 
 Status Transaction::release_locks(LockManager& manager) {
     std::unique_lock<std::mutex> own(*mtx);
+    bool acquire = state != TrxState::ABORTED;
     if (wait != nullptr) {
-        CHECK_SUCCESS(manager.release_lock(wait));
+        CHECK_SUCCESS(manager.release_lock(wait, acquire));
     }
     for (auto& pair : locks) {
-        CHECK_SUCCESS(manager.release_lock(pair.second));
+        CHECK_SUCCESS(manager.release_lock(pair.second, acquire));
     }
     locks.clear();
     return Status::SUCCESS;
@@ -149,26 +151,26 @@ trxid_t TransactionManager::new_trx() {
 Status TransactionManager::end_trx(trxid_t id) {
     std::unique_lock<std::mutex> own(mtx);
     auto iter = trxs.find(id);
-    own.unlock();
-
     CHECK_TRUE(iter != trxs.end());
-    CHECK_SUCCESS(iter->second.end_trx(*lock_manager));
+    Transaction& trx = iter->second;
+
+    own.unlock();
+    CHECK_SUCCESS(trx.end_trx(*lock_manager));
 
     own.lock();
-    trxs.erase(iter);
+    trxs.erase(id);
     return Status::SUCCESS;
 }
 
 Status TransactionManager::abort_trx(trxid_t id, Database& dbms) {
     std::unique_lock<std::mutex> own(mtx);
     auto iter = trxs.find(id);
-    own.unlock();
-
     CHECK_TRUE(iter != trxs.end());
-    CHECK_SUCCESS(iter->second.abort_trx(dbms));
 
-    own.lock();
-    trxs.erase(iter);
+    Transaction& trx = iter->second;
+    CHECK_SUCCESS(trx.abort_trx(dbms));
+
+    trxs.erase(id);
     return Status::SUCCESS;
 }
 
