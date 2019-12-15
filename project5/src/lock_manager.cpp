@@ -126,10 +126,6 @@ std::shared_ptr<Lock> LockManager::require_lock(
         return new_lock;
     }
 
-    while (backref->wait != nullptr) {
-        std::this_thread::yield();
-    }
-
     backref->wait = new_lock;
     backref->state = TrxState::WAITING;
 
@@ -137,8 +133,21 @@ std::shared_ptr<Lock> LockManager::require_lock(
     locks[id].wait.push_back(new_lock);
 
     own.unlock();
+
+    int selfcheck = 10;
     while (new_lock->stop() && backref->get_state() != TrxState::ABORTED) {
         detect_and_release();
+        if (--selfcheck == 0) {
+            own.lock();
+            
+            auto& target = locks[id].run.front();
+            if (db->trx_state(target->get_backref().id) == TrxState::INVALID) {
+                release_lock(target, false);
+            }
+
+            own.unlock();
+            selfcheck = 10;
+        }
         std::this_thread::yield();
     }
 
@@ -192,7 +201,7 @@ Status LockManager::release_lock(std::shared_ptr<Lock> lock, bool acquire) {
     } else {
         module.mode = LockMode::EXCLUSIVE;
 
-        auto lock = module.wait.front();
+        lock = module.wait.front();
         module.wait.pop_front();
         module.run.push_front(lock);
         lock->run();
