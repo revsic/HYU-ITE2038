@@ -138,15 +138,12 @@ std::shared_ptr<Lock> LockManager::require_lock(
     while (new_lock->stop() && backref->get_state() != TrxState::ABORTED) {
         detect_and_release();
         if (--selfcheck == 0) {
-            own.lock();
-            
+            selfcheck = 10;
+            std::unique_lock<std::mutex> inner(mtx);
             auto& target = locks[id].run.front();
             if (db->trx_state(target->get_backref().id) == TrxState::INVALID) {
                 release_lock(target, false);
             }
-
-            own.unlock();
-            selfcheck = 10;
         }
         std::this_thread::yield();
     }
