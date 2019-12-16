@@ -32,23 +32,27 @@ bool HierarchicalID::operator==(HierarchicalID const& other) const {
     return tid == other.tid && pid == other.pid && rid == other.rid;
 }
 
-Lock::Lock() : hid(), mode(LockMode::IDLE), backref(nullptr), wait_flag(false)
+Lock::Lock()
+    : hid(), mode(LockMode::IDLE)
+    , xid(INVALID_TRXID), backref(nullptr), wait_flag(false)
 {
     // Do Nothing
 }
 
-Lock::Lock(HID hid, LockMode mode, Transaction* backref
-) : hid(hid), mode(mode), backref(backref), wait_flag(false)
+Lock::Lock(HID hid, LockMode mode, Transaction* backref)
+    : hid(hid), mode(mode)
+    , xid(backref->get_id()), backref(backref), wait_flag(false)
 {
     // Do Nothing
 }
 
-Lock::Lock(Lock&& lock) noexcept :
-    hid(lock.hid), mode(lock.mode),
-    backref(lock.backref), wait_flag(lock.wait_flag.load())
+Lock::Lock(Lock&& lock) noexcept
+    : hid(lock.hid), mode(lock.mode)
+    , xid(lock.xid), backref(lock.backref), wait_flag(lock.wait_flag.load())
 {
     lock.hid = HID();
     lock.mode = LockMode::IDLE;
+    lock.xid = INVALID_TRXID;
     lock.backref = nullptr;
     lock.wait_flag = false;
 }
@@ -56,11 +60,13 @@ Lock::Lock(Lock&& lock) noexcept :
 Lock& Lock::operator=(Lock&& lock) noexcept {
     hid = lock.hid;
     mode = lock.mode;
+    xid = lock.xid;
     backref = lock.backref;
     wait_flag = lock.wait_flag.load();
 
     lock.hid = HID();
     lock.mode = LockMode::IDLE;
+    lock.xid = INVALID_TRXID;
     lock.backref = nullptr;
     lock.wait_flag = false;
 
@@ -73,6 +79,10 @@ HID Lock::get_hid() const {
 
 LockMode Lock::get_mode() const {
     return mode;
+}
+
+trxid_t Lock::get_xid() const {
+    return xid;
 }
 
 Transaction& Lock::get_backref() const {
@@ -135,13 +145,13 @@ std::shared_ptr<Lock> LockManager::require_lock(
     own.unlock();
 
     int selfcheck = 10;
-    while (new_lock->stop() && backref->get_state() != TrxState::ABORTED) {
+    while (new_lock->stop()) {
         detect_and_release();
         if (--selfcheck == 0) {
             selfcheck = 10;
             std::unique_lock<std::mutex> inner(mtx);
             auto& target = locks[id].run.front();
-            if (db->trx_state(target->get_backref().id) == TrxState::INVALID) {
+            if (db->trx_state(target->get_xid()) == TrxState::INVALID) {
                 release_lock(target, false);
             }
         }
