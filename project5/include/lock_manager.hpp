@@ -86,6 +86,8 @@ public:
     HID get_hid() const;
     /// Return lock mode.
     LockMode get_mode() const;
+    /// Return owner transaction id.
+    trxid_t get_xid() const;
     /// Return owner transaction.
     Transaction& get_backref() const;
     /// Whether this lock is waiting for others release or not.
@@ -98,6 +100,7 @@ public:
 private:
     HID hid;                        /// hierarchical ID.
     LockMode mode;                  /// lock mode.
+    trxid_t xid;                    /// owner transaction id.
     Transaction* backref;           /// owner transaction.
     std::atomic<bool> wait_flag;    /// whether waiting for others or not.
 
