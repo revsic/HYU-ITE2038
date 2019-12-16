@@ -86,7 +86,7 @@ int main() {
                 update_list[i][j][MAX_TRXSEQ] = idx;
                 dbms.end_trx(xid);
 
-                if (state == TrxState::ABORTED) {
+                if (state == TrxState::INVALID) {
                     if (++aborts > MAX_ABORTS) {
                         break;
                     }
@@ -152,7 +152,6 @@ int main() {
                         << "test failed: " << key
                         << (committed ? " committed" : " aborted")
                         << ", " << reinterpret_cast<char*>(rec.value) << std::endl;
-                    return 0;
                 }
             }
         }
