@@ -78,10 +78,11 @@ public:
 private:
     std::unique_ptr<std::mutex> mtx;                /// mutex;
     trxid_t id;                                     /// transaction ID.
-    TrxState state;                                 /// transaction state.
+    std::atomic<TrxState> state;                    /// transaction state.
     std::shared_ptr<Lock> wait;                     /// waiting lock.
     std::map<HID, std::shared_ptr<Lock>> locks;     /// all locks which trx owned.
 
+    friend class Lock;
     friend class LockManager;
 
     /// Elevate lock to stronger mode.
@@ -89,6 +90,7 @@ private:
         LockManager& manager, std::shared_ptr<Lock> lock, LockMode mode);
 
 #ifdef TEST_MODULE
+    friend class LockTest;
     friend struct LockManagerTest;
 #endif
 };
@@ -140,14 +142,26 @@ public:
     Status release_locks(trxid_t id);
 
     /// Get transaction state.
-    TrxState trx_state(trxid_t id) const;
+    TrxState trx_state(trxid_t id);
 
 private:
-    mutable std::mutex mtx;         /// System level mutex.
+    std::mutex mtx;         /// System level mutex.
     LockManager* lock_manager;      /// Lock manager pointer.
 
     trxid_t last_id;                                    /// last transaction ID.
     std::unordered_map<trxid_t, Transaction> trxs;      /// all managed transactions.
+
+    template <typename R, typename F, typename... Args>
+    inline auto use_trx(trxid_t id, R&& retn, F&& method, Args&&... args) {
+        std::unique_lock<std::mutex> own(mtx);
+        auto iter = trxs.find(id);
+        if (iter == trxs.end()) {
+            return std::forward<R>(retn);
+        }
+
+        own.unlock();
+        return (iter->second.*method)(std::forward<Args>(args)...);
+    }
 
 #ifdef TEST_MODULE
     friend struct LockManagerTest;

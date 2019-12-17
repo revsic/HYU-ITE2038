@@ -79,7 +79,7 @@ Status Database::abort_trx(trxid_t id) {
     return res;
 }
 
-TrxState Database::trx_state(trxid_t id) const {
+TrxState Database::trx_state(trxid_t id) {
     return trxs.trx_state(id);
 }
 

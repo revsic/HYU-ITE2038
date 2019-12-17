@@ -88,8 +88,8 @@ public:
     lsn_t log_end(trxid_t xid);
 
     /// Get all logs about given transaction ID.
-    /// \return std::list<Log> const&, log list in reverse chronological order.
-    std::list<Log> const& get_logs(trxid_t xid);
+    /// \return std::list<Log>, log list in reverse chronological order.
+    std::list<Log> get_logs(trxid_t xid);
 
     /// Remove transaction log about given transaction ID.
     /// \param xid trxid_t, transaction ID.
