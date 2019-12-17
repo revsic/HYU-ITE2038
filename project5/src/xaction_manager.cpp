@@ -122,7 +122,12 @@ Status Transaction::elevate_lock(
 ) {
     HID hid = lock->get_hid();
     CHECK_SUCCESS(manager.release_lock(lock));
-    locks[hid] = manager.require_lock(this, hid, mode);
+    auto new_lock = manager.require_lock(this, hid, mode);
+
+    if (state == TrxState::RUNNING) {
+        std::unique_lock<std::mutex> own(*mtx);
+        locks[hid] = new_lock;
+    }
     return Status::SUCCESS;
 }
 
