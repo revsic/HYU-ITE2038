@@ -12,3 +12,5 @@ Database Systems and Applications in Hanyang University
 4. project4: Join [LINK](./project4)
 
 5. project5: Concurrency Control [LINK](./project5)
+
+6. project6: Crash recovery [LINK](./project6)
